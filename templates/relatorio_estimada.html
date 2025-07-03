@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Receita Estimada (Comparativo Anual)</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="{{ url_for('static', filename='js/export.js') }}"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; }
+        .page-container { max-width: 1400px; margin: 0 auto; background: white; padding: 25px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        h1 { text-align: center; margin: 0; flex-grow: 1; font-size: 16px; }
+        .botoes-acao button { padding: 10px 15px; font-size: 14px; cursor: pointer; border: none; border-radius: 5px; margin-left: 10px; color: white; }
+        #btn-analise-ia { background-color: #6f42c1; }
+        #btn-atualizar { background-color: #0d6efd; }
+        #btn-jpg { background-color: #198754; }
+        table { border-collapse: collapse; width: 100%; font-size: 14px; }
+        th, td { border: 1px solid #666; padding: 8px; text-align: right; }
+        th { background-color: #003366; color: white; text-align: center; white-space: nowrap; }
+        td:first-child { text-align: left; font-weight: bold; }
+        .linha-principal { background-color: #cce5ff; }
+        .linha-filha td:first-child { font-weight: normal; padding-left: 30px !important; }
+        .linha-total { background-color: #cce5ff; }
+        #container-analise { display:none; margin-top: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9; }
+        #texto-analise { white-space: pre-wrap; line-height: 1.6; color: #333; }
+        #texto-analise h1, #texto-analise h2, #texto-analise h3, #texto-analise strong { color: #003366; }
+    </style>
+</head>
+<body>
+    <div class="page-container" id="conteudo-para-exportar">
+        <div class="header-container">
+            <a href="/">&larr; Voltar</a>
+            <h1>RECEITA ESTIMADA LÍQUIDA - COMPARATIVO ANUAL</h1>
+            <div class="botoes-acao">
+                <button id="btn-analise-ia">Analisar com IA</button>
+                <button id="btn-atualizar">Atualizar Dados</button>
+                <button id="btn-jpg">Baixar Tabela (JPG)</button>
+            </div>
+        </div>
+        <table id="tabela-relatorio">
+            <thead>
+                <tr>
+                    <th rowspan="2">ESPECIFICAÇÃO</th><th colspan="2">2024</th><th colspan="2">2025</th><th rowspan="2">Δ%</th>
+                </tr>
+                <tr>
+                    <th>RECEITA PREVISTA</th><th>%</th><th>RECEITA PREVISTA</th><th>%</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for linha in dados_relatorio %}
+                <tr class="linha-{{ linha.tipo }}">
+                    <td>{{ linha.especificacao }}</td>
+                    <td>{{ linha.valor_2024_fmt }}</td>
+                    <td>{{ linha.perc_2024_fmt }}</td>
+                    <td>{{ linha.valor_2025_fmt }}</td>
+                    <td>{{ linha.perc_2025_fmt }}</td>
+                    <td>{{ linha.delta_fmt }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div id="container-analise" class="page-container" style="margin-top:10px;">
+        <h2>Análise da Inteligência Artificial</h2>
+        <div id="texto-analise"></div>
+    </div>
+    <script>
+        const dadosParaIA = {{ dados_para_ia | tojson | safe }};
+        document.getElementById('btn-analise-ia').addEventListener('click', function() {
+            const containerAnalise = document.getElementById('container-analise');
+            const textoAnalise = document.getElementById('texto-analise');
+            this.disabled = true;
+            this.textContent = 'Analisando...';
+            textoAnalise.innerHTML = 'Analisando os dados, por favor aguarde...';
+            containerAnalise.style.display = 'block';
+            fetch('/api/analise-ia', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dados: dadosParaIA, tipo_relatorio: 'comparativo_anual' }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                textoAnalise.innerHTML = data.erro ? `<strong style="color: red;">Erro:</strong> ${data.erro}` : marked.parse(data.analise);
+            })
+            .catch(error => {
+                textoAnalise.innerHTML = `<strong style="color: red;">Erro de comunicação:</strong> ${error}`;
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.textContent = 'Analisar com IA';
+            });
+        });
+        document.getElementById('btn-atualizar').addEventListener('click', () => window.location.reload(true));
+        document.getElementById('btn-jpg').addEventListener('click', () => {
+            exportarElementoParaJPG('conteudo-para-exportar', 'relatorio-comparativo-anual');
+        });
+    </script>
+</body>
+</html>

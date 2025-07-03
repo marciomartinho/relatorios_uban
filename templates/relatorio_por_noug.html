@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receita Realizada por Unidade Gestora</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; }
+        .page-container { max-width: 1400px; margin: 0 auto; background: white; padding: 25px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        h1 { text-align: center; margin: 0; flex-grow: 1; font-size: 16px; }
+        .botoes-acao button { padding: 10px 15px; font-size: 14px; cursor: pointer; border: none; border-radius: 5px; margin-left: 10px; color: white; }
+        #btn-analise-ia { background-color: #6f42c1; }
+        #btn-atualizar { background-color: #0d6efd; }
+        #btn-pdf { background-color: #dc3545; }
+        table { border-collapse: collapse; width: 100%; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+        th { background-color: #003366; color: white; text-align: center; white-space: nowrap; }
+        td:first-child { text-align: left; }
+        .linha-principal { background-color: #cce5ff; font-weight: bold; }
+        .linha-filha td:first-child { font-weight: normal; padding-left: 30px !important; }
+        #container-analise { display:none; margin-top: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9; }
+        #texto-analise { white-space: pre-wrap; line-height: 1.6; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <div class="header-container">
+            <a href="/">&larr; Voltar</a>
+            <h1>Receita Realizada por Unidade Gestora (NOUG)</h1>
+            <div class="botoes-acao">
+                <button id="btn-analise-ia">Analisar com IA</button>
+                <button id="btn-atualizar">Atualizar Dados</button>
+                <button id="btn-pdf">Baixar PDF</button>
+            </div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ESPECIFICAÇÃO</th>
+                    <th>RECEITA REALIZADA 2024</th>
+                    <th>RECEITA REALIZADA 2025</th>
+                    <th>VARIAÇÃO %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for linha in dados_relatorio %}
+                    <tr class="linha-{{ linha.tipo }}">
+                        <td>{{ linha.especificacao }}</td>
+                        <td>{{ linha.valor_2024_fmt }}</td>
+                        <td>{{ linha.valor_2025_fmt }}</td>
+                        <td>{{ linha.delta_fmt }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div id="container-analise" class="page-container" style="margin-top:10px;">
+        <h2>Análise da Inteligência Artificial</h2>
+        <div id="texto-analise"></div>
+    </div>
+
+    <script>
+        const dadosParaIA = {{ dados_para_ia | tojson | safe }};
+        const dadosPDF = {{ dados_pdf | tojson | safe }};
+
+        document.getElementById('btn-atualizar').addEventListener('click', () => window.location.reload(true));
+
+        document.getElementById('btn-analise-ia').addEventListener('click', function() {
+            const containerAnalise = document.getElementById('container-analise');
+            const textoAnalise = document.getElementById('texto-analise');
+            this.disabled = true; this.textContent = 'Analisando...';
+            textoAnalise.innerHTML = 'Analisando os dados, por favor aguarde...';
+            containerAnalise.style.display = 'block';
+
+            fetch('/api/analise-ia', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dados: dadosParaIA, tipo_relatorio: 'por_noug' }),
+            })
+            .then(res => res.json())
+            .then(data => {
+                textoAnalise.innerHTML = data.erro ? `<strong style="color: red;">Erro:</strong> ${data.erro}` : marked.parse(data.analise);
+            })
+            .catch(err => {
+                textoAnalise.innerHTML = `<strong style="color: red;">Erro de comunicação:</strong> ${err}`;
+            })
+            .finally(() => {
+                this.disabled = false; this.textContent = 'Analisar com IA';
+            });
+        });
+
+        document.getElementById('btn-pdf').addEventListener('click', () => {
+            alert('Gerando PDF...');
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4');
+            doc.setFontSize(16);
+            doc.text("Receita Realizada por Unidade Gestora", doc.internal.pageSize.getWidth() / 2, 40, { align: 'center' });
+            doc.autoTable({
+                head: dadosPDF.head,
+                body: dadosPDF.body,
+                startY: 60,
+                theme: 'grid',
+                headStyles: { fillColor: [0, 51, 102], textColor: [255, 255, 255], halign: 'center' },
+                styles: { fontSize: 8, cellPadding: 4 },
+                didParseCell: (data) => {
+                    if (data.row.section === 'body' && data.column.index > 0) { data.cell.styles.halign = 'right'; }
+                },
+                willDrawCell: (data) => {
+                    const especificacao = data.row.cells[0].text[0];
+                    const isPrincipal = dadosParaIA.some(item => item.tipo === 'principal' && item.especificacao === especificacao);
+                    if (isPrincipal) {
+                        doc.setFillColor(204, 229, 255);
+                        doc.setFont(undefined, 'bold');
+                    }
+                }
+            });
+            doc.save('relatorio-por-noug.pdf');
+        });
+    </script>
+</body>
+</html>

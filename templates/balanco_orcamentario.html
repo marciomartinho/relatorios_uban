@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balanço Orçamentário da Receita</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; }
+        .page-container { max-width: 1400px; margin: 0 auto; background: white; padding: 25px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .report-header { text-align: center; flex-grow: 1; }
+        h1 { margin: 0; font-size: 1.5em; }
+        h2, h3 { margin: 5px 0; font-size: 1.1em; font-weight: normal; }
+        h3 { color: #555; }
+        .botoes-acao { display: flex; gap: 10px; }
+        .botoes-acao button { padding: 8px 12px; font-size: 12px; cursor: pointer; border: none; border-radius: 5px; color: white; }
+        #btn-analise-ia { background-color: #6f42c1; }
+        #btn-atualizar { background-color: #0d6efd; }
+        #btn-pdf { background-color: #dc3545; }
+        .filtro-container { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; padding: 15px; background-color: #e7f2ff; border-radius: 8px; }
+        .filtro-container label { font-weight: bold; }
+        .filtro-container select { padding: 8px; border-radius: 5px; border: 1px solid #ccc; flex-grow: 1; }
+        table { border-collapse: collapse; width: 100%; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+        th { background-color: #003366; color: white; text-align: center; white-space: nowrap; vertical-align: middle; }
+        td:first-child { text-align: left; }
+        .level-1 { background-color: #cce5ff; font-weight: bold; }
+        .level-2 { background-color: #e7f2ff; font-weight: bold; }
+        .level-2 td:first-child { padding-left: 20px !important; }
+        .level-3 { font-weight: normal; }
+        .level-3 td:first-child { padding-left: 40px !important; }
+        .level-4 { font-style: italic; color: #333; }
+        .level-4 td:first-child { padding-left: 60px !important; }
+        .total { background-color: #003366; color: white; font-weight: bold; font-size: 1.1em; }
+        .valor-negativo { color: red; }
+        #container-analise { display:none; margin-top: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9; }
+        #texto-analise { white-space: pre-wrap; line-height: 1.6; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <div class="header-container">
+            <a href="/">&larr; Voltar para o Menu</a>
+            <div class="report-header">
+                <h1>BALANÇO ORÇAMENTÁRIO DA RECEITA</h1>
+                <h2>Exercício 2025</h2>
+                <h3>Dados de Referência: {{ mes_ref }}/2025</h3>
+            </div>
+            <div class="botoes-acao">
+                <button id="btn-analise-ia">Analisar com IA</button>
+                <button id="btn-atualizar">Atualizar Dados</button>
+                <button id="btn-pdf">Baixar PDF</button>
+            </div>
+        </div>
+        <div class="filtro-container">
+            <label for="filtro-noug">Filtrar por Unidade Gestora (NOUG):</label>
+            <select id="filtro-noug" onchange="aplicarFiltro()">
+                <option value="todos">-- Mostrar Todas as Unidades (Consolidado) --</option>
+                {% for noug in lista_nougs %}
+                    <option value="{{ noug }}" {% if noug == noug_selecionada %}selected{% endif %}>
+                        {{ noug }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">RECEITAS</th>
+                    <th>PREVISÃO INICIAL</th>
+                    <th>PREVISÃO ATUALIZADA</th>
+                    <th>RECEITA REALIZADA</th>
+                    <th>RECEITA REALIZADA</th>
+                    <th>VARIAÇÃO</th>
+                </tr>
+                <tr>
+                    <th>2025</th>
+                    <th>2025</th>
+                    <th>{{ mes_ref }}/2025</th>
+                    <th>{{ mes_ref }}/2024</th>
+                    <th>2025 x 2024</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for linha in dados_relatorio %}
+                    <tr class="{{ linha.tipo }}">
+                        <td>{{ linha.especificacao }}</td>
+                        <td>{{ linha.pi_2025_fmt }}</td>
+                        <td>{{ linha.pa_2025_fmt }}</td>
+                        <td>{{ linha.rr_2025_fmt }}</td>
+                        <td>{{ linha.rr_2024_fmt }}</td>
+                        <td class="{% if linha.saldo < 0 %}valor-negativo{% endif %}">
+                            {{ linha.saldo_fmt }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div id="container-analise" class="page-container" style="margin-top:10px;">
+        <h2>Análise da Inteligência Artificial</h2>
+        <div id="texto-analise"></div>
+    </div>
+    <script>
+        document.getElementById('btn-atualizar').addEventListener('click', () => window.location.reload(true));
+
+        const dadosParaIA = {{ dados_para_ia | tojson | safe }};
+        document.getElementById('btn-analise-ia').addEventListener('click', function() {
+            const containerAnalise = document.getElementById('container-analise');
+            const textoAnalise = document.getElementById('texto-analise');
+            this.disabled = true; this.textContent = 'Analisando...';
+            textoAnalise.innerHTML = 'Analisando os dados...';
+            containerAnalise.style.display = 'block';
+            fetch('/api/analise-ia', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dados: dadosParaIA, tipo_relatorio: 'balanco_orcamentario' }),
+            })
+            .then(res => res.json()).then(data => { textoAnalise.innerHTML = data.erro ? `<strong style="color: red;">Erro:</strong> ${data.erro}` : marked.parse(data.analise); })
+            .catch(err => { textoAnalise.innerHTML = `<strong style="color: red;">Erro:</strong> ${err}`; })
+            .finally(() => { this.disabled = false; this.textContent = 'Analisar com IA'; });
+        });
+
+        const dadosPDF = {{ dados_pdf | tojson | safe }};
+        document.getElementById('btn-pdf').addEventListener('click', () => {
+            alert('Gerando PDF...');
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4');
+            doc.setFontSize(16);
+            doc.text("Balanço Orçamentário da Receita (2025)", doc.internal.pageSize.getWidth() / 2, 40, { align: 'center' });
+            doc.autoTable({
+                head: dadosPDF.head,
+                body: dadosPDF.body,
+                startY: 60,
+                theme: 'grid',
+                headStyles: { fillColor: [0, 51, 102], textColor: [255, 255, 255], halign: 'center' },
+                willDrawCell: (data) => {
+                    const tipo = dadosParaIA[data.row.index].tipo;
+                    if (tipo === 'level-1' || tipo === 'total') { doc.setFillColor(204, 229, 255); }
+                    if (tipo === 'level-2') { doc.setFillColor(231, 242, 255); }
+                    if (tipo.includes('level') || tipo === 'total') { doc.setFont(undefined, 'bold'); }
+                    if (tipo === 'total') { doc.setTextColor(255, 255, 255); doc.setFillColor(0, 51, 102); }
+                }
+            });
+            doc.save('balanco-orcamentario.pdf');
+        });
+
+        function aplicarFiltro() {
+            const select = document.getElementById('filtro-noug');
+            const nougSelecionada = select.value;
+            if (nougSelecionada === 'todos') {
+                window.location.href = '/relatorio/balanco-orcamentario';
+            } else {
+                window.location.href = `/relatorio/balanco-orcamentario?noug=${encodeURIComponent(nougSelecionada)}`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Receita por Tipo de Administração</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="{{ url_for('static', filename='js/export.js') }}"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; }
+        .page-container { max-width: 1400px; margin: 0 auto; background: white; padding: 25px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        h1 { text-align: center; margin: 0; flex-grow: 1; font-size: 16px; }
+        .botoes-acao button { padding: 10px 15px; font-size: 14px; cursor: pointer; border: none; border-radius: 5px; margin-left: 10px; color: white; }
+        #btn-analise-ia { background-color: #6f42c1; }
+        #btn-atualizar { background-color: #0d6efd; }
+        #btn-pdf { background-color: #dc3545; }
+        #btn-tabela-jpg { background-color: #198754; }
+        #btn-grafico-jpg { background-color: #0dcaf0; }
+        table { border-collapse: collapse; width: 100%; font-size: 14px; margin-bottom: 40px; }
+        th, td { border: 1px solid #666; padding: 8px; text-align: right; }
+        th { background-color: #003366; color: white; text-align: center; white-space: nowrap; }
+        td:first-child { text-align: left; font-weight: bold; }
+        .linha-principal { background-color: #cce5ff; }
+        .linha-filha td:first-child { font-weight: normal; padding-left: 30px !important; }
+        .linha-total { background-color: #cce5ff; }
+        .grafico-wrapper { display: flex; align-items: center; justify-content: center; gap: 40px; }
+        .chart-container { width: 60%; max-width: 500px; }
+        .custom-legend-container { width: 40%; font-size: 14px; }
+        .legend-title { font-weight: bold; font-size: 1.1em; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        .legend-list { list-style: none; padding: 0; margin: 0; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 8px; }
+        .legend-color-box { width: 15px; height: 15px; margin-right: 10px; border: 1px solid #ccc; }
+        .legend-label { flex-grow: 1; }
+        .legend-value { font-weight: bold; text-align: right; }
+        #container-analise { display:none; margin-top: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9; }
+        #texto-analise { white-space: pre-wrap; line-height: 1.6; color: #333; }
+        #texto-analise h1, #texto-analise h2, #texto-analise h3, #texto-analise strong { color: #003366; }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <div class="header-container">
+            <a href="/">&larr; Voltar</a>
+            <h1>RECEITA ESTIMADA LÍQUIDA - POR TIPO DE ADMINISTRAÇÃO (Exercício 2025)</h1>
+            <div class="botoes-acao">
+                <button id="btn-analise-ia">Analisar com IA</button>
+                <button id="btn-atualizar">Atualizar Dados</button>
+                <button id="btn-pdf">Baixar PDF</button>
+                <button id="btn-tabela-jpg">Baixar Tabela (JPG)</button>
+                <button id="btn-grafico-jpg">Baixar Gráfico (JPG)</button>
+            </div>
+        </div>
+        <table id="tabela-relatorio">
+            <thead>
+                <tr>
+                    <th>ESPECIFICAÇÃO</th>
+                    {% for header in colunas %}<th>{{ header.replace("_", " ").upper() }}</th>{% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for linha in dados_relatorio %}
+                <tr class="linha-{{ linha.tipo }}">
+                    <td>{{ linha.especificacao }}</td>
+                    {% for header in colunas %}<td>{{ linha[header] }}</td>{% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="grafico-wrapper" id="grafico-wrapper">
+            <div class="chart-container"><canvas id="graficoRosca"></canvas></div>
+            <div class="custom-legend-container">
+                <div class="legend-title">Receita por Administração (R$)</div>
+                <ul id="legenda-customizada" class="legend-list"></ul>
+            </div>
+        </div>
+    </div>
+    <div id="container-analise" class="page-container" style="margin-top:10px;">
+        <h2>Análise da Inteligência Artificial</h2>
+        <div id="texto-analise"></div>
+    </div>
+    <script>
+        const dadosGrafico = {{ dados_grafico | tojson | safe }};
+        const dadosPDF = {{ dados_pdf | tojson | safe }};
+        const dadosParaIA = {{ dados_para_ia | tojson | safe }};
+        Chart.register(ChartDataLabels);
+        const canvasGrafico = document.getElementById('graficoRosca');
+        const chart = new Chart(canvasGrafico.getContext('2d'), {type: 'doughnut',data: {labels: dadosGrafico.labels,datasets: [{data: dadosGrafico.data,backgroundColor: ['#2E4057','#4A90E2','#50E3C2','#F5A623','#9013FE'],borderColor: '#fff',borderWidth: 2,}]},options: {responsive: true, maintainAspectRatio: false, animation: false, plugins: {legend: { display: false },title: { display: true, text: 'Composição da Receita Líquida - 2025', font: { size: 18 } },datalabels: {formatter: (v, ctx) => {const s = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0); const p = v * 100 / s; return p > 2 ? p.toFixed(2) + '%' : '';},color: '#fff',font: { weight: 'bold' }}} }});
+        const legendaContainer = document.getElementById('legenda-customizada');
+        function formatarNumeroJS(v) { return "R$ " + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+        chart.data.labels.forEach((label, i) => {
+            legendaContainer.innerHTML += `<li class="legend-item"><span class="legend-color-box" style="background-color:${chart.data.datasets[0].backgroundColor[i]}"></span><span class="legend-label">${label}</span><span class="legend-value">${formatarNumeroJS(chart.data.datasets[0].data[i])}</span></li>`;
+        });
+        document.getElementById('btn-analise-ia').addEventListener('click', function() {
+            const containerAnalise = document.getElementById('container-analise');
+            const textoAnalise = document.getElementById('texto-analise');
+            this.disabled = true; this.textContent = 'Analisando...';
+            textoAnalise.innerHTML = 'Analisando os dados, por favor aguarde...';
+            containerAnalise.style.display = 'block';
+            fetch('/api/analise-ia', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dados: dadosParaIA, tipo_relatorio: 'por_administracao' }),
+            })
+            .then(res => res.json()).then(data => { textoAnalise.innerHTML = data.erro ? `<strong style="color: red;">Erro:</strong> ${data.erro}` : marked.parse(data.analise); })
+            .catch(err => { textoAnalise.innerHTML = `<strong style="color: red;">Erro:</strong> ${err}`; })
+            .finally(() => { this.disabled = false; this.textContent = 'Analisar com IA'; });
+        });
+        document.getElementById('btn-atualizar').addEventListener('click', () => window.location.reload(true));
+        document.getElementById('btn-tabela-jpg').addEventListener('click', () => exportarElementoParaJPG('tabela-relatorio', 'tabela-por-adm'));
+        document.getElementById('btn-grafico-jpg').addEventListener('click', () => exportarElementoParaJPG('grafico-wrapper', 'grafico-por-adm'));
+        document.getElementById('btn-pdf').addEventListener('click', function() {
+            alert('Gerando PDF com 2 páginas...');
+            html2canvas(document.getElementById('grafico-wrapper'), {backgroundColor: null}).then(canvas => {
+                const chartImgData = canvas.toDataURL('image/png', 1.0);
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('landscape', 'pt', 'a4');
+                doc.setFontSize(16);
+                doc.text("RECEITA ESTIMADA LÍQUIDA - POR TIPO DE ADMINISTRAÇÃO (2025)", doc.internal.pageSize.getWidth() / 2, 40, { align: 'center' });
+                doc.autoTable({
+                    head: dadosPDF.head, body: dadosPDF.body, startY: 60, theme: 'grid',
+                    headStyles: { fillColor: [0, 51, 102], textColor: [255, 255, 255], halign: 'center' },
+                    willDrawCell: (data) => { const tipo = dadosParaIA[data.row.index].tipo; if (tipo === 'principal' || tipo === 'total') { doc.setFillColor(204, 229, 255); doc.setFont(undefined, 'bold'); } },
+                });
+                doc.addPage();
+                const chartWidth = 450;
+                const chartHeight = (canvas.height * chartWidth) / canvas.width;
+                doc.addImage(chartImgData, 'PNG', (doc.internal.pageSize.getWidth() - chartWidth) / 2, (doc.internal.pageSize.getHeight() - chartHeight) / 2, chartWidth, chartHeight);
+                doc.save('relatorio-por-adm.pdf');
+            });
+        });
+    </script>
+</body>
+</html>
