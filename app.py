@@ -3,6 +3,7 @@ import pandas as pd
 from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 from openai import OpenAI
+import time
 
 load_dotenv()
 
@@ -18,12 +19,25 @@ from motor_relatorios import (
     gerar_relatorio_previsao_atualizada
 )
 
+# Importa o serviço de cache
+from cache_service import cache_service
+
 app = Flask(__name__)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def carregar_dataframe_receita():
-    """Carrega dados de receita"""
+    """Carrega dados de receita com cache"""
     caminho_arquivo = os.path.join('dados', 'RECEITA.xlsx')
+    
+    # Tenta carregar do cache primeiro
+    df_cached = cache_service.get_cached_dataframe(caminho_arquivo, 'receita')
+    if df_cached is not None:
+        return df_cached
+    
+    print("🔄 Carregando dados de receita do Excel...")
+    inicio = time.time()
+    
+    # Carrega do Excel
     dtype_map = {
         'CATEGORIA': str, 'NOCATEGORIARECEITA': str,
         'ORIGEM': str, 'NOFONTERECEITA': str,
@@ -32,35 +46,87 @@ def carregar_dataframe_receita():
         'INTIPOADM': int,
         'NOUG': str
     }
-    return pd.read_excel(caminho_arquivo, dtype=dtype_map)
+    df = pd.read_excel(caminho_arquivo, dtype=dtype_map)
+    
+    # Salva no cache
+    cache_service.cache_dataframe(df, caminho_arquivo, 'receita')
+    
+    fim = time.time()
+    print(f"⏱️ Dados de receita carregados em {fim - inicio:.2f} segundos")
+    
+    return df
 
 def carregar_dataframe_despesa():
-    """Carrega dados de despesa"""
+    """Carrega dados de despesa com cache e otimizações"""
     caminho_arquivo = os.path.join('dados', 'DESPESA.xlsx')
     
     if not os.path.exists(caminho_arquivo):
         return pd.DataFrame()
     
-    # Carrega o Excel
-    df = pd.read_excel(caminho_arquivo, sheet_name=0)
+    # Tenta carregar do cache primeiro
+    df_cached = cache_service.get_cached_dataframe(caminho_arquivo, 'despesa')
+    if df_cached is not None:
+        return df_cached
     
-    # Aplica tipos de dados
-    dtype_map = {
-        'CATEGORIA': str, 'NOCATEGORIA': str,
-        'GRUPO': str, 'NOGRUPO': str,
-        'MODALIDADE': str, 'NOMODALIDADE': str,
-        'ELEMENTO': str, 'NOELEMENTO': str,
-        'COEXERCICIO': int,
-        'INMES': int,
-        'INTIPOADM': int,
-        'NOUG': str
-    }
+    print("🔄 Carregando dados de despesa do Excel...")
+    inicio = time.time()
     
-    for col, dtype in dtype_map.items():
-        if col in df.columns:
-            df[col] = df[col].astype(dtype)
+    # Carrega apenas as colunas necessárias para melhor performance
+    colunas_necessarias = [
+        'CATEGORIA', 'NOCATEGORIA', 'GRUPO', 'NOGRUPO',
+        'MODALIDADE', 'NOMODALIDADE', 'ELEMENTO', 'NOELEMENTO',
+        'COEXERCICIO', 'INMES', 'INTIPOADM', 'NOUG',
+        'DOTACAO INICIAL', 'DOTACAO ADICIONAL', 'CANCELAMENTO DE DOTACAO',
+        'CANCEL-REMANEJA DOTACAO', 'DESPESA EMPENHADA', 'DESPESA LIQUIDADA',
+        'DESPESA PAGA', 'SALDO DOTACAO'
+    ]
     
-    return df
+    try:
+        # Lê apenas as colunas necessárias
+        df = pd.read_excel(
+            caminho_arquivo, 
+            sheet_name=0,
+            usecols=lambda x: x in colunas_necessarias,
+            dtype={
+                'CATEGORIA': str, 'NOCATEGORIA': str,
+                'GRUPO': str, 'NOGRUPO': str,
+                'MODALIDADE': str, 'NOMODALIDADE': str,
+                'ELEMENTO': str, 'NOELEMENTO': str,
+                'COEXERCICIO': 'int32',  # Usa int32 para economizar memória
+                'INMES': 'int32',
+                'INTIPOADM': 'int32',
+                'NOUG': str,
+                # Colunas numéricas como float32 para economizar memória
+                'DOTACAO INICIAL': 'float32',
+                'DOTACAO ADICIONAL': 'float32',
+                'CANCELAMENTO DE DOTACAO': 'float32',
+                'CANCEL-REMANEJA DOTACAO': 'float32',
+                'DESPESA EMPENHADA': 'float32',
+                'DESPESA LIQUIDADA': 'float32',
+                'DESPESA PAGA': 'float32'
+            }
+        )
+        
+        # Pré-filtra apenas dados de 2025 para economizar memória
+        df = df[df['COEXERCICIO'] == 2025].copy()
+        
+        # Otimiza strings categóricas
+        for col in ['CATEGORIA', 'NOCATEGORIA', 'GRUPO', 'NOGRUPO', 'NOUG']:
+            if col in df.columns:
+                df[col] = df[col].astype('category')
+        
+        # Salva no cache
+        cache_service.cache_dataframe(df, caminho_arquivo, 'despesa')
+        
+        fim = time.time()
+        print(f"⏱️ Dados de despesa carregados em {fim - inicio:.2f} segundos")
+        print(f"📊 {len(df):,} registros carregados (apenas 2025)")
+        
+        return df
+        
+    except Exception as e:
+        print(f"❌ Erro ao carregar dados: {e}")
+        return pd.DataFrame()
 
 @app.route('/')
 def index():
@@ -71,6 +137,7 @@ def index():
 @app.route('/relatorio/balanco-orcamentario')
 def relatorio_balanco_orcamentario():
     try:
+        inicio = time.time()
         df_completo = carregar_dataframe_receita()
         lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
         noug_selecionada = request.args.get('noug', None)
@@ -78,6 +145,9 @@ def relatorio_balanco_orcamentario():
         dados_tabela, mes_referencia, dados_para_ia, dados_pdf = gerar_balanco_orcamentario(
             df_completo, HIERARQUIA_RECEITAS, noug_selecionada
         )
+        
+        fim = time.time()
+        print(f"⏱️ Relatório de receita gerado em {fim - inicio:.2f} segundos")
         
         return render_template('balanco_orcamentario.html', 
                                dados_relatorio=dados_tabela,
@@ -91,23 +161,12 @@ def relatorio_balanco_orcamentario():
                              titulo="Erro no Relatório de Receita",
                              mensagem=f"Erro ao gerar relatório: {str(e)}")
 
-@app.route('/relatorio/receita-estimada')
-def relatorio_receita_estimada():
-    return "Relatório em desenvolvimento", 501
-
-@app.route('/relatorio/receita-por-adm')
-def relatorio_receita_por_adm():
-    return "Relatório em desenvolvimento", 501
-
-@app.route('/relatorio/previsao-atualizada')
-def relatorio_previsao_atualizada():
-    return "Relatório em desenvolvimento", 501
-
 # ===================== ROTAS DE DESPESA =====================
 
 @app.route('/relatorio/balanco-despesa')
 def relatorio_balanco_despesa():
     try:
+        inicio = time.time()
         df_completo = carregar_dataframe_despesa()
         
         # Verifica se há dados
@@ -132,6 +191,9 @@ def relatorio_balanco_despesa():
             df_completo, None, noug_selecionada
         )
         
+        fim = time.time()
+        print(f"⏱️ Relatório de despesa gerado em {fim - inicio:.2f} segundos")
+        
         return render_template('despesas/balanco_despesa.html',
                                dados_relatorio=dados_tabela,
                                mes_ref=mes_referencia,
@@ -144,52 +206,69 @@ def relatorio_balanco_despesa():
                              titulo="Erro no Relatório de Despesa",
                              mensagem=f"Erro ao gerar relatório: {str(e)}")
 
-@app.route('/relatorio/despesa-por-funcao')
-def relatorio_despesa_por_funcao():
+# ===================== ROTAS DE CACHE =====================
+
+@app.route('/admin/cache/info')
+def cache_info():
+    """Mostra informações do cache"""
+    info = cache_service.get_cache_info()
+    return jsonify(info)
+
+@app.route('/admin/cache/clear')
+def clear_cache():
+    """Limpa todo o cache"""
+    cache_service.clear_cache()
+    return jsonify({"status": "Cache limpo com sucesso"})
+
+# ===================== ROTA DE TESTE =====================
+
+@app.route('/teste-despesa')
+def teste_despesa():
+    """Rota para testar carregamento dos dados"""
+    try:
+        inicio = time.time()
+        df = carregar_dataframe_despesa()
+        fim = time.time()
+        
+        if df.empty:
+            return "❌ Arquivo DESPESA.xlsx não encontrado ou vazio"
+        
+        info = f"""
+        <h2>✅ Dados de Despesa Carregados</h2>
+        <p><strong>Tempo de carregamento:</strong> {fim - inicio:.2f} segundos</p>
+        <p><strong>Linhas:</strong> {len(df):,}</p>
+        <p><strong>Colunas:</strong> {len(df.columns)}</p>
+        <p><strong>Exercícios:</strong> {sorted(df['COEXERCICIO'].unique().tolist()) if 'COEXERCICIO' in df.columns else 'N/A'}</p>
+        <p><strong>Meses:</strong> {sorted(df['INMES'].unique().tolist()) if 'INMES' in df.columns else 'N/A'}</p>
+        <p><strong>Uso de memória:</strong> {df.memory_usage(deep=True).sum() / 1024 / 1024:.2f} MB</p>
+        
+        <h3>Informações do Cache:</h3>
+        <p><strong>Arquivos em cache:</strong> {cache_service.get_cache_info()['total_files']}</p>
+        <p><strong>Tamanho do cache:</strong> {cache_service.get_cache_info()['total_size_mb']} MB</p>
+        
+        <h3>Ações:</h3>
+        <p><a href="/relatorio/balanco-despesa">🔗 Testar Relatório de Despesa</a></p>
+        <p><a href="/admin/cache/clear">🗑️ Limpar Cache</a></p>
+        <p><a href="/">🏠 Voltar ao Menu</a></p>
+        """
+        
+        return info
+        
+    except Exception as e:
+        return f"❌ Erro ao carregar: {str(e)}"
+
+# ===================== OUTRAS ROTAS =====================
+
+@app.route('/relatorio/receita-estimada')
+def relatorio_receita_estimada():
     return "Relatório em desenvolvimento", 501
 
-@app.route('/relatorio/despesa-por-natureza')
-def relatorio_despesa_por_natureza():
+@app.route('/relatorio/receita-por-adm')
+def relatorio_receita_por_adm():
     return "Relatório em desenvolvimento", 501
 
-@app.route('/relatorio/despesa-por-modalidade')
-def relatorio_despesa_por_modalidade():
-    return "Relatório em desenvolvimento", 501
-
-@app.route('/relatorio/despesa-por-noug')
-def relatorio_despesa_por_noug():
-    return "Relatório em desenvolvimento", 501
-
-@app.route('/relatorio/execucao-por-programa')
-def relatorio_execucao_por_programa():
-    return "Relatório em desenvolvimento", 501
-
-# ===================== ROTAS COMPARATIVAS =====================
-
-@app.route('/relatorio/receita-vs-despesa')
-def relatorio_receita_vs_despesa():
-    return "Relatório em desenvolvimento", 501
-
-@app.route('/relatorio/evolucao-temporal')
-def relatorio_evolucao_temporal():
-    return "Relatório em desenvolvimento", 501
-
-@app.route('/relatorio/indicadores')
-def relatorio_indicadores():
-    return "Relatório em desenvolvimento", 501
-
-# ===================== ROTAS GERENCIAIS =====================
-
-@app.route('/relatorio/dashboard')
-def relatorio_dashboard():
-    return "Relatório em desenvolvimento", 501
-
-@app.route('/relatorio/restos-pagar')
-def relatorio_restos_pagar():
-    return "Relatório em desenvolvimento", 501
-
-@app.route('/relatorio/tendencias')
-def relatorio_tendencias():
+@app.route('/relatorio/previsao-atualizada')
+def relatorio_previsao_atualizada():
     return "Relatório em desenvolvimento", 501
 
 # ===================== API DA IA =====================
@@ -263,41 +342,6 @@ def analise_ia():
         
     except Exception as e:
         return jsonify({'erro': f'Erro na análise: {str(e)}'}), 500
-
-# ===================== ROTA DE TESTE =====================
-
-@app.route('/teste-despesa')
-def teste_despesa():
-    """Rota para testar carregamento dos dados"""
-    try:
-        df = carregar_dataframe_despesa()
-        
-        if df.empty:
-            return "❌ Arquivo DESPESA.xlsx não encontrado ou vazio"
-        
-        info = f"""
-        <h2>✅ Dados de Despesa Carregados</h2>
-        <p><strong>Linhas:</strong> {len(df):,}</p>
-        <p><strong>Colunas:</strong> {len(df.columns)}</p>
-        <p><strong>Exercícios:</strong> {sorted(df['COEXERCICIO'].unique().tolist()) if 'COEXERCICIO' in df.columns else 'N/A'}</p>
-        <p><strong>Meses:</strong> {sorted(df['INMES'].unique().tolist()) if 'INMES' in df.columns else 'N/A'}</p>
-        
-        <h3>Colunas Disponíveis:</h3>
-        <ul>
-        {''.join(f'<li>{col}</li>' for col in df.columns)}
-        </ul>
-        
-        <h3>Amostra dos Dados:</h3>
-        {df.head().to_html()}
-        
-        <p><a href="/relatorio/balanco-despesa">🔗 Testar Relatório de Despesa</a></p>
-        <p><a href="/">🏠 Voltar ao Menu</a></p>
-        """
-        
-        return info
-        
-    except Exception as e:
-        return f"❌ Erro ao carregar: {str(e)}"
 
 # ===================== TRATAMENTO DE ERROS =====================
 

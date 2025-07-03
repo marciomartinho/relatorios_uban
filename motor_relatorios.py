@@ -214,12 +214,15 @@ class MotorRelatorios:
     def processar_balanco_despesa(self, noug_selecionada: Optional[str] = None) -> Tuple[List[Dict], str, List[Dict], Dict]:
         """Processa balanço orçamentário da despesa"""
         df_processar = self.filtrar_por_noug(noug_selecionada)
-        mes_referencia = self.obter_mes_referencia(2025)  # MUDANÇA: usar 2025
+        mes_referencia = self.obter_mes_referencia(2025)
         
         dados_numericos = []
         
-        # Filtra apenas dados do exercício 2025 (MUDANÇA: era 2024)
+        # Filtra apenas dados do exercício 2025
         df_atual = df_processar[df_processar['COEXERCICIO'] == 2025]
+        
+        if df_atual.empty:
+            return [], mes_referencia, [], {}
         
         # Calcula dotação atualizada
         df_atual = df_atual.copy()
@@ -230,7 +233,7 @@ class MotorRelatorios:
             df_atual['CANCEL-REMANEJA DOTACAO']
         )
         
-        # Agrupa por categoria
+        # Agrupa por categoria - APENAS onde há dados não-zero
         categorias = df_atual.groupby(['CATEGORIA', 'NOCATEGORIA']).agg({
             'DOTACAO INICIAL': 'sum',
             'DOTACAO ADICIONAL': 'sum',
@@ -239,6 +242,16 @@ class MotorRelatorios:
             'DESPESA PAGA': 'sum',
             'DOTACAO_ATUALIZADA': 'sum'
         }).reset_index()
+        
+        # FILTRO: Remove categorias onde TODOS os valores são zero
+        categorias = categorias[
+            (categorias['DOTACAO INICIAL'] != 0) | 
+            (categorias['DOTACAO ADICIONAL'] != 0) | 
+            (categorias['DESPESA EMPENHADA'] != 0) | 
+            (categorias['DESPESA LIQUIDADA'] != 0) | 
+            (categorias['DESPESA PAGA'] != 0) | 
+            (categorias['DOTACAO_ATUALIZADA'] != 0)
+        ].copy()
         
         # Ordena por categoria
         categorias = categorias.sort_values('CATEGORIA')
@@ -277,6 +290,19 @@ class MotorRelatorios:
                 'DOTACAO_ATUALIZADA': 'sum'
             }).reset_index()
             
+            # FILTRO: Remove grupos onde TODOS os valores são zero
+            grupos = grupos[
+                (grupos['DOTACAO INICIAL'] != 0) | 
+                (grupos['DOTACAO ADICIONAL'] != 0) | 
+                (grupos['DESPESA EMPENHADA'] != 0) | 
+                (grupos['DESPESA LIQUIDADA'] != 0) | 
+                (grupos['DESPESA PAGA'] != 0) | 
+                (grupos['DOTACAO_ATUALIZADA'] != 0)
+            ].copy()
+            
+            # Ordena grupos por código
+            grupos = grupos.sort_values('GRUPO')
+            
             for _, grupo_row in grupos.iterrows():
                 grupo_cod = grupo_row['GRUPO']
                 grupo_nome = grupo_row['NOGRUPO']
@@ -298,6 +324,10 @@ class MotorRelatorios:
                 }
                 dados_numericos.append(linha_grupo)
         
+        # Calcula totais gerais apenas dos dados que realmente existem
+        if not dados_numericos:
+            return [], mes_referencia, [], {}
+            
         # Formata dados para apresentação
         dados_formatados = self._formatar_dados_despesa(dados_numericos)
         
