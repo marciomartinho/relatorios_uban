@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balanço Orçamentário da Despesa</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5; margin: 0; }
+        .page-container { max-width: 1800px; margin: 0 auto; background: white; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .header-info { text-align: center; margin-bottom: 20px; }
+        .header-mes { font-weight: bold; border-bottom: 2px solid #000; padding: 10px; font-size: 14px; }
+        .header-consolidado { font-weight: bold; padding: 5px; font-size: 14px; }
+        .botoes-acao { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+        .botoes-acao button, .botoes-acao a { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; color: white; font-size: 14px; text-decoration: none; }
+        #btn-analise-ia { background-color: #6f42c1; }
+        #btn-pdf { background-color: #dc3545; }
+        #btn-atualizar { background-color: #0d6efd; }
+        .btn-voltar { background-color: #6c757d; }
+        
+        /* Filtros */
+        .filtros { margin-bottom: 20px; padding: 15px; background-color: #e7f3ff; border-radius: 8px; }
+        .filtros select { padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
+        
+        /* Tabela igual ao print */
+        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+        th, td { border: 1px solid #000; padding: 4px; text-align: right; }
+        th { background-color: #f0f0f0; font-weight: bold; text-align: center; }
+        td:first-child { text-align: left; }
+        
+        /* Cores das colunas igual ao print */
+        .col-dotacao-inicial { background-color: #ffcccc; }
+        .col-dotacao-adicional { background-color: #ccffcc; }
+        .col-despesa-empenhada { background-color: #ccccff; }
+        .col-despesa-liquidada { background-color: #ffffcc; }
+        .col-despesa-paga { background-color: #ffccff; }
+        .col-saldo-dotacao { background-color: #ccffff; }
+        
+        /* Tipos de linha */
+        .level-1 { background-color: #e6f3ff; font-weight: bold; }
+        .level-2 { background-color: #f0f8ff; }
+        .level-2 td:first-child { padding-left: 15px; }
+        
+        /* Análise IA */
+        #container-analise { display: none; margin-top: 20px; padding: 20px; background-color: #f8f9fa; border-radius: 8px; }
+        #texto-analise { line-height: 1.6; }
+        
+        /* Observações */
+        .observacoes { margin-top: 20px; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <div class="header-info">
+            <div class="header-mes">Mês Referência: {{ mes_ref|default('05 - Maio') }}</div>
+            <div class="header-consolidado">Consolidado</div>
+        </div>
+
+        <div class="botoes-acao">
+            <button id="btn-analise-ia">🤖 Analisar com IA</button>
+            <button id="btn-atualizar">🔄 Atualizar</button>
+            <button id="btn-pdf">📄 PDF</button>
+            <a href="/" class="btn-voltar">← Menu</a>
+        </div>
+
+        <div class="filtros">
+            <label for="filtro-noug">Filtrar por Unidade Gestora:</label>
+            <select id="filtro-noug" onchange="aplicarFiltro()">
+                <option value="todos">-- Consolidado (Todas) --</option>
+                {% for noug in lista_nougs %}
+                    <option value="{{ noug }}" {% if noug == noug_selecionada %}selected{% endif %}>{{ noug }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">DESPESAS ORÇAMENTÁRIAS</th>
+                    <th class="col-dotacao-inicial">DOTAÇÃO INICIAL</th>
+                    <th class="col-dotacao-adicional">DOTAÇÃO ADICIONAL</th>
+                    <th class="col-despesa-empenhada">DESPESA EMPENHADA</th>
+                    <th class="col-despesa-liquidada">DESPESA LIQUIDADA</th>
+                    <th class="col-despesa-paga">DESPESA PAGA</th>
+                    <th class="col-saldo-dotacao">DESPESA ATUALIZADA - DESPESA EMPENHADA</th>
+                </tr>
+                <tr>
+                    <th class="col-dotacao-inicial">(e)</th>
+                    <th class="col-dotacao-adicional">(f)</th>
+                    <th class="col-despesa-empenhada">(g)</th>
+                    <th class="col-despesa-liquidada">(h)</th>
+                    <th class="col-despesa-paga">(i)</th>
+                    <th class="col-saldo-dotacao">SALDO DA DOTAÇÃO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for linha in dados_relatorio %}
+                <tr class="{{ linha.tipo }}">
+                    <td>{{ linha.especificacao }}</td>
+                    <td>{{ linha.dotacao_inicial_fmt }}</td>
+                    <td>{{ linha.dotacao_adicional_fmt }}</td>
+                    <td>{{ linha.despesa_empenhada_fmt }}</td>
+                    <td>{{ linha.despesa_liquidada_fmt }}</td>
+                    <td>{{ linha.despesa_paga_fmt }}</td>
+                    <td>{{ linha.saldo_dotacao_fmt }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="observacoes">
+            <p><strong>Observações:</strong></p>
+            <ul>
+                <li>Valores em Reais</li>
+                <li>Dados referentes ao exercício de 2025</li>
+                <li>Saldo da Dotação = Dotação Atualizada - Despesa Empenhada</li>
+                <li>Dotação Atualizada = Dotação Inicial + Dotação Adicional - Cancelamentos</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="container-analise">
+        <h3>🤖 Análise com Inteligência Artificial</h3>
+        <div id="texto-analise">Carregando análise...</div>
+    </div>
+
+    <script>
+        const dadosParaIA = {{ dados_para_ia | tojson | safe }};
+        const dadosPDF = {{ dados_pdf | tojson | safe }};
+
+        // Análise IA
+        document.getElementById('btn-analise-ia').addEventListener('click', function() {
+            const container = document.getElementById('container-analise');
+            const texto = document.getElementById('texto-analise');
+            
+            this.disabled = true;
+            this.textContent = 'Analisando...';
+            texto.innerHTML = 'Analisando dados orçamentários...';
+            container.style.display = 'block';
+            
+            fetch('/api/analise-ia', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dados: dadosParaIA, tipo_relatorio: 'balanco_despesa' }),
+            })
+            .then(res => res.json())
+            .then(data => {
+                texto.innerHTML = data.erro ? 
+                    `<strong style="color: red;">Erro:</strong> ${data.erro}` : 
+                    marked.parse(data.analise);
+            })
+            .catch(err => {
+                texto.innerHTML = `<strong style="color: red;">Erro:</strong> ${err}`;
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.textContent = '🤖 Analisar com IA';
+            });
+        });
+
+        // Atualizar
+        document.getElementById('btn-atualizar').addEventListener('click', () => {
+            window.location.reload(true);
+        });
+
+        // PDF
+        document.getElementById('btn-pdf').addEventListener('click', () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'pt', 'a4');
+            
+            doc.setFontSize(14);
+            doc.text('Balanço Orçamentário da Despesa', doc.internal.pageSize.getWidth() / 2, 40, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text('Mês Referência: {{ mes_ref|default("05 - Maio") }} - Consolidado', doc.internal.pageSize.getWidth() / 2, 60, { align: 'center' });
+            
+            doc.autoTable({
+                head: dadosPDF.head,
+                body: dadosPDF.body,
+                startY: 80,
+                theme: 'grid',
+                headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], halign: 'center', fontSize: 8 },
+                styles: { fontSize: 7, cellPadding: 3 },
+                columnStyles: {
+                    0: { cellWidth: 200, halign: 'left' },
+                    1: { cellWidth: 80, halign: 'right' },
+                    2: { cellWidth: 80, halign: 'right' },
+                    3: { cellWidth: 80, halign: 'right' },
+                    4: { cellWidth: 80, halign: 'right' },
+                    5: { cellWidth: 80, halign: 'right' },
+                    6: { cellWidth: 80, halign: 'right' }
+                },
+                willDrawCell: (data) => {
+                    if (dadosParaIA[data.row.index]) {
+                        const tipo = dadosParaIA[data.row.index].tipo;
+                        if (tipo === 'level-1') {
+                            doc.setFillColor(230, 243, 255);
+                            doc.setFont(undefined, 'bold');
+                        } else if (tipo === 'level-2') {
+                            doc.setFillColor(240, 248, 255);
+                        }
+                    }
+                }
+            });
+            
+            doc.save('balanco-despesa.pdf');
+        });
+
+        // Filtro
+        function aplicarFiltro() {
+            const select = document.getElementById('filtro-noug');
+            const noug = select.value;
+            const url = noug === 'todos' ? 
+                '/relatorio/balanco-despesa' : 
+                `/relatorio/balanco-despesa?noug=${encodeURIComponent(noug)}`;
+            window.location.href = url;
+        }
+    </script>
+</body>
+</html>

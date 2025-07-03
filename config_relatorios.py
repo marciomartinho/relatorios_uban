@@ -47,14 +47,82 @@ COLUNAS_TIPO_ADMINISTRACAO = {
     "FUNDOS": 7
 }
 
-# --- MENU PRINCIPAL ---
+# --- MENU PRINCIPAL ATUALIZADO ---
 MENU_PRINCIPAL = {
     "Receita": [
-        {"nome": "Receita Estimada (Comparativo Anual)","url": "/relatorio/receita-estimada","descricao": "Demonstrativo comparativo da receita estimada entre dois exercícios."},
-        {"nome": "Receita Estimada (por Administração)","url": "/relatorio/receita-por-adm","descricao": "Demonstrativo da receita por tipo de administração para o exercício de 2025."},
-        {"nome": "Previsão de Receita Atualizada","url": "/relatorio/previsao-atualizada","descricao": "Compara a previsão inicial com a previsão atualizada para o exercício de 2025."},
-        {"nome": "Balanço Orçamentário da Receita","url": "/relatorio/balanco-orcamentario","descricao": "Balanço da execução da receita, comparando previsto com realizado para 2025."}
+        {
+            "nome": "Receita Estimada (Comparativo Anual)",
+            "url": "/relatorio/receita-estimada",
+            "descricao": "Demonstrativo comparativo da receita estimada entre dois exercícios."
+        },
+        {
+            "nome": "Receita Estimada (por Administração)",
+            "url": "/relatorio/receita-por-adm",
+            "descricao": "Demonstrativo da receita por tipo de administração para o exercício de 2025."
+        },
+        {
+            "nome": "Previsão de Receita Atualizada",
+            "url": "/relatorio/previsao-atualizada",
+            "descricao": "Compara a previsão inicial com a previsão atualizada para o exercício de 2025."
+        },
+        {
+            "nome": "Balanço Orçamentário da Receita",
+            "url": "/relatorio/balanco-orcamentario",
+            "descricao": "Balanço da execução da receita, comparando previsto com realizado para 2025."
+        }
     ],
-    "Despesa": [],
-    "Outros Relatórios": []
+    "Despesa": [
+        {
+            "nome": "Balanço Orçamentário da Despesa",
+            "url": "/relatorio/balanco-despesa",
+            "descricao": "Balanço da execução da despesa, comparando dotação com execução para 2025."
+        },
+        {
+            "nome": "Despesa por Função de Governo",
+            "url": "/relatorio/despesa-por-funcao",
+            "descricao": "Demonstrativo da despesa organizada por função de governo (Em desenvolvimento)."
+        },
+        {
+            "nome": "Despesa por Natureza",
+            "url": "/relatorio/despesa-por-natureza",
+            "descricao": "Demonstrativo da despesa organizada por grupos de natureza (Em desenvolvimento)."
+        },
+        {
+            "nome": "Despesa por Modalidade de Aplicação",
+            "url": "/relatorio/despesa-por-modalidade",
+            "descricao": "Demonstrativo da despesa por modalidade de aplicação (Em desenvolvimento)."
+        },
+        {
+            "nome": "Despesa por Unidade Gestora",
+            "url": "/relatorio/despesa-por-noug",
+            "descricao": "Demonstrativo da despesa por unidade gestora (Em desenvolvimento)."
+        },
+        {
+            "nome": "Execução Orçamentária por Programa",
+            "url": "/relatorio/execucao-por-programa",
+            "descricao": "Demonstrativo da execução orçamentária por programa de governo (Em desenvolvimento)."
+        }
+    ],
+    "Outros Relatórios": [
+        {
+            "nome": "Receita vs Despesa (Consolidado)",
+            "url": "/relatorio/receita-vs-despesa",
+            "descricao": "Comparativo consolidado entre receita arrecadada e despesa executada (Em desenvolvimento)."
+        },
+        {
+            "nome": "Evolução Temporal (Multi-exercício)",
+            "url": "/relatorio/evolucao-temporal",
+            "descricao": "Análise da evolução da receita e despesa ao longo dos exercícios (Em desenvolvimento)."
+        },
+        {
+            "nome": "Indicadores Orçamentários",
+            "url": "/relatorio/indicadores",
+            "descricao": "Principais indicadores de execução orçamentária e financeira (Em desenvolvimento)."
+        },
+        {
+            "nome": "Dashboard Executivo",
+            "url": "/relatorio/dashboard",
+            "descricao": "Painel gerencial com principais indicadores e gráficos interativos (Em desenvolvimento)."
+        }
+    ]
 }
