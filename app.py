@@ -1,11 +1,7 @@
 import os
 import pandas as pd
 from flask import Flask, render_template, request, jsonify
-from dotenv import load_dotenv
-from openai import OpenAI
 import time
-
-load_dotenv()
 
 # Importações das configurações
 from config_relatorios import HIERARQUIA_RECEITAS, MENU_PRINCIPAL
@@ -23,7 +19,6 @@ from motor_relatorios import (
 from cache_service import cache_service
 
 app = Flask(__name__)
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def carregar_dataframe_receita():
     """Carrega dados de receita com cache"""
@@ -154,7 +149,6 @@ def relatorio_balanco_orcamentario():
                                mes_ref=mes_referencia,
                                lista_nougs=lista_nougs,
                                noug_selecionada=noug_selecionada,
-                               dados_para_ia=dados_para_ia,
                                dados_pdf=dados_pdf)
     except Exception as e:
         return render_template('erro.html',
@@ -199,7 +193,6 @@ def relatorio_balanco_despesa():
                                mes_ref=mes_referencia,
                                lista_nougs=lista_nougs,
                                noug_selecionada=noug_selecionada,
-                               dados_para_ia=dados_para_ia,
                                dados_pdf=dados_pdf)
     except Exception as e:
         return render_template('erro.html',
@@ -270,78 +263,6 @@ def relatorio_receita_por_adm():
 @app.route('/relatorio/previsao-atualizada')
 def relatorio_previsao_atualizada():
     return "Relatório em desenvolvimento", 501
-
-# ===================== API DA IA =====================
-
-@app.route('/api/analise-ia', methods=['POST'])
-def analise_ia():
-    try:
-        dados = request.json
-        dados_relatorio = dados.get('dados', [])
-        tipo_relatorio = dados.get('tipo_relatorio', 'generico')
-        
-        if not dados_relatorio:
-            return jsonify({'erro': 'Nenhum dado fornecido para análise'}), 400
-        
-        # Prepara contexto baseado no tipo
-        contextos = {
-            'balanco_orcamentario': {
-                'titulo': 'Análise do Balanço Orçamentário da Receita',
-                'instrucao': 'Analise os dados de receita orçamentária, destacando variações entre previsão e execução, comparações entre exercícios e principais fontes de arrecadação.'
-            },
-            'balanco_despesa': {
-                'titulo': 'Análise do Balanço Orçamentário da Despesa',
-                'instrucao': 'Analise os dados de despesa orçamentária, destacando execução das dotações por categoria e grupo, percentuais de execução, principais áreas de gasto e eficiência na aplicação dos recursos.'
-            }
-        }
-        
-        contexto_info = contextos.get(tipo_relatorio, {
-            'titulo': 'Análise Orçamentária Geral',
-            'instrucao': 'Analise os dados orçamentários fornecidos, destacando pontos relevantes.'
-        })
-        
-        # Prepara dados para a IA
-        dados_texto = ""
-        for item in dados_relatorio:
-            if item.get('tipo') != 'total':
-                dados_texto += f"- {item.get('especificacao', 'N/A')}: "
-                for key, value in item.items():
-                    if key not in ['tipo', 'especificacao', 'categoria', 'grupo'] and isinstance(value, (int, float)):
-                        dados_texto += f"{key}: R$ {value:,.2f} | "
-                dados_texto += "\n"
-        
-        # Chama OpenAI
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {
-                    "role": "system",
-                    "content": f"""Você é um especialista em análise orçamentária do setor público brasileiro. 
-                    
-                    Contexto: {contexto_info['titulo']}
-                    
-                    Instruções:
-                    - {contexto_info['instrucao']}
-                    - Use linguagem técnica mas acessível
-                    - Destaque pontos críticos e oportunidades
-                    - Forneça recomendações práticas
-                    - Use formatação markdown
-                    - Seja objetivo e direto"""
-                },
-                {
-                    "role": "user",
-                    "content": f"Dados para análise:\n{dados_texto}"
-                }
-            ],
-            max_tokens=2000,
-            temperature=0.7
-        )
-        
-        analise = response.choices[0].message.content
-        return jsonify({'analise': analise})
-        
-    except Exception as e:
-        return jsonify({'erro': f'Erro na análise: {str(e)}'}), 500
 
 # ===================== TRATAMENTO DE ERROS =====================
 

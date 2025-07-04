@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block titulo %}Relatório{% endblock %}</title>
+    
+    <!-- Estilos Compartilhados -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/relatorios.css') }}">
+    
+    <!-- Scripts Padrão -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <div class="page-container">
+        <!-- Cabeçalho Padrão -->
+        <div class="header-container">
+            <a href="/" class="link-voltar">&larr; Voltar para o Menu</a>
+            <div class="report-header">
+                <h1>{% block titulo_relatorio %}RELATÓRIO{% endblock %}</h1>
+                <h2>{% block subtitulo %}Exercício 2025{% endblock %}</h2>
+                <h3>{% block referencia %}Dados de Referência: {{ mes_ref }}/2025{% endblock %}</h3>
+            </div>
+            <div class="botoes-acao">
+                {% block botoes_extras %}{% endblock %}
+                <button id="btn-atualizar" class="btn btn-atualizar">Atualizar Dados</button>
+                <button id="btn-pdf" class="btn btn-pdf">Baixar PDF</button>
+            </div>
+        </div>
+        
+        <!-- Filtros -->
+        {% block filtros %}
+        {% if lista_nougs %}
+        <div class="filtro-container">
+            <label for="filtro-noug">Filtrar por Unidade Gestora (NOUG):</label>
+            <select id="filtro-noug" onchange="aplicarFiltro()">
+                <option value="todos">-- Mostrar Todas as Unidades (Consolidado) --</option>
+                {% for noug in lista_nougs %}
+                    <option value="{{ noug }}" {% if noug == noug_selecionada %}selected{% endif %}>
+                        {{ noug }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        {% endblock %}
+        
+        <!-- Conteúdo Principal -->
+        {% block conteudo %}{% endblock %}
+    </div>
+    
+    <!-- Scripts Base -->
+    <script src="{{ url_for('static', filename='js/relatorios.js') }}"></script>
+    
+    <!-- Scripts Específicos -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

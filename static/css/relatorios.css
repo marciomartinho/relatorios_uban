@@ -1,0 +1,355 @@
+/* =================================
+   ESTILOS PADRÃO PARA RELATÓRIOS
+   ================================= */
+
+/* --- Reset e Base --- */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    padding: 20px;
+    background-color: #f4f4f4;
+    margin: 0;
+    color: #333;
+}
+
+/* --- Container Principal --- */
+.page-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    padding: 25px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+/* --- Cabeçalho --- */
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.link-voltar {
+    text-decoration: none;
+    color: #0066cc;
+    font-size: 14px;
+    transition: color 0.3s ease;
+}
+
+.link-voltar:hover {
+    color: #0052a3;
+    text-decoration: underline;
+}
+
+.report-header {
+    text-align: center;
+    flex-grow: 1;
+}
+
+.report-header h1 {
+    margin: 0;
+    font-size: 1.5em;
+    color: #003366;
+    font-weight: 600;
+}
+
+.report-header h2 {
+    margin: 5px 0;
+    font-size: 1.1em;
+    font-weight: normal;
+    color: #555;
+}
+
+.report-header h3 {
+    margin: 5px 0;
+    font-size: 1em;
+    color: #777;
+    font-weight: normal;
+}
+
+/* --- Botões de Ação --- */
+.botoes-acao {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Cores específicas dos botões */
+.btn-atualizar {
+    background-color: #0d6efd;
+}
+
+.btn-atualizar:hover {
+    background-color: #0b5ed7;
+}
+
+.btn-pdf {
+    background-color: #dc3545;
+}
+
+.btn-pdf:hover {
+    background-color: #bb2d3b;
+}
+
+/* --- Filtros --- */
+.filtro-container {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #e7f2ff;
+    border-radius: 8px;
+    border: 1px solid #cce5ff;
+}
+
+.filtro-container label {
+    font-weight: 600;
+    color: #003366;
+    font-size: 14px;
+}
+
+.filtro-container select {
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    flex-grow: 1;
+    font-size: 14px;
+    background-color: white;
+    transition: border-color 0.3s ease;
+}
+
+.filtro-container select:focus {
+    outline: none;
+    border-color: #0066cc;
+    box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+}
+
+/* --- Tabelas --- */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+    margin-top: 20px;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 10px 12px;
+    text-align: right;
+}
+
+th {
+    background-color: #003366;
+    color: white;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+}
+
+td:first-child {
+    text-align: left;
+    font-weight: 500;
+}
+
+/* --- Níveis de Hierarquia (Padrão de Cores) --- */
+.level-1 {
+    background-color: #cce5ff;
+    font-weight: bold;
+}
+
+.level-1 td {
+    font-size: 14px;
+}
+
+.level-2 {
+    background-color: #e7f2ff;
+    font-weight: bold;
+}
+
+.level-2 td:first-child {
+    padding-left: 30px !important;
+}
+
+.level-3 {
+    background-color: #f5f9ff;
+    font-weight: normal;
+}
+
+.level-3 td:first-child {
+    padding-left: 50px !important;
+}
+
+.level-4 {
+    background-color: #fafcff;
+    font-style: italic;
+    color: #555;
+}
+
+.level-4 td:first-child {
+    padding-left: 70px !important;
+}
+
+/* --- Linha de Total --- */
+.total {
+    background-color: #003366;
+    color: white;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.total td {
+    border-color: #003366;
+}
+
+/* --- Valores Especiais --- */
+.valor-negativo {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.valor-positivo {
+    color: #28a745;
+}
+
+.valor-zero {
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* --- Responsividade --- */
+@media (max-width: 768px) {
+    .header-container {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .botoes-acao {
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .filtro-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .page-container {
+        padding: 15px;
+    }
+    
+    table {
+        font-size: 12px;
+    }
+    
+    th, td {
+        padding: 6px 8px;
+    }
+}
+
+/* --- Animações --- */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.page-container {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* --- Utilitários --- */
+.text-center {
+    text-align: center;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-left {
+    text-align: left;
+}
+
+.mt-20 {
+    margin-top: 20px;
+}
+
+.mb-20 {
+    margin-bottom: 20px;
+}
+
+/* --- Print Styles --- */
+@media print {
+    body {
+        background-color: white;
+        padding: 0;
+    }
+    
+    .page-container {
+        box-shadow: none;
+        padding: 0;
+    }
+    
+    .header-container {
+        page-break-after: avoid;
+    }
+    
+    .link-voltar,
+    .botoes-acao,
+    .filtro-container {
+        display: none;
+    }
+    
+    table {
+        page-break-inside: auto;
+    }
+    
+    tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+}

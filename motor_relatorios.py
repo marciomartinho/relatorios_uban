@@ -228,8 +228,8 @@ class MotorRelatorios:
         df_atual = df_atual.copy()
         df_atual['DOTACAO_ATUALIZADA'] = (
             df_atual['DOTACAO INICIAL'] + 
-            df_atual['DOTACAO ADICIONAL'] - 
-            df_atual['CANCELAMENTO DE DOTACAO'] - 
+            df_atual['DOTACAO ADICIONAL'] + 
+            df_atual['CANCELAMENTO DE DOTACAO'] + 
             df_atual['CANCEL-REMANEJA DOTACAO']
         )
         
