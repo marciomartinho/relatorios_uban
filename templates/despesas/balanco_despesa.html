@@ -41,20 +41,7 @@
 
 {% block scripts %}
 <script>
-    // Dados para o PDF
-    const dadosPDF = {{ dados_pdf | tojson | safe }};
-    const tiposLinhas = {{ dados_relatorio | map(attribute='tipo') | list | tojson | safe }};
-    
-    // Configurar botão de PDF
-    document.getElementById('btn-pdf').addEventListener('click', () => {
-        RelatorioUtils.gerarPDF({
-            titulo: 'Balanço Orçamentário da Despesa',
-            subtitulo: 'Exercício 2025 - {{ mes_ref }}/2025',
-            dados: dadosPDF,
-            nomeArquivo: 'balanco-orcamentario-despesa.pdf',
-            colunasTipos: tiposLinhas,
-            orientacao: 'l' // Landscape para caber mais colunas
-        });
-    });
+    // O botão JPG já está configurado no template base
+    // Não precisa de configurações adicionais aqui
 </script>
 {% endblock %}

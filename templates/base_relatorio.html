@@ -8,14 +8,14 @@
     <!-- Estilos Compartilhados -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/relatorios.css') }}">
     
-    <!-- Scripts Padrão -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <!-- Scripts para exportação PNG otimizada -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="{{ url_for('static', filename='js/export_relatorio.js') }}"></script>
     
     {% block head_extra %}{% endblock %}
 </head>
 <body>
-    <div class="page-container">
+    <div class="page-container" id="conteudo-para-exportar">
         <!-- Cabeçalho Padrão -->
         <div class="header-container">
             <a href="/" class="link-voltar">&larr; Voltar para o Menu</a>
@@ -27,7 +27,7 @@
             <div class="botoes-acao">
                 {% block botoes_extras %}{% endblock %}
                 <button id="btn-atualizar" class="btn btn-atualizar">Atualizar Dados</button>
-                <button id="btn-pdf" class="btn btn-pdf">Baixar PDF</button>
+                <button id="btn-jpg" class="btn btn-jpg">Baixar JPG</button>
             </div>
         </div>
         

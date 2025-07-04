@@ -47,19 +47,9 @@ COLUNAS_TIPO_ADMINISTRACAO = {
     "FUNDOS": 7
 }
 
-# --- MENU PRINCIPAL ATUALIZADO ---
+# --- MENU PRINCIPAL REORGANIZADO ---
 MENU_PRINCIPAL = {
     "Receita": [
-        {
-            "nome": "Receita Estimada (Comparativo Anual)",
-            "url": "/relatorio/receita-estimada",
-            "descricao": "Demonstrativo comparativo da receita estimada entre dois exercícios."
-        },
-        {
-            "nome": "Receita Estimada (por Administração)",
-            "url": "/relatorio/receita-por-adm",
-            "descricao": "Demonstrativo da receita por tipo de administração para o exercício de 2025."
-        },
         {
             "nome": "Previsão de Receita Atualizada",
             "url": "/relatorio/previsao-atualizada",
@@ -103,7 +93,17 @@ MENU_PRINCIPAL = {
             "descricao": "Demonstrativo da execução orçamentária por programa de governo (Em desenvolvimento)."
         }
     ],
-    "Outros Relatórios": [
+    "Relatórios do Balanço Geral": [
+        {
+            "nome": "Receita Estimada (Comparativo Anual)",
+            "url": "/relatorio/receita-estimada",
+            "descricao": "Demonstrativo comparativo da receita estimada entre dois exercícios (2024 vs 2025)."
+        },
+        {
+            "nome": "Receita Estimada (por Administração)",
+            "url": "/relatorio/receita-por-adm",
+            "descricao": "Demonstrativo da receita por tipo de administração para o exercício de 2025 (Em desenvolvimento)."
+        },
         {
             "nome": "Receita vs Despesa (Consolidado)",
             "url": "/relatorio/receita-vs-despesa",
@@ -113,7 +113,9 @@ MENU_PRINCIPAL = {
             "nome": "Evolução Temporal (Multi-exercício)",
             "url": "/relatorio/evolucao-temporal",
             "descricao": "Análise da evolução da receita e despesa ao longo dos exercícios (Em desenvolvimento)."
-        },
+        }
+    ],
+    "Outros Relatórios": [
         {
             "nome": "Indicadores Orçamentários",
             "url": "/relatorio/indicadores",
@@ -123,6 +125,16 @@ MENU_PRINCIPAL = {
             "nome": "Dashboard Executivo",
             "url": "/relatorio/dashboard",
             "descricao": "Painel gerencial com principais indicadores e gráficos interativos (Em desenvolvimento)."
+        },
+        {
+            "nome": "Relatório por Unidade Gestora",
+            "url": "/relatorio/por-noug",
+            "descricao": "Análise detalhada por unidade gestora (NOUG) com comparativos temporais (Em desenvolvimento)."
+        },
+        {
+            "nome": "Análise de Variações",
+            "url": "/relatorio/analise-variacoes",
+            "descricao": "Análise detalhada das variações entre previsto e realizado (Em desenvolvimento)."
         }
     ]
 }

@@ -437,6 +437,151 @@ class MotorRelatorios:
         return {"head": [], "body": []}
 
 
+# ===================== FUNÇÃO ATUALIZADA: RECEITA ESTIMADA COM ORIGENS =====================
+
+def gerar_relatorio_receita_estimada(df_completo, estrutura_hierarquica, noug_selecionada=None):
+    """Gera relatório comparativo de receita estimada entre exercícios COM ORIGENS"""
+    motor = MotorRelatorios(df_completo, tipo_dados='receita')
+    df_processar = motor.filtrar_por_noug(noug_selecionada)
+    
+    dados_numericos = []
+    dados_para_ia = []
+    
+    # Totais por exercício
+    totais = {
+        2024: float(df_processar[df_processar['COEXERCICIO'] == 2024]['PREVISAO INICIAL LIQUIDA'].sum()),
+        2025: float(df_processar[df_processar['COEXERCICIO'] == 2025]['PREVISAO INICIAL LIQUIDA'].sum())
+    }
+    
+    # Processa cada categoria
+    for cod_cat, origens in estrutura_hierarquica.items():
+        nome_categoria = motor.mapas_nomes.get('categoria', {}).get(cod_cat)
+        if not nome_categoria:
+            continue
+            
+        df_categoria = df_processar[df_processar['CATEGORIA'] == cod_cat]
+        
+        # Valores da categoria
+        valor_2024_cat = float(df_categoria[df_categoria['COEXERCICIO'] == 2024]['PREVISAO INICIAL LIQUIDA'].sum())
+        valor_2025_cat = float(df_categoria[df_categoria['COEXERCICIO'] == 2025]['PREVISAO INICIAL LIQUIDA'].sum())
+        
+        # Calcula percentuais da categoria
+        perc_2024_cat = (valor_2024_cat / totais[2024] * 100) if totais[2024] > 0 else 0
+        perc_2025_cat = (valor_2025_cat / totais[2025] * 100) if totais[2025] > 0 else 0
+        
+        # Calcula variação percentual da categoria
+        if valor_2024_cat > 0:
+            delta_perc_cat = ((valor_2025_cat - valor_2024_cat) / valor_2024_cat) * 100
+        else:
+            delta_perc_cat = 0 if valor_2025_cat == 0 else 100
+        
+        # Adiciona linha da categoria se há dados
+        if any(v != 0 for v in [valor_2024_cat, valor_2025_cat]):
+            linha_categoria = {
+                'tipo': 'principal',
+                'especificacao': nome_categoria,
+                'valor_2024': valor_2024_cat,
+                'valor_2025': valor_2025_cat,
+                'perc_2024': perc_2024_cat,
+                'perc_2025': perc_2025_cat,
+                'delta': delta_perc_cat,
+                'valor_2024_fmt': motor._formatar_numero(valor_2024_cat),
+                'valor_2025_fmt': motor._formatar_numero(valor_2025_cat),
+                'perc_2024_fmt': f"{perc_2024_cat:.2f}%",
+                'perc_2025_fmt': f"{perc_2025_cat:.2f}%",
+                'delta_fmt': f"{delta_perc_cat:+.2f}%"
+            }
+            dados_numericos.append(linha_categoria)
+            dados_para_ia.append(linha_categoria)
+            
+            # PROCESSA AS ORIGENS DENTRO DA CATEGORIA
+            for cod_orig in origens.keys():
+                nome_origem = motor.mapas_nomes.get('origem', {}).get(cod_orig)
+                if not nome_origem:
+                    continue
+                    
+                df_origem = df_categoria[df_categoria['ORIGEM'] == cod_orig]
+                
+                # Valores da origem
+                valor_2024_orig = float(df_origem[df_origem['COEXERCICIO'] == 2024]['PREVISAO INICIAL LIQUIDA'].sum())
+                valor_2025_orig = float(df_origem[df_origem['COEXERCICIO'] == 2025]['PREVISAO INICIAL LIQUIDA'].sum())
+                
+                # Calcula percentuais da origem
+                perc_2024_orig = (valor_2024_orig / totais[2024] * 100) if totais[2024] > 0 else 0
+                perc_2025_orig = (valor_2025_orig / totais[2025] * 100) if totais[2025] > 0 else 0
+                
+                # Calcula variação percentual da origem
+                if valor_2024_orig > 0:
+                    delta_perc_orig = ((valor_2025_orig - valor_2024_orig) / valor_2024_orig) * 100
+                else:
+                    delta_perc_orig = 0 if valor_2025_orig == 0 else 100
+                
+                # Adiciona linha da origem se há dados
+                if any(v != 0 for v in [valor_2024_orig, valor_2025_orig]):
+                    linha_origem = {
+                        'tipo': 'filha',
+                        'especificacao': f"  {nome_origem}",  # Indentação para mostrar hierarquia
+                        'valor_2024': valor_2024_orig,
+                        'valor_2025': valor_2025_orig,
+                        'perc_2024': perc_2024_orig,
+                        'perc_2025': perc_2025_orig,
+                        'delta': delta_perc_orig,
+                        'valor_2024_fmt': motor._formatar_numero(valor_2024_orig),
+                        'valor_2025_fmt': motor._formatar_numero(valor_2025_orig),
+                        'perc_2024_fmt': f"{perc_2024_orig:.2f}%",
+                        'perc_2025_fmt': f"{perc_2025_orig:.2f}%",
+                        'delta_fmt': f"{delta_perc_orig:+.2f}%"
+                    }
+                    dados_numericos.append(linha_origem)
+                    dados_para_ia.append(linha_origem)
+    
+    # Adiciona linha de total
+    if totais[2024] > 0 or totais[2025] > 0:
+        delta_total = ((totais[2025] - totais[2024]) / totais[2024] * 100) if totais[2024] > 0 else 0
+        
+        linha_total = {
+            'tipo': 'total',
+            'especificacao': 'TOTAL GERAL',
+            'valor_2024': totais[2024],
+            'valor_2025': totais[2025],
+            'perc_2024': 100.0,
+            'perc_2025': 100.0,
+            'delta': delta_total,
+            'valor_2024_fmt': motor._formatar_numero(totais[2024]),
+            'valor_2025_fmt': motor._formatar_numero(totais[2025]),
+            'perc_2024_fmt': "100,00%",
+            'perc_2025_fmt': "100,00%",
+            'delta_fmt': f"{delta_total:+.2f}%"
+        }
+        dados_numericos.append(linha_total)
+        dados_para_ia.append(linha_total)
+    
+    # Gera dados para PDF (não usado mais, mas mantido para compatibilidade)
+    dados_pdf = {
+        "head": [[
+            'ESPECIFICAÇÃO',
+            'RECEITA PREVISTA 2024',
+            '% 2024',
+            'RECEITA PREVISTA 2025',
+            '% 2025',
+            'Δ%'
+        ]],
+        "body": [
+            [
+                linha['especificacao'],
+                linha['valor_2024_fmt'],
+                linha['perc_2024_fmt'],
+                linha['valor_2025_fmt'],
+                linha['perc_2025_fmt'],
+                linha['delta_fmt']
+            ]
+            for linha in dados_numericos
+        ]
+    }
+    
+    return dados_numericos, dados_para_ia, dados_pdf
+
+
 # ===================== FUNÇÕES DE COMPATIBILIDADE =====================
 
 def gerar_balanco_orcamentario(df_completo, estrutura_hierarquica, noug_selecionada=None):
@@ -458,10 +603,12 @@ def gerar_balanco_despesa(df_completo, estrutura_hierarquica=None, noug_selecion
     motor = MotorRelatorios(df_completo, tipo_dados='despesa')
     return motor.processar_balanco_despesa(noug_selecionada)
 
-# Placeholder para futuras implementações
-def gerar_relatorio_estimada(df, h): 
-    return [], []
+# Função de compatibilidade para receita estimada
+def gerar_relatorio_estimada(df_completo, estrutura_hierarquica, noug_selecionada=None):
+    """Função de compatibilidade para receita estimada"""
+    return gerar_relatorio_receita_estimada(df_completo, estrutura_hierarquica, noug_selecionada)
 
+# Placeholder para futuras implementações
 def gerar_relatorio_por_adm(df, h, c): 
     return [], {}, {}, []
 

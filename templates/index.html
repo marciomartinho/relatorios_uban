@@ -3,106 +3,319 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel de Relatórios</title>
+    <title>Painel de Relatórios UBAN</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background-color: #f0f2f5;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             margin: 0;
             padding: 40px;
+            min-height: 100vh;
         }
-        .main-title {
+        
+        .main-header {
             text-align: center;
-            color: #333;
-            margin-bottom: 40px;
+            margin-bottom: 50px;
+            color: white;
         }
+        
+        .main-title {
+            font-size: 2.5em;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-weight: 700;
+        }
+        
+        .main-subtitle {
+            font-size: 1.2em;
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
         .menu-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 30px; /* Espaço entre os cartões */
-            justify-content: center;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
         }
+        
         .category-card {
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            padding: 25px;
-            width: 350px;
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
+        
         .category-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+            transform: translateY(-8px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
         }
+        
+        .category-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .category-icon {
+            font-size: 2.5em;
+            margin-right: 15px;
+            opacity: 0.8;
+        }
+        
         .category-title {
-            font-size: 1.5em;
-            color: #003366;
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 10px;
-            margin-top: 0;
-            margin-bottom: 20px;
+            font-size: 1.4em;
+            color: #2c3e50;
+            margin: 0;
+            font-weight: 600;
         }
+        
+        .category-count {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+            margin-left: auto;
+        }
+        
         .reports-list {
             list-style: none;
             padding: 0;
             margin: 0;
         }
+        
+        .report-item {
+            margin-bottom: 15px;
+        }
+        
         .report-item a {
             display: block;
             text-decoration: none;
-            color: #333;
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            transition: background-color 0.2s, color 0.2s;
+            color: #2c3e50;
+            background: #f8f9fa;
+            padding: 18px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            position: relative;
+            overflow: hidden;
         }
+        
+        .report-item a::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
         .report-item a:hover {
-            background-color: #003366;
+            background: #003366;
             color: white;
+            border-left-color: #ffd700;
+            transform: translateX(8px);
         }
-        .report-item .report-name {
+        
+        .report-item a:hover::before {
+            opacity: 1;
+        }
+        
+        .report-name {
             font-weight: 600;
+            font-size: 1.05em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
         }
-        .report-item .report-description {
-            font-size: 0.85em;
+        
+        .report-status {
+            margin-left: auto;
+            font-size: 0.8em;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .status-dev {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .report-item a:hover .status-active {
+            background: rgba(255, 255, 255, 0.2);
+            color: #a8f5a8;
+        }
+        
+        .report-item a:hover .status-dev {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffcc80;
+        }
+        
+        .report-description {
+            font-size: 0.9em;
             color: #666;
-            margin-top: 5px;
+            line-height: 1.5;
+            margin-top: 8px;
         }
+        
         .report-item a:hover .report-description {
             color: #e0e0e0;
         }
+        
         .empty-category {
             font-style: italic;
             color: #999;
+            text-align: center;
+            padding: 40px 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px dashed #dee2e6;
         }
+        
+        /* Cores específicas por categoria */
+        .category-receita .category-icon { color: #27ae60; }
+        .category-despesa .category-icon { color: #e74c3c; }
+        .category-balanco .category-icon { color: #3498db; }
+        .category-outros .category-icon { color: #9b59b6; }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .menu-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 0 10px;
+            }
+            
+            .main-title {
+                font-size: 2em;
+            }
+            
+            .category-card {
+                padding: 20px;
+            }
+            
+            .category-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+            
+            .category-count {
+                margin-left: 0;
+            }
+        }
+        
+        /* Animações */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .category-card {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+        
+        .category-card:nth-child(1) { animation-delay: 0.1s; }
+        .category-card:nth-child(2) { animation-delay: 0.2s; }
+        .category-card:nth-child(3) { animation-delay: 0.3s; }
+        .category-card:nth-child(4) { animation-delay: 0.4s; }
     </style>
 </head>
 <body>
-
-    <h1 class="main-title">Painel de Relatórios UBAN</h1>
+    <div class="main-header">
+        <h1 class="main-title">Painel de Relatórios UBAN</h1>
+        <p class="main-subtitle">Sistema Unificado de Análise e Relatórios Contábeis, Orçamentários e Financeiros</p>
+    </div>
 
     <div class="menu-container">
+        {% set category_info = {
+            'Receita': {'icon': '💰', 'class': 'category-receita'},
+            'Despesa': {'icon': '📊', 'class': 'category-despesa'},
+            'Relatórios do Balanço Geral': {'icon': '⚖️', 'class': 'category-balanco'},
+            'Outros Relatórios': {'icon': '📈', 'class': 'category-outros'}
+        } %}
+        
         {% for categoria, relatorios in menu.items() %}
-            <div class="category-card">
-                <h2 class="category-title">{{ categoria }}</h2>
+            <div class="category-card {{ category_info[categoria]['class'] }}">
+                <div class="category-header">
+                    <div class="category-icon">{{ category_info[categoria]['icon'] }}</div>
+                    <h2 class="category-title">{{ categoria }}</h2>
+                    <div class="category-count">{{ relatorios|length }} relatórios</div>
+                </div>
+                
                 <ul class="reports-list">
                     {% if relatorios %}
                         {% for relatorio in relatorios %}
                             <li class="report-item">
                                 <a href="{{ relatorio.url }}">
-                                    <div class="report-name">{{ relatorio.nome }}</div>
-                                    <div class="report-description">{{ relatorio.descricao }}</div>
+                                    <div class="report-name">
+                                        {{ relatorio.nome }}
+                                        <span class="report-status {{ 'status-active' if '(Em desenvolvimento)' not in relatorio.descricao else 'status-dev' }}">
+                                            {{ 'ATIVO' if '(Em desenvolvimento)' not in relatorio.descricao else 'EM DESENVOLVIMENTO' }}
+                                        </span>
+                                    </div>
+                                    <div class="report-description">
+                                        {{ relatorio.descricao }}
+                                    </div>
                                 </a>
                             </li>
                         {% endfor %}
                     {% else %}
-                        <li class="empty-category">Nenhum relatório disponível.</li>
+                        <li class="empty-category">
+                            <div>📋</div>
+                            <div>Nenhum relatório disponível.</div>
+                        </li>
                     {% endif %}
                 </ul>
             </div>
         {% endfor %}
     </div>
 
+    <script>
+        // Adiciona contadores dinâmicos
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.category-card');
+            
+            cards.forEach((card, index) => {
+                // Adiciona delay na animação
+                card.style.animationDelay = `${index * 0.1}s`;
+                
+                // Conta relatórios ativos vs em desenvolvimento
+                const links = card.querySelectorAll('.report-item a');
+                const activeCount = card.querySelectorAll('.status-active').length;
+                const devCount = card.querySelectorAll('.status-dev').length;
+                
+                // Adiciona tooltip com informações extras
+                const countElement = card.querySelector('.category-count');
+                if (countElement) {
+                    countElement.title = `${activeCount} ativos, ${devCount} em desenvolvimento`;
+                }
+            });
+        });
+    </script>
 </body>
 </html>

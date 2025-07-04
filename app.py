@@ -12,7 +12,8 @@ from motor_relatorios import (
     gerar_balanco_despesa,
     gerar_relatorio_estimada, 
     gerar_relatorio_por_adm, 
-    gerar_relatorio_previsao_atualizada
+    gerar_relatorio_previsao_atualizada,
+    gerar_relatorio_receita_estimada
 )
 
 # Importa o serviço de cache
@@ -155,6 +156,35 @@ def relatorio_balanco_orcamentario():
                              titulo="Erro no Relatório de Receita",
                              mensagem=f"Erro ao gerar relatório: {str(e)}")
 
+@app.route('/relatorio/receita-estimada')
+def relatorio_receita_estimada():
+    """Relatório de receita estimada comparativo anual"""
+    try:
+        inicio = time.time()
+        df_completo = carregar_dataframe_receita()
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+        
+        # Gera o relatório usando a nova função
+        dados_relatorio, dados_para_ia, dados_pdf = gerar_relatorio_receita_estimada(
+            df_completo, HIERARQUIA_RECEITAS, noug_selecionada
+        )
+        
+        fim = time.time()
+        print(f"⏱️ Relatório de receita estimada gerado em {fim - inicio:.2f} segundos")
+        
+        return render_template('relatorio_estimada.html',
+                               dados_relatorio=dados_relatorio,
+                               dados_para_ia=dados_para_ia,
+                               dados_pdf=dados_pdf,
+                               lista_nougs=lista_nougs,
+                               noug_selecionada=noug_selecionada)
+    except Exception as e:
+        print(f"❌ Erro no relatório de receita estimada: {str(e)}")
+        return render_template('erro.html',
+                             titulo="Erro no Relatório de Receita Estimada",
+                             mensagem=f"Erro ao gerar relatório: {str(e)}")
+
 # ===================== ROTAS DE DESPESA =====================
 
 @app.route('/relatorio/balanco-despesa')
@@ -250,19 +280,115 @@ def teste_despesa():
     except Exception as e:
         return f"❌ Erro ao carregar: {str(e)}"
 
-# ===================== OUTRAS ROTAS =====================
-
-@app.route('/relatorio/receita-estimada')
-def relatorio_receita_estimada():
-    return "Relatório em desenvolvimento", 501
+# ===================== OUTRAS ROTAS (EM DESENVOLVIMENTO) =====================
 
 @app.route('/relatorio/receita-por-adm')
 def relatorio_receita_por_adm():
-    return "Relatório em desenvolvimento", 501
+    """Relatório de receita por administração"""
+    try:
+        inicio = time.time()
+        df_completo = carregar_dataframe_receita()
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+        
+        # Por enquanto, retorna template de desenvolvimento usando o padrão
+        return render_template('erro.html',
+                             titulo="Relatório em Desenvolvimento",
+                             mensagem="O relatório por administração está sendo desenvolvido e estará disponível em breve.")
+    except Exception as e:
+        return render_template('erro.html',
+                             titulo="Erro no Relatório por Administração",
+                             mensagem=f"Erro ao acessar relatório: {str(e)}")
 
 @app.route('/relatorio/previsao-atualizada')
 def relatorio_previsao_atualizada():
-    return "Relatório em desenvolvimento", 501
+    """Relatório de previsão atualizada"""
+    try:
+        inicio = time.time()
+        df_completo = carregar_dataframe_receita()
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+        
+        # Por enquanto, retorna template de desenvolvimento usando o padrão
+        return render_template('erro.html',
+                             titulo="Relatório em Desenvolvimento",
+                             mensagem="O relatório de previsão atualizada está sendo desenvolvido e estará disponível em breve.")
+    except Exception as e:
+        return render_template('erro.html',
+                             titulo="Erro no Relatório de Previsão Atualizada",
+                             mensagem=f"Erro ao acessar relatório: {str(e)}")
+
+@app.route('/relatorio/despesa-por-funcao')
+def relatorio_despesa_por_funcao():
+    return render_template('erro.html',
+                         titulo="Relatório em Desenvolvimento",
+                         mensagem="O relatório de despesa por função está sendo desenvolvido.")
+
+@app.route('/relatorio/despesa-por-natureza')
+def relatorio_despesa_por_natureza():
+    return render_template('erro.html',
+                         titulo="Relatório em Desenvolvimento",
+                         mensagem="O relatório de despesa por natureza está sendo desenvolvido.")
+
+@app.route('/relatorio/despesa-por-modalidade')
+def relatorio_despesa_por_modalidade():
+    return render_template('erro.html',
+                         titulo="Relatório em Desenvolvimento",
+                         mensagem="O relatório de despesa por modalidade está sendo desenvolvido.")
+
+@app.route('/relatorio/despesa-por-noug')
+def relatorio_despesa_por_noug():
+    return render_template('erro.html',
+                         titulo="Relatório em Desenvolvimento",
+                         mensagem="O relatório de despesa por unidade gestora está sendo desenvolvido.")
+
+@app.route('/relatorio/execucao-por-programa')
+def relatorio_execucao_por_programa():
+    return render_template('erro.html',
+                         titulo="Relatório em Desenvolvimento",
+                         mensagem="O relatório de execução por programa está sendo desenvolvido.")
+
+@app.route('/relatorio/receita-vs-despesa')
+def relatorio_receita_vs_despesa():
+    return render_template('erro.html',
+                         titulo="Relatório em Desenvolvimento",
+                         mensagem="O relatório comparativo receita vs despesa está sendo desenvolvido.")
+
+@app.route('/relatorio/evolucao-temporal')
+def relatorio_evolucao_temporal():
+    return render_template('erro.html',
+                         titulo="Relatório em Desenvolvimento",
+                         mensagem="O relatório de evolução temporal está sendo desenvolvido.")
+
+@app.route('/relatorio/indicadores')
+def relatorio_indicadores():
+    return render_template('erro.html',
+                         titulo="Relatório em Desenvolvimento",
+                         mensagem="O relatório de indicadores orçamentários está sendo desenvolvido.")
+
+@app.route('/relatorio/dashboard')
+def relatorio_dashboard():
+    return render_template('erro.html',
+                         titulo="Relatório em Desenvolvimento",
+                         mensagem="O dashboard executivo está sendo desenvolvido.")
+
+@app.route('/relatorio/por-noug')
+def relatorio_por_noug():
+    return render_template('erro.html',
+                         titulo="Relatório em Desenvolvimento",
+                         mensagem="O relatório por unidade gestora está sendo desenvolvido.")
+
+@app.route('/relatorio/analise-variacoes')
+def relatorio_analise_variacoes():
+    return render_template('erro.html',
+                         titulo="Relatório em Desenvolvimento",
+                         mensagem="A análise de variações está sendo desenvolvida.")
+
+@app.route('/relatorio/desempenho')
+def relatorio_desempenho():
+    return render_template('erro.html',
+                         titulo="Relatório em Desenvolvimento",
+                         mensagem="O relatório de desempenho está sendo desenvolvido.")
 
 # ===================== TRATAMENTO DE ERROS =====================
 

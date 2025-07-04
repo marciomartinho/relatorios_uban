@@ -117,12 +117,12 @@ body {
     background-color: #0b5ed7;
 }
 
-.btn-pdf {
-    background-color: #dc3545;
+.btn-jpg {
+    background-color: #6f42c1;
 }
 
-.btn-pdf:hover {
-    background-color: #bb2d3b;
+.btn-jpg:hover {
+    background-color: #5a32a3;
 }
 
 /* --- Filtros --- */
@@ -190,7 +190,26 @@ td:first-child {
     font-weight: 500;
 }
 
-/* --- Níveis de Hierarquia (Padrão de Cores) --- */
+/* --- Níveis de Hierarquia (Padrão de Cores Original) --- */
+.principal {
+    background-color: #cce5ff;
+    font-weight: bold;
+}
+
+.principal td {
+    font-size: 14px;
+}
+
+.filha {
+    background-color: #e7f2ff;
+    font-weight: normal;
+}
+
+.filha td:first-child {
+    padding-left: 30px !important;
+    font-weight: normal;
+}
+
 .level-1 {
     background-color: #cce5ff;
     font-weight: bold;
