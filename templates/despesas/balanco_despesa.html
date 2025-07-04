@@ -25,13 +25,13 @@
         {% for linha in dados_relatorio %}
             <tr class="{{ linha.tipo }}">
                 <td>{{ linha.especificacao }}</td>
-                <td>{{ linha.dotacao_inicial_fmt }}</td>
-                <td>{{ linha.dotacao_atualizada_fmt }}</td>
-                <td>{{ linha.despesa_empenhada_fmt }}</td>
-                <td>{{ linha.despesa_liquidada_fmt }}</td>
-                <td>{{ linha.despesa_paga_fmt }}</td>
-                <td class="{% if linha.saldo_dotacao < 0 %}valor-negativo{% endif %}">
-                    {{ linha.saldo_dotacao_fmt }}
+                <td>{{ linha.get('dotacao_inicial_fmt', 'R$ 0,00') }}</td>
+                <td>{{ linha.get('dotacao_atualizada_fmt', 'R$ 0,00') }}</td>
+                <td>{{ linha.get('despesa_empenhada_fmt', 'R$ 0,00') }}</td>
+                <td>{{ linha.get('despesa_liquidada_fmt', 'R$ 0,00') }}</td>
+                <td>{{ linha.get('despesa_paga_fmt', 'R$ 0,00') }}</td>
+                <td class="{% if linha.get('saldo_dotacao', 0) < 0 %}valor-negativo{% endif %}">
+                    {{ linha.get('saldo_dotacao_fmt', 'R$ 0,00') }}
                 </td>
             </tr>
         {% endfor %}

@@ -27,12 +27,12 @@
         {% for linha in dados_relatorio %}
             <tr class="{{ linha.tipo }}">
                 <td>{{ linha.especificacao }}</td>
-                <td>{{ linha.pi_2025_fmt }}</td>
-                <td>{{ linha.pa_2025_fmt }}</td>
-                <td>{{ linha.rr_2025_fmt }}</td>
-                <td>{{ linha.rr_2024_fmt }}</td>
-                <td class="{% if linha.saldo < 0 %}valor-negativo{% endif %}">
-                    {{ linha.saldo_fmt }}
+                <td>{{ linha.get('pi_2025_fmt', 'R$ 0,00') }}</td>
+                <td>{{ linha.get('pa_2025_fmt', 'R$ 0,00') }}</td>
+                <td>{{ linha.get('rr_2025_fmt', 'R$ 0,00') }}</td>
+                <td>{{ linha.get('rr_2024_fmt', 'R$ 0,00') }}</td>
+                <td class="{% if linha.get('saldo', 0) < 0 %}valor-negativo{% endif %}">
+                    {{ linha.get('saldo_fmt', 'R$ 0,00') }}
                 </td>
             </tr>
         {% endfor %}
