@@ -63,9 +63,15 @@ def gerar_balanco_orcamentario(df_completo, estrutura_hierarquica, noug_selecion
     if df_2025.empty:
         return [], "12", [], {}
     
+    # Calcula o mês de referência dinamicamente a partir da coluna INMES
+    mes_referencia = "12"  # Valor padrão
+    if 'INMES' in df_2025.columns:
+        max_mes = df_2025['INMES'].max()
+        if pd.notna(max_mes):
+            mes_referencia = str(int(max_mes)).zfill(2)  # Formata com 2 dígitos
+    
     dados_numericos = []
     dados_para_ia = []
-    mes_referencia = "12"  # Assumindo dezembro como referência
     
     # Processa cada categoria
     for cod_cat, origens in estrutura_hierarquica.items():
@@ -77,11 +83,26 @@ def gerar_balanco_orcamentario(df_completo, estrutura_hierarquica, noug_selecion
         
         if df_cat_2025.empty: continue
         
-        # Calcula valores da categoria
+        # Calcula valores da categoria usando as colunas corretas
         pi_2025 = float(df_cat_2025['PREVISAO INICIAL LIQUIDA'].sum())
-        pa_2025 = float(df_cat_2025['PREVISAO INICIAL LIQUIDA'].sum())  # Usando mesma coluna por ora
-        rr_2025 = float(df_cat_2025['PREVISAO INICIAL LIQUIDA'].sum() * 0.8)  # Simulando 80% de realização
-        rr_2024 = float(df_cat_2024['PREVISAO INICIAL LIQUIDA'].sum() * 0.75) if not df_cat_2024.empty else 0.0
+        
+        # Verifica se a coluna PREVISAO ATUALIZADA LIQUIDA existe
+        if 'PREVISAO ATUALIZADA LIQUIDA' in df_cat_2025.columns:
+            pa_2025 = float(df_cat_2025['PREVISAO ATUALIZADA LIQUIDA'].sum())
+        else:
+            pa_2025 = pi_2025  # Usa previsão inicial se não existir atualizada
+        
+        # Verifica se a coluna RECEITA LIQUIDA existe
+        if 'RECEITA LIQUIDA' in df_cat_2025.columns:
+            rr_2025 = float(df_cat_2025['RECEITA LIQUIDA'].sum())
+        else:
+            rr_2025 = 0.0  # Se não existir, considera zero
+            
+        if 'RECEITA LIQUIDA' in df_cat_2024.columns and not df_cat_2024.empty:
+            rr_2024 = float(df_cat_2024['RECEITA LIQUIDA'].sum())
+        else:
+            rr_2024 = 0.0
+            
         saldo = rr_2025 - rr_2024
         
         linha_categoria = {
@@ -112,9 +133,22 @@ def gerar_balanco_orcamentario(df_completo, estrutura_hierarquica, noug_selecion
             if df_orig_2025.empty: continue
             
             pi_2025_orig = float(df_orig_2025['PREVISAO INICIAL LIQUIDA'].sum())
-            pa_2025_orig = float(df_orig_2025['PREVISAO INICIAL LIQUIDA'].sum())  # Usando mesma coluna
-            rr_2025_orig = float(df_orig_2025['PREVISAO INICIAL LIQUIDA'].sum() * 0.8)  # Simulando realização
-            rr_2024_orig = float(df_orig_2024['PREVISAO INICIAL LIQUIDA'].sum() * 0.75) if not df_orig_2024.empty else 0.0
+            
+            if 'PREVISAO ATUALIZADA LIQUIDA' in df_orig_2025.columns:
+                pa_2025_orig = float(df_orig_2025['PREVISAO ATUALIZADA LIQUIDA'].sum())
+            else:
+                pa_2025_orig = pi_2025_orig
+                
+            if 'RECEITA LIQUIDA' in df_orig_2025.columns:
+                rr_2025_orig = float(df_orig_2025['RECEITA LIQUIDA'].sum())
+            else:
+                rr_2025_orig = 0.0
+                
+            if 'RECEITA LIQUIDA' in df_orig_2024.columns and not df_orig_2024.empty:
+                rr_2024_orig = float(df_orig_2024['RECEITA LIQUIDA'].sum())
+            else:
+                rr_2024_orig = 0.0
+                
             saldo_orig = rr_2025_orig - rr_2024_orig
             
             linha_origem = {
@@ -154,7 +188,7 @@ def gerar_balanco_orcamentario(df_completo, estrutura_hierarquica, noug_selecion
     
     # Dados para PDF
     dados_pdf = {
-        "head": [['RECEITAS', 'PREVISÃO INICIAL 2025', 'PREVISÃO ATUALIZADA 2025', 'RECEITA REALIZADA /2025', 'RECEITA REALIZADA /2024', 'VARIAÇÃO 2025 x 2024']],
+        "head": [['RECEITAS', 'PREVISÃO INICIAL 2025', 'PREVISÃO ATUALIZADA 2025', f'RECEITA REALIZADA {mes_referencia}/2025', f'RECEITA REALIZADA {mes_referencia}/2024', 'VARIAÇÃO 2025 x 2024']],
         "body": [
             [linha['especificacao'], linha.get('pi_2025_fmt', 'R$ 0,00'), linha.get('pa_2025_fmt', 'R$ 0,00'), 
              linha.get('rr_2025_fmt', 'R$ 0,00'), linha.get('rr_2024_fmt', 'R$ 0,00'), linha.get('saldo_fmt', 'R$ 0,00')]

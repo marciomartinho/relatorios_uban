@@ -34,16 +34,34 @@ def carregar_dataframe_receita():
     print("🔄 Carregando dados de receita do Excel...")
     inicio = time.time()
 
-    # Carrega do Excel
+    # Carrega do Excel - COLUNAS ATUALIZADAS
     dtype_map = {
         'CATEGORIA': str, 'NOCATEGORIARECEITA': str,
         'ORIGEM': str, 'NOFONTERECEITA': str,
         'ESPECIE': str, 'NOSUBFONTERECEITA': str,
         'ALINEA': str, 'NOALINEA': str,
         'INTIPOADM': int,
-        'NOUG': str
+        'NOUG': str,
+        'COEXERCICIO': int,
+        'INMES': int
     }
+    
+    # Tenta ler todas as colunas primeiro para ver o que está disponível
+    df_temp = pd.read_excel(caminho_arquivo, nrows=5)  # Lê só as primeiras linhas para ver colunas
+    colunas_disponiveis = df_temp.columns.tolist()
+    
+    print(f"📋 Colunas disponíveis na planilha: {colunas_disponiveis}")
+    
+    # Lê o arquivo completo
     df = pd.read_excel(caminho_arquivo, dtype=dtype_map)
+    
+    print(f"📊 Colunas carregadas: {df.columns.tolist()}")
+    print(f"📅 Exercícios encontrados: {df['COEXERCICIO'].unique() if 'COEXERCICIO' in df.columns else 'COEXERCICIO não encontrado'}")
+    
+    if 'INMES' in df.columns:
+        print(f"📅 Meses disponíveis: {sorted(df['INMES'].unique())}")
+        max_mes = df['INMES'].max()
+        print(f"📅 Mês de referência: {max_mes}")
 
     # Salva no cache
     cache_service.cache_dataframe(df, caminho_arquivo, 'receita')
