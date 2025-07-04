@@ -1,43 +1,56 @@
 {% extends "base_relatorio.html" %}
 
-{% block titulo %}Receita por Administração{% endblock %}
+{# Define o título da aba do navegador #}
+{% block titulo %}Receita por Tipo de Administração{% endblock %}
 
+{# Define o título principal que aparece no cabeçalho do relatório #}
 {% block titulo_relatorio %}RECEITA ESTIMADA LÍQUIDA - POR TIPO DE ADMINISTRAÇÃO{% endblock %}
 
-{% block subtitulo %}Exercício 2025{% endblock %}
+{# Remove a linha de "Mês de Referência", pois não se aplica a este relatório anual #}
+{% block referencia %}{% endblock %}
 
+{# Bloco para conteúdo principal da página #}
 {% block conteudo %}
-<table>
-    <thead>
-        <tr>
-            <th>ESPECIFICAÇÃO</th>
-            <th>ADMINISTRAÇÃO DIRETA</th>
-            <th>AUTARQUIAS</th>
-            <th>FUNDAÇÕES</th>
-            <th>EMPRESAS</th>
-            <th>FUNDOS</th>
-            <th>TOTAL</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for linha in dados_relatorio %}
-            <tr class="{{ linha.tipo }}">
-                <td>{{ linha.especificacao }}</td>
-                <td>{{ linha.adm_direta_fmt }}</td>
-                <td>{{ linha.autarquias_fmt }}</td>
-                <td>{{ linha.fundacoes_fmt }}</td>
-                <td>{{ linha.empresas_fmt }}</td>
-                <td>{{ linha.fundos_fmt }}</td>
-                <td>{{ linha.total_fmt }}</td>
+<div class="table-responsive">
+    <table class="tabela-relatorio">
+        <thead>
+            <tr>
+                <th>ESPECIFICAÇÃO</th>
+                <th>ADMINISTRAÇÃO DIRETA</th>
+                <th>AUTARQUIAS</th>
+                <th>FUNDAÇÕES</th>
+                <th>EMPRESAS</th>
+                <th>FUNDOS</th>
+                <th>TOTAL</th>
             </tr>
-        {% endfor %}
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            {# Loop através dos dados passados pelo app.py #}
+            {% for linha in dados_relatorio %}
+                {# CORREÇÃO: A classe agora é aplicada diretamente para bater com o CSS #}
+                <tr class="{{ linha.tipo }}">
+                    <td>{{ linha.especificacao }}</td>
+                    <td>{{ linha.adm_direta_fmt }}</td>
+                    <td>{{ linha.autarquias_fmt }}</td>
+                    <td>{{ linha.fundacoes_fmt }}</td>
+                    <td>{{ linha.empresas_fmt }}</td>
+                    <td>{{ linha.fundos_fmt }}</td>
+                    <td>{{ linha.total_fmt }}</td>
+                </tr>
+            {% else %}
+                {# Mensagem exibida se não houver dados para mostrar #}
+                <tr>
+                    <td colspan="7" class="text-center">Nenhum dado encontrado para os filtros selecionados.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}
 
+{# Bloco para scripts JavaScript específicos desta página #}
 {% block scripts %}
 <script>
-    // O botão PNG já está configurado no template base
-    // Não precisa de configurações adicionais aqui
+    // Scripts específicos para esta página podem ser adicionados aqui.
 </script>
 {% endblock %}
