@@ -7,8 +7,215 @@
 {% block subtitulo %}Análise baseada no COCONTACORRENTE com comparativo 2024 vs 2025{% endblock %}
 
 {% block head_extra %}
-<!-- Chart.js para gráficos -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.min.js"></script>
+<!-- Chart.js para gráficos - VERSÃO MAIS COMPATÍVEL -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<script>
+// Aguardar Chart.js carregar
+window.addEventListener('load', function() {
+    if (typeof Chart === 'undefined') {
+        console.warn('⚠️ Carregando Chart.js alternativo...');
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/Chart.min.js';
+        script.onload = function() {
+            console.log('✅ Chart.js carregado');
+        };
+        document.head.appendChild(script);
+    }
+});
+</script>
+
+<style>
+    /* Garantir que o gráfico apareça */
+    .chart-container {
+        position: relative;
+        height: 500px !important;
+        width: 100% !important;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 30px;
+        border: 2px solid #dee2e6;
+    }
+    
+    .chart-wrapper {
+        position: relative;
+        height: 400px !important;
+        width: 100% !important;
+    }
+    
+    #chartComparativo {
+        max-height: 400px !important;
+        max-width: 100% !important;
+    }
+    
+    .chart-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 400px;
+        color: #6c757d;
+        font-size: 18px;
+    }
+    
+    .chart-error {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 400px;
+        color: #dc3545;
+        font-size: 16px;
+        text-align: center;
+        flex-direction: column;
+    }
+    
+    .info-container {
+        background: #e7f3ff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #0066cc;
+    }
+    
+    .info-container h4 {
+        margin: 0 0 10px 0;
+        color: #0066cc;
+        font-weight: 600;
+    }
+    
+    .info-container ul {
+        margin: 0;
+        padding-left: 20px;
+        color: #555;
+    }
+    
+    .resumo-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #003366;
+    }
+    
+    .resumo-container h4 {
+        margin: 0 0 15px 0;
+        color: #003366;
+        font-weight: 600;
+    }
+    
+    .resumo-container > div {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .resumo-container > div > div {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 3px solid #0066cc;
+    }
+    
+    /* ESTILOS PARA EXPANSÃO DE FONTES */
+    .expand-btn {
+        background: none;
+        border: none;
+        color: #0066cc;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        margin-right: 8px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        transition: all 0.2s ease;
+    }
+    
+    .expand-btn:hover {
+        background-color: rgba(0, 102, 204, 0.1);
+    }
+    
+    .expand-btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.3);
+    }
+    
+    /* Linhas de receita principais */
+    .receita {
+        background-color: #cce5ff;
+        font-weight: bold;
+    }
+    
+    /* Linhas de fontes (filhas) */
+    .fonte {
+        background-color: #f0f8ff;
+        display: none; /* Inicialmente ocultas */
+    }
+    
+    .fonte.show {
+        display: table-row; /* Mostrar quando expandida */
+    }
+    
+    .fonte td:first-child {
+        padding-left: 50px !important;
+        font-weight: normal;
+        color: #555;
+    }
+    
+    .fonte td:nth-child(2) {
+        font-style: italic;
+        color: #666;
+        font-size: 13px;
+    }
+    
+    /* Ícones para indicar tipo */
+    .receita-icon {
+        color: #0066cc;
+        margin-right: 5px;
+    }
+    
+    .fonte-icon {
+        color: #6c757d;
+        margin-right: 5px;
+    }
+    
+    /* Contador de fontes */
+.fonte-counter {
+    font-size: 11px;
+    color: #666;
+    font-weight: normal;
+    margin-left: 10px;
+    display: block;
+    margin-top: 2px;
+}
+
+/* Ajustar layout da primeira coluna para evitar desalinhamento */
+.receita td:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 8px !important;
+}
+
+.codigo-receita-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+}
+
+.codigo-receita-linha1 {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+    
+    /* Hover específico para fontes */
+    tbody tr.fonte:hover {
+        background-color: rgba(240, 248, 255, 0.8) !important;
+    }
+</style>
 {% endblock %}
 
 {% block conteudo %}
@@ -17,9 +224,11 @@
     <ul>
         <li><strong>Código da Receita:</strong> Primeiros 8 caracteres do COCONTACORRENTE</li>
         <li><strong>Nome da Receita:</strong> Obtido da planilha CLASSIFICACAO_ORCAMENTARIA</li>
-        <li><strong>Comparativo:</strong> Receita realizada em {{ mes_ref }}/2025 vs {{ mes_ref }}/2024</li>
+        <li><strong>Fontes:</strong> Caracteres 9-17 do COCONTACORRENTE (obtidos da planilha FONTE.xlsx)</li>
+        <li><strong>Comparativo:</strong> Receita realizada em {{ mes_ref }}/2024 vs {{ mes_ref }}/2025</li>
         <li><strong>Variação:</strong> Diferença absoluta e percentual entre os períodos</li>
         <li><strong>Ordenação:</strong> Por valor 2025 (maior para menor)</li>
+        <li><strong>💡 Dica:</strong> Clique nos botões <strong>[+]</strong> para expandir e ver as fontes de cada receita</li>
     </ul>
 </div>
 
@@ -32,30 +241,75 @@
             <th colspan="2">VARIAÇÃO</th>
         </tr>
         <tr>
-            <th>{{ mes_ref }}/2025</th>
             <th>{{ mes_ref }}/2024</th>
+            <th>{{ mes_ref }}/2025</th>
             <th>ABSOLUTA</th>
             <th>PERCENTUAL</th>
         </tr>
     </thead>
     <tbody>
         {% for linha in dados_relatorio %}
-            <tr class="{{ linha.tipo }}">
-                <td style="text-align: center; font-family: monospace; font-weight: bold;">
-                    {{ linha.receita_codigo_fmt }}
-                </td>
-                <td style="text-align: left;">
-                    {{ linha.nome_receita_fmt }}
-                </td>
-                <td>{{ linha.receita_2025_fmt }}</td>
-                <td>{{ linha.receita_2024_fmt }}</td>
-                <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
-                    {{ linha.variacao_abs_fmt }}
-                </td>
-                <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
-                    {{ linha.variacao_perc_fmt }}
-                </td>
-            </tr>
+            {% if linha.tipo == 'receita' %}
+                <tr class="receita" id="receita-{{ linha.receita_codigo }}">
+                    <td style="text-align: center; font-family: monospace; font-weight: bold;">
+    <div class="codigo-receita-container">
+        <div class="codigo-receita-linha1">
+            {% if linha.tem_fontes %}
+                <button class="expand-btn" onclick="toggleFontes('{{ linha.receita_codigo }}')" 
+                        id="btn-{{ linha.receita_codigo }}" title="Clique para expandir/recolher fontes">
+                    +
+                </button>
+            {% endif %}
+            <span class="receita-icon">📊</span>{{ linha.receita_codigo_fmt }}
+        </div>
+        {% if linha.tem_fontes %}
+            <span class="fonte-counter">({{ linha.qtd_fontes }} fontes)</span>
+        {% endif %}
+    </div>
+</td>
+                    <td style="text-align: left;">
+                        {{ linha.nome_receita_fmt }}
+                    </td>
+                    <td>{{ linha.receita_2024_fmt }}</td>
+                    <td>{{ linha.receita_2025_fmt }}</td>
+                    <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_abs_fmt }}
+                    </td>
+                    <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_perc_fmt }}
+                    </td>
+                </tr>
+            {% elif linha.tipo == 'fonte' %}
+                <tr class="fonte fonte-{{ linha.receita_pai }}" style="display: none;">
+                    <td style="text-align: center; font-family: monospace; font-weight: normal; color: #555;">
+                        <span class="fonte-icon">├─</span>{{ linha.receita_codigo_fmt }}
+                    </td>
+                    <td style="text-align: left; font-style: italic; color: #666; font-size: 13px;">
+                        {{ linha.nome_receita_fmt }}
+                    </td>
+                    <td>{{ linha.receita_2024_fmt }}</td>
+                    <td>{{ linha.receita_2025_fmt }}</td>
+                    <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_abs_fmt }}
+                    </td>
+                    <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_perc_fmt }}
+                    </td>
+                </tr>
+            {% elif linha.tipo == 'total' %}
+                <tr class="total">
+                    <td style="text-align: center; font-weight: bold;">{{ linha.receita_codigo_fmt }}</td>
+                    <td style="text-align: left; font-weight: bold;">{{ linha.nome_receita_fmt }}</td>
+                    <td>{{ linha.receita_2024_fmt }}</td>
+                    <td>{{ linha.receita_2025_fmt }}</td>
+                    <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_abs_fmt }}
+                    </td>
+                    <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_perc_fmt }}
+                    </td>
+                </tr>
+            {% endif %}
         {% else %}
             <tr>
                 <td colspan="6" class="text-center" style="color: #666; font-style: italic; padding: 30px;">
@@ -72,45 +326,80 @@
     <div>
         <div>
             <strong>Total de Receitas:</strong><br>
-            <span style="color: #0066cc;">{{ dados_relatorio|length - 1 }}</span>
+            <span style="color: #0066cc; font-size: 18px;">
+                {{ dados_relatorio | selectattr("tipo", "equalto", "receita") | list | length }}
+            </span>
         </div>
         <div>
-            <strong>Receita Total 2025:</strong><br>
-            <span style="color: #28a745;">
-                {% if dados_relatorio|length > 0 %}
-                    {{ dados_relatorio[-1].receita_2025_fmt }}
-                {% else %}
-                    R$ 0,00
-                {% endif %}
+            <strong>Total de Fontes:</strong><br>
+            <span style="color: #6c757d; font-size: 18px;">
+                {{ dados_relatorio | selectattr("tipo", "equalto", "fonte") | list | length }}
             </span>
         </div>
         <div>
             <strong>Receita Total 2024:</strong><br>
-            <span style="color: #6c757d;">
-                {% if dados_relatorio|length > 0 %}
-                    {{ dados_relatorio[-1].receita_2024_fmt }}
-                {% else %}
-                    R$ 0,00
-                {% endif %}
+            <span style="color: #6c757d; font-size: 18px;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        {{ linha.receita_2024_fmt }}
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+        <div>
+            <strong>Receita Total 2025:</strong><br>
+            <span style="color: #28a745; font-size: 18px;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        {{ linha.receita_2025_fmt }}
+                    {% endif %}
+                {% endfor %}
             </span>
         </div>
         <div>
             <strong>Variação Total:</strong><br>
-            <span style="color: {% if dados_relatorio|length > 0 and dados_relatorio[-1].variacao_perc < 0 %}#dc3545{% elif dados_relatorio|length > 0 and dados_relatorio[-1].variacao_perc > 0 %}#28a745{% else %}#6c757d{% endif %};">
-                {% if dados_relatorio|length > 0 %}
-                    {{ dados_relatorio[-1].variacao_perc_fmt }}
-                {% else %}
-                    0,00%
-                {% endif %}
+            <span style="font-size: 18px; font-weight: bold;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        <span class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_perc_fmt }}
+                        </span>
+                    {% endif %}
+                {% endfor %}
             </span>
         </div>
     </div>
 </div>
 
+<!-- Botões de Controle Global -->
+<div style="margin: 20px 0; text-align: center;">
+    <button onclick="expandirTodas()" class="btn" style="background: #28a745; margin-right: 10px;">
+        ➕ Expandir Todas as Receitas
+    </button>
+    <button onclick="recolherTodas()" class="btn" style="background: #dc3545;">
+        ➖ Recolher Todas as Receitas
+    </button>
+</div>
+
 <!-- Gráfico de Barras com as Top 10 Receitas -->
 <div class="chart-container">
-    <h4>📈 Top 10 Receitas - Comparativo 2025 vs 2024</h4>
-    <canvas id="chartComparativo"></canvas>
+    <h4>📈 Top 10 Receitas - Comparativo 2024 vs 2025</h4>
+    <div class="chart-wrapper">
+        <div id="chart-loading" class="chart-loading">
+            <div>
+                <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+                <div>Carregando gráfico...</div>
+            </div>
+        </div>
+        <div id="chart-error" class="chart-error" style="display: none;">
+            <div>
+                <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
+                <div>Erro ao carregar gráfico</div>
+                <div style="font-size: 14px; margin-top: 5px;">Os dados estão disponíveis na tabela acima</div>
+            </div>
+        </div>
+        <canvas id="chartComparativo" style="display: none;"></canvas>
+    </div>
 </div>
 {% endif %}
 
@@ -118,115 +407,217 @@
 
 {% block scripts %}
 <script>
-// Cria gráfico de barras comparativo
-document.addEventListener('DOMContentLoaded', function() {
-    // Dados do relatório
-    const dadosRelatorio = {{ dados_relatorio | tojson | safe }};
+// === SISTEMA DE EXPANSÃO DE FONTES ===
+
+function toggleFontes(receitaCodigo) {
+    const fontes = document.querySelectorAll('.fonte-' + receitaCodigo);
+    const btn = document.getElementById('btn-' + receitaCodigo);
     
-    if (dadosRelatorio && dadosRelatorio.length > 1) {
-        // Pega os top 10 (excluindo o total)
-        const top10 = dadosRelatorio
-            .filter(item => item.tipo === 'principal')
-            .slice(0, 10);
+    if (fontes.length === 0) return;
+    
+    const isVisible = fontes[0].style.display === 'table-row';
+    
+    fontes.forEach(fonte => {
+        if (isVisible) {
+            fonte.style.display = 'none';
+        } else {
+            fonte.style.display = 'table-row';
+        }
+    });
+    
+    // Atualiza o botão
+    btn.textContent = isVisible ? '+' : '−';
+    btn.title = isVisible ? 'Clique para expandir fontes' : 'Clique para recolher fontes';
+    
+    console.log(`${isVisible ? 'Recolheu' : 'Expandiu'} fontes da receita ${receitaCodigo}`);
+}
+
+function expandirTodas() {
+    const todosBotoes = document.querySelectorAll('.expand-btn');
+    todosBotoes.forEach(btn => {
+        const receitaCodigo = btn.id.replace('btn-', '');
+        const fontes = document.querySelectorAll('.fonte-' + receitaCodigo);
         
-        if (top10.length > 0) {
-            const ctx = document.getElementById('chartComparativo').getContext('2d');
-            
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top10.map(item => item.receita_codigo),
-                    datasets: [{
-                        label: '2025',
-                        data: top10.map(item => item.receita_2025),
-                        backgroundColor: 'rgba(0, 102, 204, 0.8)',
-                        borderColor: 'rgba(0, 102, 204, 1)',
-                        borderWidth: 1
-                    }, {
-                        label: '2024',
-                        data: top10.map(item => item.receita_2024),
-                        backgroundColor: 'rgba(108, 117, 125, 0.6)',
-                        borderColor: 'rgba(108, 117, 125, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Comparativo das Principais Receitas'
-                        },
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const value = context.parsed.y;
-                                    const formatted = new Intl.NumberFormat('pt-BR', {
-                                        style: 'currency',
-                                        currency: 'BRL'
-                                    }).format(value);
-                                    return context.dataset.label + ': ' + formatted;
-                                }
-                            }
-                        }
+        fontes.forEach(fonte => {
+            fonte.style.display = 'table-row';
+        });
+        
+        btn.textContent = '−';
+        btn.title = 'Clique para recolher fontes';
+    });
+    
+    console.log('✅ Todas as receitas expandidas');
+}
+
+function recolherTodas() {
+    const todosBotoes = document.querySelectorAll('.expand-btn');
+    todosBotoes.forEach(btn => {
+        const receitaCodigo = btn.id.replace('btn-', '');
+        const fontes = document.querySelectorAll('.fonte-' + receitaCodigo);
+        
+        fontes.forEach(fonte => {
+            fonte.style.display = 'none';
+        });
+        
+        btn.textContent = '+';
+        btn.title = 'Clique para expandir fontes';
+    });
+    
+    console.log('✅ Todas as receitas recolhidas');
+}
+
+// === SISTEMA DE GRÁFICOS (IGUAL AO ANTERIOR) ===
+
+// Aguardar DOM carregar completamente
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 Iniciando verificação do gráfico...');
+    
+    // Aguardar um pouco para garantir que tudo carregou
+    setTimeout(function() {
+        verificarECriarGrafico();
+    }, 1000);
+});
+
+function verificarECriarGrafico() {
+    console.log('🔍 Verificando Chart.js...');
+    
+    // Verificar se Chart.js carregou
+    if (typeof Chart === 'undefined') {
+        console.error('❌ Chart.js não carregou');
+        mostrarErro('Biblioteca de gráficos não carregada');
+        return;
+    }
+    
+    console.log('✅ Chart.js carregado, versão:', Chart.version);
+    
+    // Dados do relatório - apenas receitas principais para o gráfico
+    const dadosRelatorio = {{ dados_relatorio | tojson | safe }};
+    const receitasPrincipais = dadosRelatorio.filter(item => item.tipo === 'receita');
+    
+    console.log('📊 Total de receitas principais:', receitasPrincipais.length);
+    
+    if (!receitasPrincipais || receitasPrincipais.length === 0) {
+        console.warn('⚠️ Sem receitas principais para gráfico');
+        mostrarErro('Sem dados suficientes para gerar o gráfico');
+        return;
+    }
+    
+    // Pegar top 10
+    const top10 = receitasPrincipais.slice(0, 10);
+    console.log('🔟 Top 10 receitas:', top10.length);
+    
+    // Preparar dados
+    const labels = top10.map(item => item.receita_codigo || 'N/A');
+    const dados2024 = top10.map(item => parseFloat(item.receita_2024) || 0);
+    const dados2025 = top10.map(item => parseFloat(item.receita_2025) || 0);
+    
+    console.log('🏷️ Labels:', labels);
+    console.log('💰 Dados 2024:', dados2024);
+    console.log('💰 Dados 2025:', dados2025);
+    
+    // Criar o gráfico
+    criarGrafico(labels, dados2024, dados2025);
+}
+
+function criarGrafico(labels, dados2024, dados2025) {
+    try {
+        console.log('🎨 Criando gráfico...');
+        
+        const canvas = document.getElementById('chartComparativo');
+        if (!canvas) {
+            throw new Error('Canvas não encontrado');
+        }
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Contexto 2D não disponível');
+        }
+        
+        // Esconder loading e mostrar canvas
+        document.getElementById('chart-loading').style.display = 'none';
+        document.getElementById('chart-error').style.display = 'none';
+        canvas.style.display = 'block';
+        
+        // Criar gráfico
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '2024',
+                    data: dados2024,
+                    backgroundColor: 'rgba(108, 117, 125, 0.6)',
+                    borderColor: 'rgba(108, 117, 125, 1)',
+                    borderWidth: 1
+                }, {
+                    label: '2025',
+                    data: dados2025,
+                    backgroundColor: 'rgba(0, 102, 204, 0.8)',
+                    borderColor: 'rgba(0, 102, 204, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Comparativo das Principais Receitas'
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return new Intl.NumberFormat('pt-BR', {
-                                        style: 'currency',
-                                        currency: 'BRL',
-                                        minimumFractionDigits: 0,
-                                        maximumFractionDigits: 0
-                                    }).format(value);
-                                }
-                            }
-                        },
-                        x: {
-                            ticks: {
-                                maxRotation: 45,
-                                minRotation: 0
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y;
+                                const formatted = new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL'
+                                }).format(value);
+                                return context.dataset.label + ': ' + formatted;
                             }
                         }
                     }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL',
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                }).format(value);
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45
+                        }
+                    }
                 }
-            });
-        }
-    }
-    
-    // Adiciona interatividade extra
-    const linhasPrincipais = document.querySelectorAll('tr.principal');
-    linhasPrincipais.forEach((linha, index) => {
-        // Destaca a linha com maior crescimento percentual
-        const celulasVariacao = linha.querySelectorAll('td');
-        if (celulasVariacao.length >= 6) {
-            const textoVariacao = celulasVariacao[5].textContent;
-            const variacao = parseFloat(textoVariacao.replace('%', '').replace('+', '').replace('-', ''));
-            
-            if (variacao > 50) {
-                linha.style.borderLeft = '4px solid #28a745';
-                linha.title = 'Crescimento significativo: ' + textoVariacao;
-            } else if (variacao < -20) {
-                linha.style.borderLeft = '4px solid #dc3545';
-                linha.title = 'Redução significativa: ' + textoVariacao;
             }
-        }
-    });
-    
-    // Adiciona tooltip nos códigos de receita
-    document.querySelectorAll('td[style*="monospace"]').forEach(td => {
-        const codigo = td.textContent.trim();
-        if (codigo && codigo !== 'TOTAL') {
-            td.title = `Código da Receita: ${codigo}\nFonte: ${codigo.substring(8) || 'N/A'}`;
-        }
-    });
-});
+        });
+        
+        console.log('🎉 Gráfico criado com sucesso!');
+        
+    } catch (error) {
+        console.error('❌ Erro ao criar gráfico:', error);
+        mostrarErro('Erro ao criar o gráfico: ' + error.message);
+    }
+}
+
+function mostrarErro(mensagem) {
+    console.error('🚨 Erro do gráfico:', mensagem);
+    document.getElementById('chart-loading').style.display = 'none';
+    document.getElementById('chart-error').style.display = 'flex';
+    document.getElementById('chartComparativo').style.display = 'none';
+}
 </script>
 {% endblock %}

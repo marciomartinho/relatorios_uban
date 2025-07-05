@@ -384,16 +384,16 @@ tbody tr {
 }
 
 tbody tr:hover {
-    background-color: rgba(255, 255, 255, 0.9) !important;
+    background-color: rgba(0, 102, 204, 0.05) !important;
 }
 
 /* Preserva cores de fundo durante hover */
 tbody tr.principal:hover {
-    background-color: rgba(255, 255, 255, 0.95) !important;
+    background-color: rgba(0, 102, 204, 0.15) !important;
 }
 
 tbody tr.filha:hover {
-    background-color: rgba(255, 255, 255, 0.9) !important;
+    background-color: rgba(0, 102, 204, 0.10) !important;
 }
 
 tbody tr.total:hover {

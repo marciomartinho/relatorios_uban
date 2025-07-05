@@ -19,7 +19,7 @@ def formatar_numero(valor: float) -> str:
 
 def formatar_percentual(valor: float, decimais: int = 2) -> str:
     """
-    Formata percentuais com sinal
+    Formata percentuais com sinal (padrão brasileiro)
     
     Args:
         valor: Valor percentual
@@ -28,11 +28,16 @@ def formatar_percentual(valor: float, decimais: int = 2) -> str:
     Returns:
         String formatada (ex: "+5,23%")
     """
-    return f"{valor:+.{decimais}f}%"
+    if valor == 0:
+        return "0,00%"
+    
+    # Formatar com sinal e substituir ponto por vírgula (padrão brasileiro)
+    resultado = f"{valor:+.{decimais}f}%".replace(".", ",")
+    return resultado
 
 def formatar_percentual_simples(valor: float, decimais: int = 2) -> str:
     """
-    Formata percentuais sem sinal
+    Formata percentuais sem sinal (padrão brasileiro)
     
     Args:
         valor: Valor percentual  
@@ -41,4 +46,9 @@ def formatar_percentual_simples(valor: float, decimais: int = 2) -> str:
     Returns:
         String formatada (ex: "5,23%")
     """
-    return f"{valor:.{decimais}f}%"
+    if valor == 0:
+        return "0,00%"
+    
+    # Formatar sem sinal e substituir ponto por vírgula (padrão brasileiro)
+    resultado = f"{valor:.{decimais}f}%".replace(".", ",")
+    return resultado
