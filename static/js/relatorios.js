@@ -133,6 +133,27 @@ function formatarNumero(valor) {
     });
 }
 
+// Função para detectar se um texto é um valor monetário negativo
+function ehValorMonetarioNegativo(texto) {
+    // Remove espaços em branco
+    const textoLimpo = texto.trim();
+    
+    // Verifica se tem parênteses E se parece com um valor monetário
+    if (textoLimpo.includes('(') && textoLimpo.includes(')')) {
+        // Padrões de valor monetário negativo:
+        // (R$ 1.234,56), (1.234,56), R$ (1.234,56), etc.
+        const padraoMonetario = /(\(.*R\$.*\)|R\$.*\(.*\)|\(\s*[\d.,]+\s*\))/;
+        return padraoMonetario.test(textoLimpo);
+    }
+    
+    // Também verifica valores com sinal negativo explícito
+    if (textoLimpo.includes('-') && textoLimpo.includes('R$')) {
+        return true;
+    }
+    
+    return false;
+}
+
 // Inicialização quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', function() {
     // Botão de atualizar
@@ -141,18 +162,23 @@ document.addEventListener('DOMContentLoaded', function() {
         btnAtualizar.addEventListener('click', atualizarDados);
     }
     
-    // Aplicar classes de formatação automática
+    // Aplicar classes de formatação automática - VERSÃO CORRIGIDA
     document.querySelectorAll('td').forEach(td => {
         const texto = td.textContent.trim();
         
-        // Detectar valores negativos
-        if (texto.includes('(') && texto.includes(')')) {
+        // CORREÇÃO: Detectar valores monetários negativos (não qualquer texto com parênteses)
+        if (ehValorMonetarioNegativo(texto)) {
             td.classList.add('valor-negativo');
         }
         
         // Detectar valores zero
         if (texto === 'R$ 0,00' || texto === '0,00') {
             td.classList.add('valor-zero');
+        }
+        
+        // Detectar percentuais positivos (para variações)
+        if (texto.includes('+') && texto.includes('%')) {
+            td.classList.add('valor-positivo');
         }
     });
     
@@ -170,6 +196,7 @@ window.RelatorioUtils = {
     atualizarDados,
     gerarPDF,
     formatarNumero,
+    ehValorMonetarioNegativo,
     NIVEL_CORES,
     PDF_CONFIG,
     PDF_STYLES
