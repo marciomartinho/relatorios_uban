@@ -1,0 +1,99 @@
+{% extends "base_relatorio.html" %}
+
+{% block titulo %}Receita por Conta Corrente{% endblock %}
+
+{% block titulo_relatorio %}RECEITA POR CONTA CORRENTE{% endblock %}
+
+{% block subtitulo %}Análise baseada no COCONTACORRENTE - Exercício 2025{% endblock %}
+
+{% block conteudo %}
+<div class="info-container" style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #0066cc;">
+    <h4 style="margin: 0 0 10px 0; color: #0066cc;">ℹ️ Informações do Relatório</h4>
+    <ul style="margin: 0; padding-left: 20px; color: #555;">
+        <li><strong>Código da Receita:</strong> Primeiros 8 caracteres do COCONTACORRENTE</li>
+        <li><strong>Nome da Receita:</strong> Obtido da planilha CLASSIFICACAO_ORCAMENTARIA</li>
+        <li><strong>Receita Realizada:</strong> Somatório da coluna RECEITA LIQUIDA</li>
+        <li><strong>Ordenação:</strong> Por valor (maior para menor)</li>
+    </ul>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>CÓDIGO RECEITA</th>
+            <th>NOME DA RECEITA</th>
+            <th>RECEITA REALIZADA</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for linha in dados_relatorio %}
+            <tr class="{{ linha.tipo }}">
+                <td style="text-align: center; font-family: monospace; font-weight: bold;">
+                    {{ linha.receita_codigo_fmt }}
+                </td>
+                <td style="text-align: left;">
+                    {{ linha.nome_receita_fmt }}
+                </td>
+                <td style="text-align: right;">
+                    {{ linha.receita_realizada_fmt }}
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="3" class="text-center" style="color: #666; font-style: italic; padding: 30px;">
+                    Nenhum dado encontrado para os filtros selecionados ou coluna COCONTACORRENTE não disponível.
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if dados_relatorio %}
+<div class="resumo-container" style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+    <h4 style="margin: 0 0 15px 0; color: #003366;">📊 Resumo do Relatório</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+        <div>
+            <strong>Total de Receitas:</strong><br>
+            <span style="color: #0066cc; font-size: 18px;">{{ dados_relatorio|length - 1 }}</span>
+        </div>
+        <div>
+            <strong>Maior Receita:</strong><br>
+            <span style="color: #28a745; font-size: 18px;">
+                {% if dados_relatorio|length > 1 %}
+                    {{ dados_relatorio[0].receita_realizada_fmt }}
+                {% else %}
+                    R$ 0,00
+                {% endif %}
+            </span>
+        </div>
+        <div>
+            <strong>Mês de Referência:</strong><br>
+            <span style="color: #6c757d; font-size: 18px;">{{ mes_ref }}/2025</span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // O botão JPG já está configurado no template base
+    // Adiciona algumas melhorias visuais
+    document.addEventListener('DOMContentLoaded', function() {
+        // Destaca a linha com maior valor (primeira linha que não é total)
+        const linhasPrincipais = document.querySelectorAll('tr.principal');
+        if (linhasPrincipais.length > 0) {
+            linhasPrincipais[0].style.borderLeft = '4px solid #28a745';
+        }
+        
+        // Adiciona tooltip nos códigos de receita
+        document.querySelectorAll('td[style*="monospace"]').forEach(td => {
+            const codigo = td.textContent.trim();
+            if (codigo && codigo !== 'TOTAL') {
+                td.title = `Código da Receita: ${codigo}\nFonte: ${codigo.substring(8) || 'N/A'}`;
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -15,7 +15,8 @@ from relatorios.receita import (
     gerar_relatorio_receita_estimada,
     gerar_relatorio_por_adm,
     gerar_relatorio_receita_atualizada_vs_inicial,
-    gerar_grafico_receita_liquida
+    gerar_grafico_receita_liquida,
+    gerar_relatorio_receita_conta_corrente
 )
 
 # Cria o blueprint
@@ -166,4 +167,34 @@ def receita_por_adm():
         traceback.print_exc()
         return render_template('erro.html',
                              titulo="Erro no Relatório por Administração",
+                             mensagem=f"Erro ao gerar relatório: {str(e)}")
+
+@receita_bp.route('/receita-conta-corrente')
+def receita_conta_corrente():
+    """Relatório de receita por conta corrente (NOVO)"""
+    try:
+        inicio = time.time()
+        df_completo = carregar_dataframe_receita()
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf = gerar_relatorio_receita_conta_corrente(
+            df_completo, HIERARQUIA_RECEITAS, noug_selecionada
+        )
+        
+        fim = time.time()
+        print(f"⏱️ Relatório por Conta Corrente gerado em {fim - inicio:.2f} segundos")
+
+        return render_template('relatorio_receita_conta_corrente.html',
+                               dados_relatorio=dados_tabela,
+                               mes_ref=mes_referencia,
+                               dados_para_ia=dados_para_ia,
+                               dados_pdf=dados_pdf,
+                               lista_nougs=lista_nougs,
+                               noug_selecionada=noug_selecionada)
+                               
+    except Exception as e:
+        traceback.print_exc()
+        return render_template('erro.html',
+                             titulo="Erro no Relatório por Conta Corrente",
                              mensagem=f"Erro ao gerar relatório: {str(e)}")
