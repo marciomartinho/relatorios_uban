@@ -1,0 +1,272 @@
+{% extends "base_relatorio.html" %}
+
+{% block titulo %}Gráfico de Receita Líquida (Receita Corrente){% endblock %}
+
+{% block titulo_relatorio %}GRÁFICO DE RECEITA LÍQUIDA{% endblock %}
+
+{% block subtitulo %}Receita Corrente - Exercício 2025{% endblock %}
+
+{% block referencia %}Dados de Referência: {{ mes_ref }}{% endblock %}
+
+{% block head_extra %}
+<!-- Chart.js para gráficos - CDN alternativo mais confiável -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<style>
+    .chart-container {
+        position: relative;
+        height: 500px;
+        width: 100%;
+        margin: 30px 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .chart-wrapper {
+        width: 600px;
+        height: 500px;
+        position: relative;
+    }
+    
+    .chart-title {
+        text-align: center;
+        font-size: 18px;
+        font-weight: 600;
+        color: #003366;
+        margin-bottom: 20px;
+    }
+    
+    .total-display {
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        color: #003366;
+        margin: 20px 0;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #003366;
+    }
+    
+    .legend-table {
+        margin-top: 30px;
+        font-size: 14px;
+    }
+    
+    .legend-table th {
+        background-color: #003366;
+        color: white;
+        text-align: center;
+        padding: 12px;
+    }
+    
+    .legend-table td {
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        text-align: right;
+    }
+    
+    .legend-table td:first-child {
+        text-align: left;
+        font-weight: 500;
+    }
+    
+    .color-indicator {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 10px;
+        border: 2px solid #fff;
+        box-shadow: 0 0 3px rgba(0,0,0,0.3);
+    }
+    
+    .total-row {
+        background-color: #003366;
+        color: white;
+        font-weight: bold;
+    }
+    
+    @media (max-width: 768px) {
+        .chart-wrapper {
+            width: 100%;
+            height: 400px;
+        }
+        
+        .chart-container {
+            height: 400px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block conteudo %}
+<div class="chart-title">Composição da Receita Líquida por Origem</div>
+
+<div class="chart-container">
+    <div class="chart-wrapper">
+        <canvas id="receitaChart"></canvas>
+    </div>
+</div>
+
+<div class="total-display">
+    Total da Receita Líquida: {{ dados_chart.total_fmt }}
+</div>
+
+<!-- Tabela com legenda detalhada -->
+<table class="legend-table">
+    <thead>
+        <tr>
+            <th>ORIGEM DA RECEITA</th>
+            <th>VALOR</th>
+            <th>PARTICIPAÇÃO %</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in dados_relatorio %}
+            <tr {% if item.origem == 'TOTAL' %}class="total-row"{% endif %}>
+                <td>
+                    {% if item.origem != 'TOTAL' %}
+                        <span class="color-indicator" style="background-color: {{ item.cor }}"></span>
+                    {% endif %}
+                    {{ item.nome }}
+                </td>
+                <td>{{ item.valor_fmt }}</td>
+                <td>{{ item.percentual_fmt }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Verifica se Chart.js carregou, senão tenta carregar novamente
+    if (typeof Chart === 'undefined') {
+        console.log('Chart.js não carregou, tentando carregar localmente...');
+        
+        // Cria um script fallback
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/chart.js@4.4.1/dist/chart.min.js';
+        script.onload = function() {
+            console.log('Chart.js carregado com sucesso!');
+            criarGrafico();
+        };
+        script.onerror = function() {
+            console.error('Erro ao carregar Chart.js');
+            document.getElementById('receitaChart').style.display = 'none';
+            document.querySelector('.chart-container').innerHTML = '<div style="text-align: center; padding: 50px; color: #666;"><h3>⚠️ Gráfico Indisponível</h3><p>Não foi possível carregar a biblioteca de gráficos.<br>Os dados estão disponíveis na tabela abaixo.</p></div>';
+        };
+        document.head.appendChild(script);
+    } else {
+        // Chart.js já está disponível
+        criarGrafico();
+    }
+    
+    function criarGrafico() {
+        // Dados do gráfico vindos do Flask
+        const dadosChart = {{ dados_chart | tojson | safe }};
+        
+        // Verificação de segurança
+        if (!dadosChart || !dadosChart.labels || dadosChart.labels.length === 0) {
+            document.querySelector('.chart-container').innerHTML = '<div style="text-align: center; padding: 50px; color: #666;"><h3>📊 Sem Dados para Exibir</h3><p>Não há dados de receita líquida para gerar o gráfico.</p></div>';
+            return;
+        }
+        
+        // Configuração do gráfico de pizza
+        const ctx = document.getElementById('receitaChart').getContext('2d');
+        
+        const chart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: dadosChart.labels,
+                datasets: [{
+                    data: dadosChart.data,
+                    backgroundColor: dadosChart.backgroundColor,
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                    hoverBorderWidth: 3,
+                    hoverBorderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false  // Desabilitamos a legenda padrão para usar nossa tabela
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 51, 102, 0.9)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: '#ffffff',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: true,
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed;
+                                const total = dadosChart.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                
+                                // Formatar valor em reais
+                                const valueFormatted = new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL'
+                                }).format(value);
+                                
+                                return `${context.label}: ${valueFormatted} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateScale: true,
+                    animateRotate: true,
+                    duration: 1000
+                },
+                layout: {
+                    padding: 20
+                }
+            }
+        });
+
+        // Adiciona interatividade - destacar seção ao passar mouse na tabela
+        document.querySelectorAll('.legend-table tbody tr').forEach((row, index) => {
+            if (index < dadosChart.labels.length) {  // Evita a linha de total
+                row.addEventListener('mouseenter', function() {
+                    // Destaca a fatia correspondente no gráfico
+                    chart.setActiveElements([{datasetIndex: 0, index: index}]);
+                    chart.update('none');
+                    this.style.backgroundColor = '#e3f2fd';
+                });
+                
+                row.addEventListener('mouseleave', function() {
+                    // Remove o destaque
+                    chart.setActiveElements([]);
+                    chart.update('none');
+                    this.style.backgroundColor = '';
+                });
+            }
+        });
+
+        // Função para redimensionar o gráfico em dispositivos móveis
+        function resizeChart() {
+            if (window.innerWidth <= 768) {
+                chart.resize(300, 300);
+            } else {
+                chart.resize();
+            }
+        }
+
+        window.addEventListener('resize', resizeChart);
+        
+        // Configuração inicial
+        resizeChart();
+        
+        console.log('🎉 Gráfico criado com sucesso!');
+    }
+</script>
+{% endblock %}

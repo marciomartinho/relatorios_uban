@@ -47,6 +47,141 @@ class MotorRelatorios:
         return self.df.copy()
 
 # =================================================================================
+# FUNÇÃO UTILITÁRIA: CALCULAR MÊS DE REFERÊNCIA
+# =================================================================================
+def calcular_mes_referencia(df: pd.DataFrame) -> str:
+    """
+    Calcula o mês de referência com base no maior valor da coluna INMES
+    Retorna no formato "MM/AAAA"
+    """
+    if 'INMES' in df.columns and not df.empty:
+        max_mes = df['INMES'].max()
+        if pd.notna(max_mes) and max_mes > 0:
+            return f"{int(max_mes):02d}/2025"
+    
+    return "12/2025"  # Valor padrão
+
+def obter_mes_numero(df: pd.DataFrame) -> str:
+    """
+    Retorna apenas o número do mês (formato "MM")
+    """
+    if 'INMES' in df.columns and not df.empty:
+        max_mes = df['INMES'].max()
+        if pd.notna(max_mes) and max_mes > 0:
+            return f"{int(max_mes):02d}"
+    return "12"
+
+# =================================================================================
+# NOVA FUNÇÃO: GRÁFICO DE RECEITA LÍQUIDA (RECEITA CORRENTE)
+# =================================================================================
+def gerar_grafico_receita_liquida(df_completo, estrutura_hierarquica, noug_selecionada=None):
+    """
+    Gera dados para gráfico de pizza da Receita Líquida - Categoria 1 (Receitas Correntes)
+    """
+    motor = MotorRelatorios(df_completo, tipo_dados='receita')
+    df_processar = motor.filtrar_por_noug(noug_selecionada)
+    
+    # Filtra apenas categoria 1 (Receitas Correntes) e exercício 2025
+    df_2025 = df_processar[
+        (df_processar['COEXERCICIO'] == 2025) & 
+        (df_processar['CATEGORIA'] == '1')
+    ]
+    
+    if df_2025.empty:
+        return [], "12/2025", [], {}
+    
+    # Calcula mês de referência - CORREÇÃO: usar calcular_mes_referencia que retorna MM/AAAA
+    mes_referencia = calcular_mes_referencia(df_2025)
+    
+    dados_grafico = []
+    dados_tabela = []
+    total_geral = 0
+    
+    # Verifica se a coluna RECEITA LIQUIDA existe
+    if 'RECEITA LIQUIDA' not in df_2025.columns:
+        print("⚠️ Coluna 'RECEITA LIQUIDA' não encontrada")
+        return [], mes_referencia, [], {}
+    
+    # Processa cada origem dentro da categoria 1
+    origens_categoria_1 = estrutura_hierarquica.get('1', {})
+    
+    for cod_origem in origens_categoria_1.keys():
+        nome_origem = motor.mapas_nomes.get('origem', {}).get(cod_origem)
+        if not nome_origem:
+            continue
+            
+        df_origem = df_2025[df_2025['ORIGEM'] == cod_origem]
+        if df_origem.empty:
+            continue
+            
+        valor_receita = float(df_origem['RECEITA LIQUIDA'].sum())
+        
+        if valor_receita > 0:  # Só inclui valores positivos
+            dados_origem = {
+                'origem': cod_origem,
+                'nome': nome_origem,
+                'valor': valor_receita,
+                'valor_fmt': motor._formatar_numero(valor_receita),
+                'cor': _obter_cor_origem(cod_origem)  # Função para cores personalizadas
+            }
+            
+            dados_grafico.append(dados_origem)
+            dados_tabela.append(dados_origem)
+            total_geral += valor_receita
+    
+    # Calcula percentuais
+    for item in dados_grafico:
+        if total_geral > 0:
+            item['percentual'] = (item['valor'] / total_geral) * 100
+            item['percentual_fmt'] = f"{item['percentual']:.1f}%"
+        else:
+            item['percentual'] = 0
+            item['percentual_fmt'] = "0,0%"
+    
+    # Ordena por valor (maior para menor)
+    dados_grafico.sort(key=lambda x: x['valor'], reverse=True)
+    dados_tabela.sort(key=lambda x: x['valor'], reverse=True)
+    
+    # Adiciona total
+    total_item = {
+        'origem': 'TOTAL',
+        'nome': 'TOTAL GERAL',
+        'valor': total_geral,
+        'valor_fmt': motor._formatar_numero(total_geral),
+        'percentual': 100.0,
+        'percentual_fmt': "100,0%",
+        'cor': '#003366'
+    }
+    dados_tabela.append(total_item)
+    
+    # Dados para gráfico (Chart.js)
+    dados_chart = {
+        'labels': [item['nome'] for item in dados_grafico],
+        'data': [item['valor'] for item in dados_grafico],
+        'backgroundColor': [item['cor'] for item in dados_grafico],
+        'total': total_geral,
+        'total_fmt': motor._formatar_numero(total_geral)
+    }
+    
+    return dados_tabela, mes_referencia, dados_grafico, dados_chart
+
+def _obter_cor_origem(cod_origem: str) -> str:
+    """
+    Retorna cores personalizadas para cada origem
+    """
+    cores = {
+        '11': '#2196F3',  # Azul - Impostos
+        '12': '#4CAF50',  # Verde - Taxas  
+        '13': '#FF9800',  # Laranja - Contribuições
+        '14': '#9C27B0',  # Roxo - Receita Patrimonial
+        '15': '#F44336',  # Vermelho - Receita Agropecuária
+        '16': '#00BCD4',  # Ciano - Receita Industrial
+        '17': '#8BC34A',  # Verde claro - Receita de Serviços
+        '19': '#607D8B'   # Azul acinzentado - Outras Receitas
+    }
+    return cores.get(cod_origem, '#9E9E9E')  # Cinza como padrão
+
+# =================================================================================
 # FUNÇÃO: BALANÇO ORÇAMENTÁRIO DA RECEITA
 # =================================================================================
 def gerar_balanco_orcamentario(df_completo, estrutura_hierarquica, noug_selecionada=None):
@@ -61,14 +196,10 @@ def gerar_balanco_orcamentario(df_completo, estrutura_hierarquica, noug_selecion
     df_2024 = df_processar[df_processar['COEXERCICIO'] == 2024]
     
     if df_2025.empty:
-        return [], "12", [], {}
+        return [], obter_mes_numero(df_processar), [], {}
     
-    # Calcula o mês de referência dinamicamente a partir da coluna INMES
-    mes_referencia = "12"  # Valor padrão
-    if 'INMES' in df_2025.columns:
-        max_mes = df_2025['INMES'].max()
-        if pd.notna(max_mes):
-            mes_referencia = str(int(max_mes)).zfill(2)  # Formata com 2 dígitos
+    # Usa a nova função para calcular mês de referência
+    mes_referencia = obter_mes_numero(df_2025)
     
     dados_numericos = []
     dados_para_ia = []
@@ -199,15 +330,11 @@ def gerar_balanco_orcamentario(df_completo, estrutura_hierarquica, noug_selecion
     return dados_numericos, mes_referencia, dados_para_ia, dados_pdf
 
 # =================================================================================
-# FUNÇÃO: BALANÇO ORÇAMENTÁRIO DA DESPESA (CORRIGIDA)
+# FUNÇÃO: BALANÇO ORÇAMENTÁRIO DA DESPESA
 # =================================================================================
 def gerar_balanco_despesa(df_completo, estrutura_hierarquica=None, noug_selecionada=None):
     """
     Gera o balanço orçamentário da despesa comparando dotação com execução
-    FÓRMULAS CORRIGIDAS:
-    - DOTAÇÃO INICIAL = DOTACAO INICIAL
-    - DOTAÇÃO ATUALIZADA = DOTACAO INICIAL + DOTACAO ADICIONAL + CANCELAMENTO DE DOTACAO + CANCEL-REMANEJA DOTACAO
-    - SALDO DA DOTAÇÃO = DOTAÇÃO ATUALIZADA - DESPESA EMPENHADA
     """
     motor = MotorRelatorios(df_completo, tipo_dados='despesa')
     df_processar = motor.filtrar_por_noug(noug_selecionada)
@@ -216,14 +343,10 @@ def gerar_balanco_despesa(df_completo, estrutura_hierarquica=None, noug_selecion
     df_2025 = df_processar[df_processar['COEXERCICIO'] == 2025]
     
     if df_2025.empty:
-        return [], "12", [], {}
+        return [], obter_mes_numero(df_processar), [], {}
     
-    # Calcula o mês de referência dinamicamente a partir da coluna INMES
-    mes_referencia = "12"  # Valor padrão
-    if 'INMES' in df_2025.columns:
-        max_mes = df_2025['INMES'].max()
-        if pd.notna(max_mes):
-            mes_referencia = str(int(max_mes)).zfill(2)  # Formata com 2 dígitos
+    # Usa a nova função para calcular mês de referência
+    mes_referencia = obter_mes_numero(df_2025)
     
     dados_numericos = []
     dados_para_ia = []
@@ -518,6 +641,116 @@ def gerar_relatorio_receita_estimada(df_completo, estrutura_hierarquica, noug_se
         dados_numericos.append(linha_total)
         dados_para_ia.append(linha_total)
     dados_pdf = {"head": [['ESPECIFICAÇÃO', 'RECEITA PREVISTA 2024', '% 2024', 'RECEITA PREVISTA 2025', '% 2025', 'Δ%']], "body": [[linha['especificacao'], linha['valor_2024_fmt'], linha['perc_2024_fmt'], linha['valor_2025_fmt'], linha['perc_2025_fmt'], linha['delta_fmt']] for linha in dados_numericos]}
+    return dados_numericos, dados_para_ia, dados_pdf
+
+# =================================================================================
+# FUNÇÃO: RECEITA ATUALIZADA X INICIAL (2025)
+# =================================================================================
+def gerar_relatorio_receita_atualizada_vs_inicial(df_completo, estrutura_hierarquica, noug_selecionada=None):
+    """
+    Gera relatório comparativo entre previsão inicial e previsão atualizada para 2025
+    """
+    motor = MotorRelatorios(df_completo, tipo_dados='receita')
+    df_processar = motor.filtrar_por_noug(noug_selecionada)
+    df_2025 = df_processar[df_processar['COEXERCICIO'] == 2025]
+    
+    if df_2025.empty:
+        return [], [], {}
+    
+    dados_numericos = []
+    dados_para_ia = []
+    
+    # Totais gerais para calcular percentuais
+    total_inicial = float(df_2025['PREVISAO INICIAL LIQUIDA'].sum())
+    total_atualizada = float(df_2025['PREVISAO ATUALIZADA LIQUIDA'].sum()) if 'PREVISAO ATUALIZADA LIQUIDA' in df_2025.columns else total_inicial
+    
+    # Processa cada categoria
+    for cod_cat, origens in estrutura_hierarquica.items():
+        nome_categoria = motor.mapas_nomes.get('categoria', {}).get(cod_cat)
+        if not nome_categoria: continue
+            
+        df_categoria = df_2025[df_2025['CATEGORIA'] == cod_cat]
+        if df_categoria.empty: continue
+        
+        # Calcula valores da categoria
+        inicial_cat = float(df_categoria['PREVISAO INICIAL LIQUIDA'].sum())
+        atualizada_cat = float(df_categoria['PREVISAO ATUALIZADA LIQUIDA'].sum()) if 'PREVISAO ATUALIZADA LIQUIDA' in df_categoria.columns else inicial_cat
+        
+        if inicial_cat == 0 and atualizada_cat == 0: continue
+        
+        # Calcula variação percentual
+        delta_perc_cat = ((atualizada_cat - inicial_cat) / inicial_cat) * 100 if inicial_cat > 0 else (100 if atualizada_cat > 0 else 0)
+        
+        linha_categoria = {
+            'tipo': 'principal',
+            'especificacao': nome_categoria,
+            'inicial': inicial_cat,
+            'atualizada': atualizada_cat,
+            'delta': delta_perc_cat,
+            'inicial_fmt': motor._formatar_numero(inicial_cat),
+            'atualizada_fmt': motor._formatar_numero(atualizada_cat),
+            'delta_fmt': f"{delta_perc_cat:+.2f}%"
+        }
+        dados_numericos.append(linha_categoria)
+        dados_para_ia.append(linha_categoria)
+        
+        # Processa origens dentro da categoria
+        for cod_orig in origens.keys():
+            nome_origem = motor.mapas_nomes.get('origem', {}).get(cod_orig)
+            if not nome_origem: continue
+            
+            df_origem = df_categoria[df_categoria['ORIGEM'] == cod_orig]
+            if df_origem.empty: continue
+            
+            inicial_orig = float(df_origem['PREVISAO INICIAL LIQUIDA'].sum())
+            atualizada_orig = float(df_origem['PREVISAO ATUALIZADA LIQUIDA'].sum()) if 'PREVISAO ATUALIZADA LIQUIDA' in df_origem.columns else inicial_orig
+            
+            if inicial_orig == 0 and atualizada_orig == 0: continue
+            
+            delta_perc_orig = ((atualizada_orig - inicial_orig) / inicial_orig) * 100 if inicial_orig > 0 else (100 if atualizada_orig > 0 else 0)
+            
+            linha_origem = {
+                'tipo': 'filha',
+                'especificacao': f"  {nome_origem}",
+                'inicial': inicial_orig,
+                'atualizada': atualizada_orig,
+                'delta': delta_perc_orig,
+                'inicial_fmt': motor._formatar_numero(inicial_orig),
+                'atualizada_fmt': motor._formatar_numero(atualizada_orig),
+                'delta_fmt': f"{delta_perc_orig:+.2f}%"
+            }
+            dados_numericos.append(linha_origem)
+            dados_para_ia.append(linha_origem)
+    
+    # Calcula totais gerais
+    linhas_principais = [d for d in dados_numericos if d['tipo'] == 'principal']
+    if linhas_principais:
+        totais_inicial = sum(l['inicial'] for l in linhas_principais)
+        totais_atualizada = sum(l['atualizada'] for l in linhas_principais)
+        delta_total = ((totais_atualizada - totais_inicial) / totais_inicial * 100) if totais_inicial > 0 else 100
+        
+        linha_total = {
+            'tipo': 'total',
+            'especificacao': 'TOTAL GERAL',
+            'inicial': totais_inicial,
+            'atualizada': totais_atualizada,
+            'delta': delta_total,
+            'inicial_fmt': motor._formatar_numero(totais_inicial),
+            'atualizada_fmt': motor._formatar_numero(totais_atualizada),
+            'delta_fmt': f"{delta_total:+.2f}%"
+        }
+        dados_numericos.append(linha_total)
+        dados_para_ia.append(linha_total)
+    
+    # Dados para PDF
+    dados_pdf = {
+        "head": [['ESPECIFICAÇÃO', 'PREVISÃO INICIAL', 'PREVISÃO ATUALIZADA', 'Δ%']],
+        "body": [
+            [linha['especificacao'], linha['inicial_fmt'], linha['atualizada_fmt'], linha['delta_fmt']]
+            for linha in dados_numericos
+        ]
+    }
+    
     return dados_numericos, dados_para_ia, dados_pdf
 
 # =================================================================================

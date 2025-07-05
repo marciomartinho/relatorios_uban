@@ -1,0 +1,41 @@
+{% extends "base_relatorio.html" %}
+
+{% block titulo %}Receita Atualizada X Inicial{% endblock %}
+
+{% block titulo_relatorio %}RECEITA ATUALIZADA X INICIAL{% endblock %}
+
+{% block subtitulo %}Comparativo entre previsão inicial e atualizada - Exercício 2025{% endblock %}
+
+{% block referencia %}{% endblock %}
+
+{% block conteudo %}
+<table>
+    <thead>
+        <tr>
+            <th>ESPECIFICAÇÃO</th>
+            <th>PREVISÃO INICIAL</th>
+            <th>PREVISÃO ATUALIZADA</th>
+            <th>Δ%</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for linha in dados_relatorio %}
+            <tr class="{{ linha.tipo }}">
+                <td>{{ linha.especificacao }}</td>
+                <td>{{ linha.inicial_fmt }}</td>
+                <td>{{ linha.atualizada_fmt }}</td>
+                <td class="{% if linha.delta < 0 %}valor-negativo{% elif linha.delta > 0 %}valor-positivo{% endif %}">
+                    {{ linha.delta_fmt }}
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // O botão JPG já está configurado no template base
+    // Não precisa de configurações adicionais aqui
+</script>
+{% endblock %}

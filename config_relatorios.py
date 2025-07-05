@@ -51,11 +51,6 @@ COLUNAS_TIPO_ADMINISTRACAO = {
 MENU_PRINCIPAL = {
     "Receita": [
         {
-            "nome": "Previsão de Receita Atualizada",
-            "url": "/relatorio/previsao-atualizada",
-            "status": "desenvolvimento"
-        },
-        {
             "nome": "Balanço Orçamentário da Receita",
             "url": "/relatorio/balanco-orcamentario",
             "status": "ativo"
@@ -102,17 +97,17 @@ MENU_PRINCIPAL = {
         {
             "nome": "Receita por Tipo de Administração",
             "url": "/relatorio/receita-por-adm",
-            "status": "ativo"  # ATUALIZADO: Agora está ativo
+            "status": "ativo"
         },
         {
-            "nome": "Receita vs Despesa (Consolidado)",
-            "url": "/relatorio/receita-vs-despesa",
-            "status": "desenvolvimento"
+            "nome": "Receita Atualizada X Inicial",
+            "url": "/relatorio/receita-atualizada-vs-inicial",
+            "status": "ativo"
         },
         {
-            "nome": "Evolução Temporal (Multi-exercício)",
-            "url": "/relatorio/evolucao-temporal",
-            "status": "desenvolvimento"
+            "nome": "Gráfico de Receita Líquida (Receita Corrente)",
+            "url": "/relatorio/grafico-receita-liquida",
+            "status": "ativo"
         }
     ],
     "Outros Relatórios": [
