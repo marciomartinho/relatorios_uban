@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block titulo %}Relatório{% endblock %}</title>
     
-    <!-- Estilos Compartilhados -->
+    <!-- Estilos Unificados UBAN v2.0 -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/relatorios.css') }}">
     
     <!-- Scripts para exportação PNG otimizada -->
@@ -27,7 +27,7 @@
             <div class="botoes-acao">
                 {% block botoes_extras %}{% endblock %}
                 <button id="btn-atualizar" class="btn btn-atualizar">Atualizar Dados</button>
-                <button id="btn-jpg" class="btn btn-jpg">Baixar JPG</button>
+                <button id="btn-jpg" class="btn btn-jpg">Baixar PNG</button>
             </div>
         </div>
         
@@ -57,5 +57,42 @@
     
     <!-- Scripts Específicos -->
     {% block scripts %}{% endblock %}
+    
+    <!-- Script para aplicar cores automáticas -->
+    <script>
+        // Aplica cores automáticas baseadas no conteúdo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Aplica classes de formatação automática
+            document.querySelectorAll('td').forEach(td => {
+                const texto = td.textContent.trim();
+                
+                // Detectar valores percentuais positivos/negativos
+                if (texto.includes('%')) {
+                    if (texto.includes('+')) {
+                        td.classList.add('valor-positivo');
+                    } else if (texto.includes('-')) {
+                        td.classList.add('valor-negativo');
+                    }
+                }
+                
+                // Detectar valores monetários negativos (com parênteses)
+                if (texto.includes('(') && texto.includes(')') && texto.includes('R$')) {
+                    td.classList.add('valor-negativo');
+                }
+                
+                // Detectar valores zero
+                if (texto === 'R$ 0,00' || texto === '0,00%') {
+                    td.classList.add('valor-zero');
+                }
+            });
+            
+            // Adicionar tooltips em valores truncados
+            document.querySelectorAll('td:first-child').forEach(td => {
+                if (td.scrollWidth > td.clientWidth) {
+                    td.title = td.textContent;
+                }
+            });
+        });
+    </script>
 </body>
 </html>

@@ -1,28 +1,41 @@
 {% extends "base_relatorio.html" %}
 
-{% block titulo %}Receita por Conta Corrente{% endblock %}
+{% block titulo %}Receita por Conta Corrente - Comparativo{% endblock %}
 
-{% block titulo_relatorio %}RECEITA POR CONTA CORRENTE{% endblock %}
+{% block titulo_relatorio %}RECEITA POR CONTA CORRENTE - COMPARATIVO{% endblock %}
 
-{% block subtitulo %}Análise baseada no COCONTACORRENTE - Exercício 2025{% endblock %}
+{% block subtitulo %}Análise baseada no COCONTACORRENTE com comparativo 2024 vs 2025{% endblock %}
+
+{% block head_extra %}
+<!-- Chart.js para gráficos -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.min.js"></script>
+{% endblock %}
 
 {% block conteudo %}
-<div class="info-container" style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #0066cc;">
-    <h4 style="margin: 0 0 10px 0; color: #0066cc;">ℹ️ Informações do Relatório</h4>
-    <ul style="margin: 0; padding-left: 20px; color: #555;">
+<div class="info-container">
+    <h4>ℹ️ Informações do Relatório</h4>
+    <ul>
         <li><strong>Código da Receita:</strong> Primeiros 8 caracteres do COCONTACORRENTE</li>
         <li><strong>Nome da Receita:</strong> Obtido da planilha CLASSIFICACAO_ORCAMENTARIA</li>
-        <li><strong>Receita Realizada:</strong> Somatório da coluna RECEITA LIQUIDA</li>
-        <li><strong>Ordenação:</strong> Por valor (maior para menor)</li>
+        <li><strong>Comparativo:</strong> Receita realizada em {{ mes_ref }}/2025 vs {{ mes_ref }}/2024</li>
+        <li><strong>Variação:</strong> Diferença absoluta e percentual entre os períodos</li>
+        <li><strong>Ordenação:</strong> Por valor 2025 (maior para menor)</li>
     </ul>
 </div>
 
 <table>
     <thead>
         <tr>
-            <th>CÓDIGO RECEITA</th>
-            <th>NOME DA RECEITA</th>
-            <th>RECEITA REALIZADA</th>
+            <th rowspan="2">CÓDIGO RECEITA</th>
+            <th rowspan="2">NOME DA RECEITA</th>
+            <th colspan="2">RECEITA REALIZADA</th>
+            <th colspan="2">VARIAÇÃO</th>
+        </tr>
+        <tr>
+            <th>{{ mes_ref }}/2025</th>
+            <th>{{ mes_ref }}/2024</th>
+            <th>ABSOLUTA</th>
+            <th>PERCENTUAL</th>
         </tr>
     </thead>
     <tbody>
@@ -34,13 +47,18 @@
                 <td style="text-align: left;">
                     {{ linha.nome_receita_fmt }}
                 </td>
-                <td style="text-align: right;">
-                    {{ linha.receita_realizada_fmt }}
+                <td>{{ linha.receita_2025_fmt }}</td>
+                <td>{{ linha.receita_2024_fmt }}</td>
+                <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                    {{ linha.variacao_abs_fmt }}
+                </td>
+                <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                    {{ linha.variacao_perc_fmt }}
                 </td>
             </tr>
         {% else %}
             <tr>
-                <td colspan="3" class="text-center" style="color: #666; font-style: italic; padding: 30px;">
+                <td colspan="6" class="text-center" style="color: #666; font-style: italic; padding: 30px;">
                     Nenhum dado encontrado para os filtros selecionados ou coluna COCONTACORRENTE não disponível.
                 </td>
             </tr>
@@ -49,28 +67,50 @@
 </table>
 
 {% if dados_relatorio %}
-<div class="resumo-container" style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
-    <h4 style="margin: 0 0 15px 0; color: #003366;">📊 Resumo do Relatório</h4>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+<div class="resumo-container">
+    <h4>📊 Resumo do Relatório</h4>
+    <div>
         <div>
             <strong>Total de Receitas:</strong><br>
-            <span style="color: #0066cc; font-size: 18px;">{{ dados_relatorio|length - 1 }}</span>
+            <span style="color: #0066cc;">{{ dados_relatorio|length - 1 }}</span>
         </div>
         <div>
-            <strong>Maior Receita:</strong><br>
-            <span style="color: #28a745; font-size: 18px;">
-                {% if dados_relatorio|length > 1 %}
-                    {{ dados_relatorio[0].receita_realizada_fmt }}
+            <strong>Receita Total 2025:</strong><br>
+            <span style="color: #28a745;">
+                {% if dados_relatorio|length > 0 %}
+                    {{ dados_relatorio[-1].receita_2025_fmt }}
                 {% else %}
                     R$ 0,00
                 {% endif %}
             </span>
         </div>
         <div>
-            <strong>Mês de Referência:</strong><br>
-            <span style="color: #6c757d; font-size: 18px;">{{ mes_ref }}/2025</span>
+            <strong>Receita Total 2024:</strong><br>
+            <span style="color: #6c757d;">
+                {% if dados_relatorio|length > 0 %}
+                    {{ dados_relatorio[-1].receita_2024_fmt }}
+                {% else %}
+                    R$ 0,00
+                {% endif %}
+            </span>
+        </div>
+        <div>
+            <strong>Variação Total:</strong><br>
+            <span style="color: {% if dados_relatorio|length > 0 and dados_relatorio[-1].variacao_perc < 0 %}#dc3545{% elif dados_relatorio|length > 0 and dados_relatorio[-1].variacao_perc > 0 %}#28a745{% else %}#6c757d{% endif %};">
+                {% if dados_relatorio|length > 0 %}
+                    {{ dados_relatorio[-1].variacao_perc_fmt }}
+                {% else %}
+                    0,00%
+                {% endif %}
+            </span>
         </div>
     </div>
+</div>
+
+<!-- Gráfico de Barras com as Top 10 Receitas -->
+<div class="chart-container">
+    <h4>📈 Top 10 Receitas - Comparativo 2025 vs 2024</h4>
+    <canvas id="chartComparativo"></canvas>
 </div>
 {% endif %}
 
@@ -78,22 +118,115 @@
 
 {% block scripts %}
 <script>
-    // O botão JPG já está configurado no template base
-    // Adiciona algumas melhorias visuais
-    document.addEventListener('DOMContentLoaded', function() {
-        // Destaca a linha com maior valor (primeira linha que não é total)
-        const linhasPrincipais = document.querySelectorAll('tr.principal');
-        if (linhasPrincipais.length > 0) {
-            linhasPrincipais[0].style.borderLeft = '4px solid #28a745';
-        }
+// Cria gráfico de barras comparativo
+document.addEventListener('DOMContentLoaded', function() {
+    // Dados do relatório
+    const dadosRelatorio = {{ dados_relatorio | tojson | safe }};
+    
+    if (dadosRelatorio && dadosRelatorio.length > 1) {
+        // Pega os top 10 (excluindo o total)
+        const top10 = dadosRelatorio
+            .filter(item => item.tipo === 'principal')
+            .slice(0, 10);
         
-        // Adiciona tooltip nos códigos de receita
-        document.querySelectorAll('td[style*="monospace"]').forEach(td => {
-            const codigo = td.textContent.trim();
-            if (codigo && codigo !== 'TOTAL') {
-                td.title = `Código da Receita: ${codigo}\nFonte: ${codigo.substring(8) || 'N/A'}`;
+        if (top10.length > 0) {
+            const ctx = document.getElementById('chartComparativo').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top10.map(item => item.receita_codigo),
+                    datasets: [{
+                        label: '2025',
+                        data: top10.map(item => item.receita_2025),
+                        backgroundColor: 'rgba(0, 102, 204, 0.8)',
+                        borderColor: 'rgba(0, 102, 204, 1)',
+                        borderWidth: 1
+                    }, {
+                        label: '2024',
+                        data: top10.map(item => item.receita_2024),
+                        backgroundColor: 'rgba(108, 117, 125, 0.6)',
+                        borderColor: 'rgba(108, 117, 125, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Comparativo das Principais Receitas'
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed.y;
+                                    const formatted = new Intl.NumberFormat('pt-BR', {
+                                        style: 'currency',
+                                        currency: 'BRL'
+                                    }).format(value);
+                                    return context.dataset.label + ': ' + formatted;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return new Intl.NumberFormat('pt-BR', {
+                                        style: 'currency',
+                                        currency: 'BRL',
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 0
+                                    }).format(value);
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 0
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    // Adiciona interatividade extra
+    const linhasPrincipais = document.querySelectorAll('tr.principal');
+    linhasPrincipais.forEach((linha, index) => {
+        // Destaca a linha com maior crescimento percentual
+        const celulasVariacao = linha.querySelectorAll('td');
+        if (celulasVariacao.length >= 6) {
+            const textoVariacao = celulasVariacao[5].textContent;
+            const variacao = parseFloat(textoVariacao.replace('%', '').replace('+', '').replace('-', ''));
+            
+            if (variacao > 50) {
+                linha.style.borderLeft = '4px solid #28a745';
+                linha.title = 'Crescimento significativo: ' + textoVariacao;
+            } else if (variacao < -20) {
+                linha.style.borderLeft = '4px solid #dc3545';
+                linha.title = 'Redução significativa: ' + textoVariacao;
             }
-        });
+        }
     });
+    
+    // Adiciona tooltip nos códigos de receita
+    document.querySelectorAll('td[style*="monospace"]').forEach(td => {
+        const codigo = td.textContent.trim();
+        if (codigo && codigo !== 'TOTAL') {
+            td.title = `Código da Receita: ${codigo}\nFonte: ${codigo.substring(8) || 'N/A'}`;
+        }
+    });
+});
 </script>
 {% endblock %}
