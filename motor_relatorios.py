@@ -199,11 +199,15 @@ def gerar_balanco_orcamentario(df_completo, estrutura_hierarquica, noug_selecion
     return dados_numericos, mes_referencia, dados_para_ia, dados_pdf
 
 # =================================================================================
-# FUNÇÃO: BALANÇO ORÇAMENTÁRIO DA DESPESA
+# FUNÇÃO: BALANÇO ORÇAMENTÁRIO DA DESPESA (CORRIGIDA)
 # =================================================================================
 def gerar_balanco_despesa(df_completo, estrutura_hierarquica=None, noug_selecionada=None):
     """
     Gera o balanço orçamentário da despesa comparando dotação com execução
+    FÓRMULAS CORRIGIDAS:
+    - DOTAÇÃO INICIAL = DOTACAO INICIAL
+    - DOTAÇÃO ATUALIZADA = DOTACAO INICIAL + DOTACAO ADICIONAL + CANCELAMENTO DE DOTACAO + CANCEL-REMANEJA DOTACAO
+    - SALDO DA DOTAÇÃO = DOTAÇÃO ATUALIZADA - DESPESA EMPENHADA
     """
     motor = MotorRelatorios(df_completo, tipo_dados='despesa')
     df_processar = motor.filtrar_por_noug(noug_selecionada)
@@ -214,9 +218,15 @@ def gerar_balanco_despesa(df_completo, estrutura_hierarquica=None, noug_selecion
     if df_2025.empty:
         return [], "12", [], {}
     
+    # Calcula o mês de referência dinamicamente a partir da coluna INMES
+    mes_referencia = "12"  # Valor padrão
+    if 'INMES' in df_2025.columns:
+        max_mes = df_2025['INMES'].max()
+        if pd.notna(max_mes):
+            mes_referencia = str(int(max_mes)).zfill(2)  # Formata com 2 dígitos
+    
     dados_numericos = []
     dados_para_ia = []
-    mes_referencia = "12"
     
     # Agrupa por categoria com observed=True para evitar warning
     categorias = df_2025.groupby('CATEGORIA', observed=True).agg({
@@ -233,12 +243,17 @@ def gerar_balanco_despesa(df_completo, estrutura_hierarquica=None, noug_selecion
     for _, categoria in categorias.iterrows():
         dotacao_inicial = float(categoria['DOTACAO INICIAL'])
         dotacao_adicional = float(categoria['DOTACAO ADICIONAL'])
-        cancelamentos = float(categoria['CANCELAMENTO DE DOTACAO'] + categoria['CANCEL-REMANEJA DOTACAO'])
-        dotacao_atualizada = dotacao_inicial + dotacao_adicional - cancelamentos
+        cancelamento_dotacao = float(categoria['CANCELAMENTO DE DOTACAO'])
+        cancel_remaneja = float(categoria['CANCEL-REMANEJA DOTACAO'])
+        
+        # FÓRMULA CORRIGIDA: DOTAÇÃO ATUALIZADA = INICIAL + ADICIONAL + CANCELAMENTO + CANCEL-REMANEJA
+        dotacao_atualizada = dotacao_inicial + dotacao_adicional + cancelamento_dotacao + cancel_remaneja
         
         despesa_empenhada = float(categoria['DESPESA EMPENHADA'])
         despesa_liquidada = float(categoria['DESPESA LIQUIDADA'])
         despesa_paga = float(categoria['DESPESA PAGA'])
+        
+        # FÓRMULA CORRIGIDA: SALDO = DOTAÇÃO ATUALIZADA - DESPESA EMPENHADA
         saldo_dotacao = dotacao_atualizada - despesa_empenhada
         
         linha_categoria = {
@@ -275,12 +290,17 @@ def gerar_balanco_despesa(df_completo, estrutura_hierarquica=None, noug_selecion
         for _, grupo in grupos.iterrows():
             dot_inicial_grupo = float(grupo['DOTACAO INICIAL'])
             dot_adicional_grupo = float(grupo['DOTACAO ADICIONAL'])
-            cancel_grupo = float(grupo['CANCELAMENTO DE DOTACAO'] + grupo['CANCEL-REMANEJA DOTACAO'])
-            dot_atualizada_grupo = dot_inicial_grupo + dot_adicional_grupo - cancel_grupo
+            cancel_dotacao_grupo = float(grupo['CANCELAMENTO DE DOTACAO'])
+            cancel_remaneja_grupo = float(grupo['CANCEL-REMANEJA DOTACAO'])
+            
+            # FÓRMULA CORRIGIDA PARA GRUPO
+            dot_atualizada_grupo = dot_inicial_grupo + dot_adicional_grupo + cancel_dotacao_grupo + cancel_remaneja_grupo
             
             desp_emp_grupo = float(grupo['DESPESA EMPENHADA'])
             desp_liq_grupo = float(grupo['DESPESA LIQUIDADA'])
             desp_paga_grupo = float(grupo['DESPESA PAGA'])
+            
+            # FÓRMULA CORRIGIDA PARA SALDO DO GRUPO
             saldo_grupo = dot_atualizada_grupo - desp_emp_grupo
             
             linha_grupo = {

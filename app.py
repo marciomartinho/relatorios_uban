@@ -72,7 +72,7 @@ def carregar_dataframe_receita():
     return df
 
 def carregar_dataframe_despesa():
-    """Carrega dados de despesa com cache e otimizações"""
+    """Carrega dados de despesa com cache e precisão monetária corrigida"""
     caminho_arquivo = os.path.join('dados', 'DESPESA.xlsx')
 
     if not os.path.exists(caminho_arquivo):
@@ -97,7 +97,7 @@ def carregar_dataframe_despesa():
     ]
 
     try:
-        # Lê apenas as colunas necessárias
+        # CORREÇÃO: Usar float64 para precisão monetária
         df = pd.read_excel(
             caminho_arquivo,
             sheet_name=0,
@@ -111,13 +111,14 @@ def carregar_dataframe_despesa():
                 'INMES': 'int32',
                 'INTIPOADM': 'int32',
                 'NOUG': str,
-                'DOTACAO INICIAL': 'float32',
-                'DOTACAO ADICIONAL': 'float32',
-                'CANCELAMENTO DE DOTACAO': 'float32',
-                'CANCEL-REMANEJA DOTACAO': 'float32',
-                'DESPESA EMPENHADA': 'float32',
-                'DESPESA LIQUIDADA': 'float32',
-                'DESPESA PAGA': 'float32'
+                # CORREÇÃO: Mudança de float32 para float64 para precisão monetária
+                'DOTACAO INICIAL': 'float64',
+                'DOTACAO ADICIONAL': 'float64',
+                'CANCELAMENTO DE DOTACAO': 'float64',
+                'CANCEL-REMANEJA DOTACAO': 'float64',
+                'DESPESA EMPENHADA': 'float64',
+                'DESPESA LIQUIDADA': 'float64',
+                'DESPESA PAGA': 'float64'
             }
         )
         
@@ -132,6 +133,7 @@ def carregar_dataframe_despesa():
         fim = time.time()
         print(f"⏱️ Dados de despesa carregados em {fim - inicio:.2f} segundos")
         print(f"📊 {len(df):,} registros carregados (apenas 2025)")
+        print(f"💰 Precisão monetária: float64 aplicada para evitar perda de precisão")
 
         return df
 
@@ -200,10 +202,6 @@ def relatorio_receita_estimada():
                              titulo="Erro no Relatório de Receita Estimada",
                              mensagem=f"Erro ao gerar relatório: {str(e)}")
 
-# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-# CORREÇÃO APLICADA AQUI
-# A rota agora chama a função correta e renderiza o template.
-# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 @app.route('/relatorio/receita-por-adm')
 def relatorio_receita_por_adm():
     """Relatório de receita por administração - AGORA FUNCIONAL"""
@@ -234,7 +232,6 @@ def relatorio_receita_por_adm():
         return render_template('erro.html',
                              titulo="Erro no Relatório por Administração",
                              mensagem=f"Erro ao gerar relatório: {str(e)}")
-
 
 @app.route('/relatorio/previsao-atualizada')
 def relatorio_previsao_atualizada():
