@@ -404,7 +404,8 @@ def receitas_tributarias():
         lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
         noug_selecionada = request.args.get('noug', None)
 
-        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs = gerar_relatorio_receitas_tributarias(
+        # ATUALIZAÇÃO: Agora retorna 6 valores incluindo comparativo_mensal
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs, comparativo_mensal = gerar_relatorio_receitas_tributarias(
             df_completo, HIERARQUIA_RECEITAS, noug_selecionada
         )
         
@@ -417,6 +418,7 @@ def receitas_tributarias():
                                dados_para_ia=dados_para_ia,
                                dados_pdf=dados_pdf,
                                resumo_nougs=resumo_nougs,
+                               comparativo_mensal=comparativo_mensal,  # NOVO
                                lista_nougs=lista_nougs,
                                noug_selecionada=noug_selecionada)
                                
