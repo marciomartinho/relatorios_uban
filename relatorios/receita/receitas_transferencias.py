@@ -1,0 +1,649 @@
+{% extends "base_relatorio.html" %}
+
+{% block titulo %}Receitas de Transferências Correntes Líquidas Realizada - Comparativo{% endblock %}
+
+{% block titulo_relatorio %}RECEITAS DE TRANSFERÊNCIAS CORRENTES LÍQUIDAS REALIZADA{% endblock %}
+
+{% block subtitulo %}Origens 17 e 77 com desdobramentos por alínea - Comparativo 2024 vs 2025{% endblock %}
+
+{% block head_extra %}
+<!-- Chart.js para gráficos - VERSÃO MAIS COMPATÍVEL -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<script>
+// Aguardar Chart.js carregar
+window.addEventListener('load', function() {
+    if (typeof Chart === 'undefined') {
+        console.warn('⚠️ Carregando Chart.js alternativo...');
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/Chart.min.js';
+        script.onload = function() {
+            console.log('✅ Chart.js carregado');
+        };
+        document.head.appendChild(script);
+    }
+});
+</script>
+
+<style>
+    .chart-container {
+        position: relative;
+        height: 500px !important;
+        width: 100% !important;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 30px;
+        border: 2px solid #dee2e6;
+    }
+    
+    .chart-wrapper {
+        position: relative;
+        height: 400px !important;
+        width: 100% !important;
+    }
+    
+    #chartComparativo {
+        max-height: 400px !important;
+        max-width: 100% !important;
+    }
+    
+    .chart-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 400px;
+        color: #6c757d;
+        font-size: 18px;
+    }
+    
+    .chart-error {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 400px;
+        color: #dc3545;
+        font-size: 16px;
+        text-align: center;
+        flex-direction: column;
+    }
+    
+    .info-container {
+        background: #e7f3ff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #0066cc;
+    }
+    
+    .info-container h4 {
+        margin: 0 0 10px 0;
+        color: #0066cc;
+        font-weight: 600;
+    }
+    
+    .info-container ul {
+        margin: 0;
+        padding-left: 20px;
+        color: #555;
+    }
+    
+    .resumo-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #003366;
+    }
+    
+    .resumo-container h4 {
+        margin: 0 0 15px 0;
+        color: #003366;
+        font-weight: 600;
+    }
+    
+    .resumo-container > div {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .resumo-container > div > div {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 3px solid #0066cc;
+    }
+    
+    .especie {
+        background-color: #cce5ff;
+        font-weight: bold;
+    }
+    
+    .alinea {
+        background-color: #f0f8ff;
+        display: table-row;
+    }
+    
+    .alinea td:first-child {
+        padding-left: 50px !important;
+        font-weight: normal;
+        color: #555;
+    }
+    
+    .alinea td:nth-child(2) {
+        font-style: italic;
+        color: #666;
+        font-size: 13px;
+    }
+    
+    .especie-icon {
+        color: #0066cc;
+        margin-right: 5px;
+    }
+    
+    .alinea-icon {
+        color: #6c757d;
+        margin-right: 5px;
+    }
+    
+    .especie td:first-child {
+        text-align: center;
+        font-family: monospace;
+        font-weight: bold;
+        padding: 8px !important;
+    }
+    
+    tbody tr.alinea:hover {
+        background-color: rgba(240, 248, 255, 0.8) !important;
+    }
+    
+    .nougs-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #28a745;
+    }
+    
+    .nougs-container h4 {
+        margin: 0 0 15px 0;
+        color: #28a745;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .nougs-lista {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 10px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .noug-item {
+        background: white;
+        padding: 12px 15px;
+        border-radius: 6px;
+        border-left: 3px solid #28a745;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    
+    .noug-item:hover {
+        background: #e8f5e8;
+        transform: translateX(2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .noug-nome {
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+    }
+    
+    .noug-saldo {
+        font-weight: bold;
+        color: #28a745;
+        font-size: 14px;
+    }
+    
+    .nougs-total {
+        margin-top: 15px;
+        padding: 15px;
+        background: white;
+        border-radius: 6px;
+        text-align: center;
+        border: 2px solid #28a745;
+    }
+    
+    .nougs-total strong {
+        color: #28a745;
+        font-size: 16px;
+    }
+    
+    .nougs-total span {
+        color: #333;
+        font-size: 18px;
+        font-weight: bold;
+    }
+    
+    @media (max-width: 768px) {
+        .nougs-lista {
+            grid-template-columns: 1fr;
+        }
+        
+        .noug-item {
+            padding: 10px 12px;
+        }
+        
+        .noug-nome, .noug-saldo {
+            font-size: 13px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block conteudo %}
+<div class="info-container">
+    <h4>ℹ️ Informações do Relatório - Receitas de Transferências Correntes</h4>
+    <ul>
+        <li><strong>Origens de Transferências:</strong> Apenas ORIGEM = 17 (Transferências Correntes) e ORIGEM = 77 (Transferências Correntes Intraorçamentárias)</li>
+        <li><strong>Desdobramento:</strong> Por ESPÉCIE e suas respectivas ALÍNEAS</li>
+        <li><strong>Detalhamento:</strong> Todas as espécies mostram suas alíneas (ALINEA + NOALINEA)</li>
+        <li><strong>Valores:</strong> RECEITA LÍQUIDA realizada</li>
+        <li><strong>Comparativo:</strong> Receita realizada em {{ mes_ref }}/2024 vs {{ mes_ref }}/2025</li>
+        <li><strong>Variação:</strong> Diferença absoluta e percentual entre os períodos</li>
+        <li><strong>💡 Estrutura:</strong> Todas as alíneas são exibidas automaticamente</li>
+    </ul>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th rowspan="2">CÓDIGO ESPÉCIE</th>
+            <th rowspan="2">NOME DA ESPÉCIE/ALÍNEA</th>
+            <th colspan="2">RECEITA LÍQUIDA REALIZADA</th>
+            <th colspan="2">VARIAÇÃO</th>
+        </tr>
+        <tr>
+            <th>{{ mes_ref }}/2024</th>
+            <th>{{ mes_ref }}/2025</th>
+            <th>ABSOLUTA</th>
+            <th>PERCENTUAL</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for linha in dados_relatorio %}
+            {% if linha.tipo == 'especie' %}
+                <tr class="especie" id="especie-{{ linha.especie_codigo }}">
+                    <td style="text-align: center; font-family: monospace; font-weight: bold;">
+                        <span class="especie-icon">🔄</span>{{ linha.especie_codigo_fmt }}
+                        {% if linha.tem_alineas %}
+                            <span style="font-size: 11px; color: #666; font-weight: normal; margin-left: 10px; display: block; margin-top: 2px;">({{ linha.qtd_alineas }} alíneas)</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: left;">
+                        {{ linha.nome_especie_fmt }}
+                    </td>
+                    <td>{{ linha.receita_2024_fmt }}</td>
+                    <td>{{ linha.receita_2025_fmt }}</td>
+                    <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% endif %}{% if linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_abs_fmt }}
+                    </td>
+                    <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% endif %}{% if linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_perc_fmt }}
+                    </td>
+                </tr>
+            {% endif %}
+            {% if linha.tipo == 'alinea' %}
+                <tr class="alinea">
+                    <td style="text-align: center; font-family: monospace; font-weight: normal; color: #555;">
+                        <span class="alinea-icon">├─</span>{{ linha.especie_codigo_fmt }}
+                    </td>
+                    <td style="text-align: left; font-style: italic; color: #666; font-size: 13px;">
+                        {{ linha.nome_especie_fmt }}
+                    </td>
+                    <td>{{ linha.receita_2024_fmt }}</td>
+                    <td>{{ linha.receita_2025_fmt }}</td>
+                    <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% endif %}{% if linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_abs_fmt }}
+                    </td>
+                    <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% endif %}{% if linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_perc_fmt }}
+                    </td>
+                </tr>
+            {% endif %}
+            {% if linha.tipo == 'total' %}
+                <tr class="total">
+                    <td style="text-align: center; font-weight: bold;">{{ linha.especie_codigo_fmt }}</td>
+                    <td style="text-align: left; font-weight: bold;">{{ linha.nome_especie_fmt }}</td>
+                    <td>{{ linha.receita_2024_fmt }}</td>
+                    <td>{{ linha.receita_2025_fmt }}</td>
+                    <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% endif %}{% if linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_abs_fmt }}
+                    </td>
+                    <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% endif %}{% if linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_perc_fmt }}
+                    </td>
+                </tr>
+            {% endif %}
+        {% else %}
+            <tr>
+                <td colspan="6" class="text-center" style="color: #666; font-style: italic; padding: 30px;">
+                    Nenhum dado de receita de transferências correntes encontrado para os filtros selecionados ou colunas necessárias não disponíveis.
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if dados_relatorio %}
+<div class="resumo-container">
+    <h4>📊 Resumo das Receitas de Transferências Correntes</h4>
+    <div>
+        <div>
+            <strong>Total de Espécies:</strong><br>
+            <span style="color: #0066cc; font-size: 18px;">
+                {{ dados_relatorio | selectattr("tipo", "equalto", "especie") | list | length }}
+            </span>
+        </div>
+        <div>
+            <strong>Total de Alíneas:</strong><br>
+            <span style="color: #6c757d; font-size: 18px;">
+                {{ dados_relatorio | selectattr("tipo", "equalto", "alinea") | list | length }}
+            </span>
+        </div>
+        <div>
+            <strong>Receita Total 2024:</strong><br>
+            <span style="color: #6c757d; font-size: 18px;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        {{ linha.receita_2024_fmt }}
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+        <div>
+            <strong>Receita Total 2025:</strong><br>
+            <span style="color: #28a745; font-size: 18px;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        {{ linha.receita_2025_fmt }}
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+        <div>
+            <strong>Variação Total:</strong><br>
+            <span style="font-size: 18px; font-weight: bold;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        <span class="{% if linha.variacao_perc < 0 %}valor-negativo{% endif %}{% if linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_perc_fmt }}
+                        </span>
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+    </div>
+</div>
+
+<div class="chart-container">
+    <h4>🥧 Distribuição das Espécies de Transferências Correntes - Receita 2025</h4>
+    <div class="chart-wrapper">
+        <div id="chart-loading" class="chart-loading">
+            <div>
+                <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+                <div>Carregando gráfico...</div>
+            </div>
+        </div>
+        <div id="chart-error" class="chart-error" style="display: none;">
+            <div>
+                <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
+                <div>Erro ao carregar gráfico</div>
+                <div style="font-size: 14px; margin-top: 5px;">Os dados estão disponíveis na tabela acima</div>
+            </div>
+        </div>
+        <canvas id="chartComparativo" style="display: none;"></canvas>
+    </div>
+</div>
+
+{% if resumo_nougs %}
+<div class="nougs-container">
+    <h4>
+        <span>🏢</span>
+        <span>Unidades Gestoras (NOUGs) com Receita de Transferências Correntes em 2025</span>
+        <span style="font-size: 14px; color: #666; font-weight: normal;">({{ resumo_nougs|length }} unidades)</span>
+    </h4>
+    
+    <div class="nougs-lista">
+        {% for noug in resumo_nougs %}
+        <div class="noug-item" onclick="filtrarPorNoug('{{ noug.noug }}')" title="Clique para filtrar por esta NOUG">
+            <span class="noug-nome">{{ noug.noug }}</span>
+            <span class="noug-saldo">{{ noug.saldo_fmt }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="nougs-total">
+        <strong>Total Geral das NOUGs:</strong> 
+        <span>
+            {% set total_nougs = resumo_nougs | sum(attribute='saldo') %}
+            {{ "R$ {:,.2f}".format(total_nougs).replace(",", "X").replace(".", ",").replace("X", ".") }}
+        </span>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 Iniciando verificação do gráfico de pizza...');
+    
+    setTimeout(function() {
+        verificarECriarGrafico();
+    }, 1000);
+});
+
+function verificarECriarGrafico() {
+    console.log('🔍 Verificando Chart.js...');
+    
+    if (typeof Chart === 'undefined') {
+        console.error('❌ Chart.js não carregou');
+        mostrarErro('Biblioteca de gráficos não carregada');
+        return;
+    }
+    
+    console.log('✅ Chart.js carregado, versão:', Chart.version);
+    
+    const dadosRelatorio = {{ dados_relatorio | tojson | safe }};
+    const especiesPrincipais = dadosRelatorio.filter(item => item.tipo === 'especie');
+    
+    console.log('📊 Total de espécies principais:', especiesPrincipais.length);
+    
+    if (!especiesPrincipais || especiesPrincipais.length === 0) {
+        console.warn('⚠️ Sem espécies principais para gráfico');
+        mostrarErro('Sem dados suficientes para gerar o gráfico');
+        return;
+    }
+    
+    const labels = especiesPrincipais.map(item => item.nome_especie || 'N/A');
+    const dados2025 = especiesPrincipais.map(item => parseFloat(item.receita_2025) || 0);
+    
+    const cores = [
+        '#FF5722', '#FF7043', '#FF8A65', '#FFAB91', '#E64A19',
+        '#F4511E', '#FF6F00', '#FF8F00', '#FFA000', '#FFB300'
+    ];
+    
+    console.log('🏷️ Labels:', labels);
+    console.log('💰 Dados 2025:', dados2025);
+    
+    criarGraficoPizza(labels, dados2025, cores);
+}
+
+function criarGraficoPizza(labels, dados, cores) {
+    try {
+        console.log('🥧 Criando gráfico de pizza...');
+        
+        const canvas = document.getElementById('chartComparativo');
+        if (!canvas) {
+            throw new Error('Canvas não encontrado');
+        }
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Contexto 2D não disponível');
+        }
+        
+        document.getElementById('chart-loading').style.display = 'none';
+        document.getElementById('chart-error').style.display = 'none';
+        canvas.style.display = 'block';
+        
+        const chart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: dados,
+                    backgroundColor: cores.slice(0, dados.length),
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                    hoverBorderWidth: 3,
+                    hoverBorderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Distribuição das Receitas de Transferências Correntes por Espécie (2025)',
+                        font: {
+                            size: 16,
+                            weight: 'bold'
+                        },
+                        color: '#003366'
+                    },
+                    legend: {
+                        display: true,
+                        position: 'right',
+                        labels: {
+                            boxWidth: 15,
+                            padding: 10,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 51, 102, 0.9)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: '#ffffff',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: true,
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed;
+                                const total = dados.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                
+                                const valueFormatted = new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL',
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                }).format(value);
+                                
+                                return `${context.label}: ${valueFormatted} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateScale: true,
+                    animateRotate: true,
+                    duration: 1500,
+                    easing: 'easeOutQuart'
+                },
+                layout: {
+                    padding: 20
+                }
+            }
+        });
+        
+        console.log('🎉 Gráfico de pizza criado com sucesso!');
+        
+        document.querySelectorAll('.especie').forEach((row, index) => {
+            row.addEventListener('mouseenter', function() {
+                chart.setActiveElements([{datasetIndex: 0, index: index}]);
+                chart.update('none');
+                this.style.backgroundColor = '#b3d9ff';
+            });
+            
+            row.addEventListener('mouseleave', function() {
+                chart.setActiveElements([]);
+                chart.update('none');
+                this.style.backgroundColor = '#cce5ff';
+            });
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao criar gráfico de pizza:', error);
+        mostrarErro('Erro ao criar o gráfico: ' + error.message);
+    }
+}
+
+function mostrarErro(mensagem) {
+    console.error('🚨 Erro do gráfico:', mensagem);
+    document.getElementById('chart-loading').style.display = 'none';
+    document.getElementById('chart-error').style.display = 'flex';
+    document.getElementById('chartComparativo').style.display = 'none';
+}
+
+function filtrarPorNoug(nougSelecionada) {
+    console.log('🔍 Filtrando por NOUG:', nougSelecionada);
+    
+    const selectNoug = document.getElementById('filtro-noug');
+    if (selectNoug) {
+        selectNoug.value = nougSelecionada;
+    }
+    
+    const urlAtual = window.location.pathname;
+    window.location.href = `${urlAtual}?noug=${encodeURIComponent(nougSelecionada)}`;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const nougSelecionada = urlParams.get('noug');
+    
+    if (nougSelecionada) {
+        document.querySelectorAll('.noug-item').forEach(item => {
+            const nougItem = item.querySelector('.noug-nome').textContent.trim();
+            if (nougItem === nougSelecionada) {
+                item.style.background = '#d4edda';
+                item.style.borderLeft = '4px solid #155724';
+                item.style.fontWeight = 'bold';
+                
+                const indicador = document.createElement('span');
+                indicador.innerHTML = ' ✓';
+                indicador.style.color = '#155724';
+                indicador.style.fontWeight = 'bold';
+                item.querySelector('.noug-nome').appendChild(indicador);
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
