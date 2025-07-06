@@ -257,6 +257,28 @@ window.addEventListener('load', function() {
         }
     }
 </style>
+
+<script>
+// Função para converter número do mês para nome
+function obterNomeMes(numeroMes) {
+    const meses = {
+        '01': 'Janeiro',
+        '02': 'Fevereiro', 
+        '03': 'Março',
+        '04': 'Abril',
+        '05': 'Maio',
+        '06': 'Junho',
+        '07': 'Julho',
+        '08': 'Agosto',
+        '09': 'Setembro',
+        '10': 'Outubro',
+        '11': 'Novembro',
+        '12': 'Dezembro'
+    };
+    
+    return meses[numeroMes] || `Mês ${numeroMes}`;
+}
+</script>
 {% endblock %}
 
 {% block filtros %}
@@ -417,7 +439,7 @@ window.addEventListener('load', function() {
     </div>
 </div>
 
-<!-- NOVO: Comparativo Mensal Acumulado -->
+<!-- NOVO: Comparativo Mensal Acumulado (MODIFICADO - sem dica) -->
 {% if comparativo_mensal %}
 <div class="resumo-container" style="border-left-color: #ff6b6b;">
     <h4>📅 Comparativo Mensal Acumulado - Receitas Tributárias</h4>
@@ -425,7 +447,7 @@ window.addEventListener('load', function() {
         {% for mes in comparativo_mensal %}
         <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #ff6b6b;">
             <div style="font-weight: 600; color: #333; font-size: 14px; margin-bottom: 8px;">
-                📈 Total até {{ mes.mes_fmt }}/2024 vs {{ mes.mes_fmt }}/2025
+                📈 Total até <span id="titulo-mes-{{ mes.mes }}"></span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <span style="color: #6c757d; font-size: 12px;">2024:</span>
@@ -443,10 +465,6 @@ window.addEventListener('load', function() {
             </div>
         </div>
         {% endfor %}
-    </div>
-    <div style="margin-top: 15px; padding: 12px; background: rgba(255, 107, 107, 0.1); border-radius: 6px; text-align: center;">
-        <strong style="color: #ff6b6b;">💡 Dica:</strong> 
-        <span style="color: #666; font-size: 14px;">Os valores são cumulativos (ex: mês 3 = soma dos meses 1+2+3)</span>
     </div>
 </div>
 {% endif %}
@@ -477,13 +495,13 @@ window.addEventListener('load', function() {
 <div class="nougs-container">
     <h4>
         <span>🏢</span>
-        <span>Unidades Gestoras (NOUGs) com Receita Tributária em 2025</span>
+        <span>Unidades Gestoras com Receita Tributária em 2025</span>
         <span style="font-size: 14px; color: #666; font-weight: normal;">({{ resumo_nougs|length }} unidades)</span>
     </h4>
     
     <div class="nougs-lista">
         {% for noug in resumo_nougs %}
-        <div class="noug-item" onclick="filtrarPorNoug('{{ noug.noug }}')" title="Clique para filtrar por esta NOUG">
+        <div class="noug-item" onclick="filtrarPorNoug('{{ noug.noug }}')" title="Clique para filtrar por esta UG">
             <span class="noug-nome">{{ noug.noug }}</span>
             <span class="noug-saldo">{{ noug.saldo_fmt }}</span>
         </div>
@@ -511,11 +529,29 @@ window.addEventListener('load', function() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔍 Iniciando verificação do gráfico de pizza...');
     
+    // Converter títulos dos meses após DOM carregar
+    converterTitulosMeses();
+    
     // Aguardar um pouco para garantir que tudo carregou
     setTimeout(function() {
         verificarECriarGrafico();
     }, 1000);
 });
+
+// NOVA FUNÇÃO: Converter números dos meses para nomes
+function converterTitulosMeses() {
+    {% if comparativo_mensal %}
+    const comparativoMensal = {{ comparativo_mensal | tojson | safe }};
+    
+    comparativoMensal.forEach(function(mes) {
+        const elemento = document.getElementById('titulo-mes-' + mes.mes);
+        if (elemento) {
+            const nomeMes = obterNomeMes(mes.mes_fmt);
+            elemento.textContent = nomeMes;
+        }
+    });
+    {% endif %}
+}
 
 function verificarECriarGrafico() {
     console.log('🔍 Verificando Chart.js...');
