@@ -24,7 +24,8 @@ from relatorios.receita import (
     gerar_relatorio_receitas_servicos,
     gerar_relatorio_receitas_transferencias,
     gerar_relatorio_outras_receitas_correntes,
-    gerar_relatorio_receitas_alienacao_bens
+    gerar_relatorio_receitas_alienacao_bens,
+    gerar_relatorio_receitas_amortizacao_emprestimo
 )
 
 # Cria o blueprint
@@ -489,4 +490,36 @@ def receitas_alienacao_bens():
         traceback.print_exc()
         return render_template('erro.html',
                              titulo="Erro no Relatório de Receitas de Alienação de Bens",
+                             mensagem=f"Erro ao gerar relatório: {str(e)}")
+
+@receita_bp.route('/receitas-amortizacao-emprestimo')
+def receitas_amortizacao_emprestimo():
+    """Relatório de receitas de amortização de empréstimos líquidas - RELATÓRIO DETALHADO"""
+    try:
+        inicio = time.time()
+        df_completo = carregar_dataframe_receita()
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs = gerar_relatorio_receitas_amortizacao_emprestimo(
+            df_completo, HIERARQUIA_RECEITAS, noug_selecionada
+        )
+        
+        fim = time.time()
+        print(f"⏱️ Relatório de Receitas de Amortização de Empréstimos gerado em {fim - inicio:.2f} segundos")
+
+        return render_template('relatorio_receitas_amortizacao_emprestimo.html',
+                               dados_relatorio=dados_tabela,
+                               mes_ref=mes_referencia,
+                               dados_para_ia=dados_para_ia,
+                               dados_pdf=dados_pdf,
+                               resumo_nougs=resumo_nougs,
+                               lista_nougs=lista_nougs,
+                               noug_selecionada=noug_selecionada,
+                               tipo_visualizacao='relatorio')
+                               
+    except Exception as e:
+        traceback.print_exc()
+        return render_template('erro.html',
+                             titulo="Erro no Relatório de Receitas de Amortização de Empréstimos",
                              mensagem=f"Erro ao gerar relatório: {str(e)}")
