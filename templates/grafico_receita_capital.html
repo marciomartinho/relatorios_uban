@@ -1,0 +1,360 @@
+{% extends "base_relatorio.html" %}
+
+{% block titulo %}Gráfico de Receita Líquida - Receita de Capital{% endblock %}
+
+{% block titulo_relatorio %}GRÁFICO DE RECEITA LÍQUIDA{% endblock %}
+
+{% block subtitulo %}Receita de Capital - Exercício 2025{% endblock %}
+
+{% block head_extra %}
+<!-- Chart.js para gráficos -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<style>
+    .chart-container {
+        position: relative;
+        height: 600px;
+        width: 100%;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 30px 0;
+        border: 2px solid #dee2e6;
+    }
+    
+    .chart-wrapper {
+        position: relative;
+        height: 500px;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    #chartReceita {
+        max-height: 500px !important;
+        max-width: 100% !important;
+    }
+    
+    .chart-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 500px;
+        color: #6c757d;
+        font-size: 18px;
+        flex-direction: column;
+    }
+    
+    .chart-error {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 500px;
+        color: #dc3545;
+        font-size: 16px;
+        text-align: center;
+        flex-direction: column;
+    }
+    
+    .total-display {
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        color: #8B4513;
+        margin: 20px 0;
+        padding: 20px;
+        background: #fff;
+        border-radius: 8px;
+        border-left: 4px solid #8B4513;
+    }
+    
+    .legend-table {
+        margin-top: 30px;
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .legend-table th {
+        background-color: #003366;
+        color: white;
+        text-align: center;
+        padding: 12px;
+        border: 1px solid #ddd;
+    }
+    
+    .legend-table td {
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        text-align: right;
+    }
+    
+    .legend-table td:first-child {
+        text-align: left;
+        font-weight: 500;
+    }
+    
+    .color-indicator {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 10px;
+        border: 2px solid #fff;
+        box-shadow: 0 0 3px rgba(0,0,0,0.3);
+    }
+</style>
+{% endblock %}
+
+{% block conteudo %}
+<div class="info-container">
+    <h4>ℹ️ Informações do Relatório - Receita de Capital</h4>
+    <ul>
+        <li><strong>Categoria:</strong> {{ dados_chart.categoria if dados_chart and dados_chart.categoria else '2 - Receitas de Capital' }}</li>
+        <li><strong>Composição:</strong> {{ dados_chart.composicao if dados_chart and dados_chart.composicao else 'Operações de Crédito, Alienação de Bens, Transferências de Capital e outras' }}</li>
+        <li><strong>Valores:</strong> {{ dados_chart.valores if dados_chart and dados_chart.valores else 'RECEITA LÍQUIDA realizada no exercício 2025' }}</li>
+        <li><strong>Distribuição:</strong> {{ dados_chart.distribuicao if dados_chart and dados_chart.distribuicao else 'Por origem da receita com participação percentual' }}</li>
+        <li><strong>💡 Finalidade:</strong> {{ dados_chart.finalidade if dados_chart and dados_chart.finalidade else 'Recursos destinados ao investimento e inversões financeiras' }}</li>
+    </ul>
+</div>
+
+<!-- Gráfico de Pizza -->
+<div class="chart-container">
+    <h4>{{ dados_chart.title_text if dados_chart and dados_chart.title_text else 'Composição da Receita de Capital Líquida por Origem' }}</h4>
+    <div class="chart-wrapper">
+        <div id="chart-loading" class="chart-loading">
+            <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+            <div>Carregando gráfico...</div>
+        </div>
+        <div id="chart-error" class="chart-error" style="display: none;">
+            <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
+            <div>Erro ao carregar gráfico</div>
+            <div style="font-size: 14px; margin-top: 5px;">Os dados estão disponíveis na tabela abaixo</div>
+        </div>
+        <canvas id="chartReceita" style="display: none;"></canvas>
+    </div>
+</div>
+
+<!-- Total -->
+{% if dados_chart and dados_chart.total_fmt %}
+<div class="total-display">
+    Total da Receita de Capital Líquida: {{ dados_chart.total_fmt }}
+</div>
+{% endif %}
+
+<!-- Tabela de Dados -->
+{% if dados_relatorio %}
+<table class="legend-table">
+    <thead>
+        <tr>
+            <th>ORIGEM DA RECEITA</th>
+            <th>VALOR</th>
+            <th>PARTICIPAÇÃO %</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in dados_relatorio %}
+        <tr>
+            <td>
+                <span class="color-indicator" style="background-color: {{ loop.index0 | safe }}"></span>
+                {{ item.nome_origem }}
+            </td>
+            <td>{{ item.valor_fmt }}</td>
+            <td>{{ item.percentual_fmt }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div style="text-align: center; padding: 40px; color: #666;">
+    📊 Sem Dados para Exibir<br>
+    <small>Não há dados de receita de capital líquida para gerar o gráfico.</small>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Dados do gráfico de receita de capital
+const dadosGrafico = {{ dados_chart | tojson | safe }};
+const dadosRelatorio = {{ dados_relatorio | tojson | safe }};
+
+console.log('📊 Dados do gráfico:', dadosGrafico);
+console.log('📋 Dados do relatório:', dadosRelatorio);
+
+// Aguardar DOM carregar
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        criarGraficoReceita();
+    }, 500);
+});
+
+function criarGraficoReceita() {
+    console.log('🎨 Iniciando criação do gráfico de receita de capital...');
+    
+    // Verificar se Chart.js carregou
+    if (typeof Chart === 'undefined') {
+        console.error('❌ Chart.js não carregou');
+        mostrarErro('Biblioteca de gráficos não carregada');
+        return;
+    }
+    
+    // Verificar se temos dados
+    if (!dadosRelatorio || dadosRelatorio.length === 0) {
+        console.warn('⚠️ Sem dados para gráfico');
+        mostrarErro('Sem dados suficientes para gerar o gráfico');
+        return;
+    }
+    
+    // Preparar dados
+    const labels = dadosRelatorio.map(item => item.nome_origem || 'N/A');
+    const valores = dadosRelatorio.map(item => parseFloat(item.valor) || 0);
+    const percentuais = dadosRelatorio.map(item => parseFloat(item.percentual) || 0);
+    
+    console.log('🏷️ Labels:', labels);
+    console.log('💰 Valores:', valores);
+    console.log('📊 Percentuais:', percentuais);
+    
+    // Cores para receita de capital (tons de marrom/laranja)
+    const cores = [
+        '#8B4513',  // Marrom escuro
+        '#D2691E',  // Chocolate
+        '#CD853F',  // Peru
+        '#DEB887',  // Burlywood
+        '#F4A460',  // Sandy brown
+        '#DAA520',  // Goldenrod
+        '#B8860B',  // Dark goldenrod
+        '#BC8F8F',  // Rosy brown
+        '#A0522D',  // Sienna
+        '#FF8C00'   // Dark orange
+    ];
+    
+    try {
+        const canvas = document.getElementById('chartReceita');
+        if (!canvas) {
+            throw new Error('Canvas não encontrado');
+        }
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Contexto 2D não disponível');
+        }
+        
+        // Esconder loading e mostrar canvas
+        document.getElementById('chart-loading').style.display = 'none';
+        document.getElementById('chart-error').style.display = 'none';
+        canvas.style.display = 'block';
+        
+        // Criar gráfico
+        const chart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: valores,
+                    backgroundColor: cores.slice(0, valores.length),
+                    borderColor: '#ffffff',
+                    borderWidth: 3,
+                    hoverBorderWidth: 4,
+                    hoverBorderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: dadosGrafico?.title_text || 'Composição da Receita de Capital por Origem',
+                        font: {
+                            size: 18,
+                            weight: 'bold'
+                        },
+                        color: '#8B4513',
+                        padding: 20
+                    },
+                    legend: {
+                        display: true,
+                        position: 'right',
+                        labels: {
+                            boxWidth: 20,
+                            padding: 15,
+                            font: {
+                                size: 14
+                            },
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                return data.labels.map((label, index) => {
+                                    const percentage = percentuais[index];
+                                    return {
+                                        text: `${label} (${percentage.toFixed(1)}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[index],
+                                        strokeStyle: data.datasets[0].borderColor,
+                                        lineWidth: data.datasets[0].borderWidth,
+                                        index: index
+                                    };
+                                });
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(139, 69, 19, 0.9)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: '#ffffff',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: true,
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed;
+                                const percentage = percentuais[context.dataIndex];
+                                
+                                const valueFormatted = new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL',
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                }).format(value);
+                                
+                                return `${context.label}: ${valueFormatted} (${percentage.toFixed(1)}%)`;
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateScale: true,
+                    animateRotate: true,
+                    duration: 1500,
+                    easing: 'easeOutQuart'
+                },
+                layout: {
+                    padding: 20
+                }
+            }
+        });
+        
+        // Atualizar cores na tabela
+        document.querySelectorAll('.color-indicator').forEach((indicator, index) => {
+            if (index < cores.length) {
+                indicator.style.backgroundColor = cores[index];
+            }
+        });
+        
+        console.log('🎉 Gráfico de receita de capital criado com sucesso!');
+        
+    } catch (error) {
+        console.error('❌ Erro ao criar gráfico:', error);
+        mostrarErro('Erro ao criar o gráfico: ' + error.message);
+    }
+}
+
+function mostrarErro(mensagem) {
+    console.error('🚨 Erro do gráfico:', mensagem);
+    document.getElementById('chart-loading').style.display = 'none';
+    document.getElementById('chart-error').style.display = 'flex';
+    document.getElementById('chartReceita').style.display = 'none';
+}
+</script>
+{% endblock %}

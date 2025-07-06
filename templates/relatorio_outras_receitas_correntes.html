@@ -1,10 +1,10 @@
 {% extends "base_relatorio.html" %}
 
-{% block titulo %}Receitas de Transferências Correntes Líquidas Realizada - Comparativo{% endblock %}
+{% block titulo %}Outras Receitas Correntes Líquidas Realizada - Comparativo{% endblock %}
 
-{% block titulo_relatorio %}RECEITAS DE TRANSFERÊNCIAS CORRENTES LÍQUIDAS REALIZADA{% endblock %}
+{% block titulo_relatorio %}OUTRAS RECEITAS CORRENTES LÍQUIDAS REALIZADA{% endblock %}
 
-{% block subtitulo %}Origens 17 e 77 com desdobramentos por alínea - Comparativo 2024 vs 2025{% endblock %}
+{% block subtitulo %}Origens 79 e 99 com desdobramentos por alínea - Comparativo 2024 vs 2025{% endblock %}
 
 {% block head_extra %}
 <!-- Chart.js para gráficos - VERSÃO MAIS COMPATÍVEL -->
@@ -261,9 +261,9 @@ window.addEventListener('load', function() {
 
 {% block conteudo %}
 <div class="info-container">
-    <h4>ℹ️ Informações do Relatório - Receitas de Transferências Correntes</h4>
+    <h4>ℹ️ Informações do Relatório - Outras Receitas Correntes</h4>
     <ul>
-        <li><strong>Origens de Transferências:</strong> Apenas ORIGEM = 17 (Transferências Correntes) e ORIGEM = 77 (Transferências Correntes Intraorçamentárias)</li>
+        <li><strong>Origens de Outras Receitas:</strong> Apenas ORIGEM = 79 (Outras Receitas Correntes) e ORIGEM = 99 (Outras Receitas Correntes Intraorçamentárias)</li>
         <li><strong>Desdobramento:</strong> Por ESPÉCIE e suas respectivas ALÍNEAS</li>
         <li><strong>Detalhamento:</strong> Todas as espécies mostram suas alíneas (ALINEA + NOALINEA)</li>
         <li><strong>Valores:</strong> RECEITA LÍQUIDA realizada</li>
@@ -293,7 +293,7 @@ window.addEventListener('load', function() {
             {% if linha.tipo == 'especie' %}
                 <tr class="especie" id="especie-{{ linha.especie_codigo }}">
                     <td style="text-align: center; font-family: monospace; font-weight: bold;">
-                        <span class="especie-icon">🔄</span>{{ linha.especie_codigo_fmt }}
+                        <span class="especie-icon">💰</span>{{ linha.especie_codigo_fmt }}
                         {% if linha.tem_alineas %}
                             <span style="font-size: 11px; color: #666; font-weight: normal; margin-left: 10px; display: block; margin-top: 2px;">({{ linha.qtd_alineas }} alíneas)</span>
                         {% endif %}
@@ -346,7 +346,7 @@ window.addEventListener('load', function() {
         {% else %}
             <tr>
                 <td colspan="6" class="text-center" style="color: #666; font-style: italic; padding: 30px;">
-                    Nenhum dado de receita de transferências correntes encontrado para os filtros selecionados ou colunas necessárias não disponíveis.
+                    Nenhum dado de outras receitas correntes encontrado para os filtros selecionados ou colunas necessárias não disponíveis.
                 </td>
             </tr>
         {% endfor %}
@@ -355,7 +355,7 @@ window.addEventListener('load', function() {
 
 {% if dados_relatorio %}
 <div class="resumo-container">
-    <h4>📊 Resumo das Receitas de Transferências Correntes</h4>
+    <h4>📊 Resumo das Outras Receitas Correntes</h4>
     <div>
         <div>
             <strong>Total de Espécies:</strong><br>
@@ -406,7 +406,7 @@ window.addEventListener('load', function() {
 
 <!-- Gráfico de Pizza com as Principais Espécies -->
 <div class="chart-container">
-    <h4>🥧 Distribuição das Espécies de Transferências Correntes - Receita 2025</h4>
+    <h4>🥧 Distribuição das Espécies de Outras Receitas Correntes - Receita 2025</h4>
     <div class="chart-wrapper">
         <div id="chart-loading" class="chart-loading">
             <div>
@@ -430,7 +430,7 @@ window.addEventListener('load', function() {
 <div class="nougs-container">
     <h4>
         <span>🏢</span>
-        <span>Unidades Gestoras (NOUGs) com Receita de Transferências Correntes em 2025</span>
+        <span>Unidades Gestoras (NOUGs) com Outras Receitas Correntes em 2025</span>
         <span style="font-size: 14px; color: #666; font-weight: normal;">({{ resumo_nougs|length }} unidades)</span>
     </h4>
     
@@ -498,18 +498,18 @@ function verificarECriarGrafico() {
     const labels = especiesPrincipais.map(item => item.nome_especie || 'N/A');
     const dados2025 = especiesPrincipais.map(item => parseFloat(item.receita_2025) || 0);
     
-    // Cores personalizadas para cada espécie (tons de laranja/vermelho para transferências)
+    // Cores personalizadas para cada espécie (tons de roxo/magenta para outras receitas)
     const cores = [
-        '#FF5722',  // Vermelho profundo
-        '#FF7043',  // Vermelho médio
-        '#FF8A65',  // Vermelho claro
-        '#FFAB91',  // Vermelho pastel
-        '#E64A19',  // Vermelho escuro
-        '#F4511E',  // Vermelho vivo
-        '#FF6F00',  // Laranja escuro
-        '#FF8F00',  // Laranja médio
-        '#FFA000',  // Laranja
-        '#FFB300'   // Laranja claro
+        '#9C27B0',  // Roxo
+        '#AB47BC',  // Roxo claro
+        '#BA68C8',  // Roxo médio
+        '#CE93D8',  // Roxo pastel
+        '#7B1FA2',  // Roxo escuro
+        '#8E24AA',  // Roxo vivo
+        '#E91E63',  // Rosa
+        '#F06292',  // Rosa claro
+        '#EC407A',  // Rosa médio
+        '#AD1457'   // Rosa escuro
     ];
     
     console.log('🏷️ Labels:', labels);
@@ -558,7 +558,7 @@ function criarGraficoPizza(labels, dados, cores) {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Distribuição das Receitas de Transferências Correntes por Espécie (2025)',
+                        text: 'Distribuição das Outras Receitas Correntes por Espécie (2025)',
                         font: {
                             size: 16,
                             weight: 'bold'

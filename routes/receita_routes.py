@@ -16,12 +16,14 @@ from relatorios.receita import (
     gerar_relatorio_por_adm,
     gerar_relatorio_receita_atualizada_vs_inicial,
     gerar_grafico_receita_liquida,
+    gerar_grafico_receita_capital,
     gerar_relatorio_receita_conta_corrente,
     gerar_relatorio_receitas_tributarias,
     gerar_relatorio_receitas_contribuicoes,
     gerar_relatorio_receitas_patrimoniais,
     gerar_relatorio_receitas_servicos,
-    gerar_relatorio_receitas_transferencias
+    gerar_relatorio_receitas_transferencias,
+    gerar_relatorio_outras_receitas_correntes
 )
 
 # Cria o blueprint
@@ -181,6 +183,37 @@ def receitas_transferencias():
                              titulo="Erro no Relatório de Receitas de Transferências",
                              mensagem=f"Erro ao gerar relatório: {str(e)}")
 
+@receita_bp.route('/outras-receitas-correntes')
+def outras_receitas_correntes():
+    """Relatório de outras receitas correntes líquidas"""
+    try:
+        inicio = time.time()
+        df_completo = carregar_dataframe_receita()
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs = gerar_relatorio_outras_receitas_correntes(
+            df_completo, HIERARQUIA_RECEITAS, noug_selecionada
+        )
+        
+        fim = time.time()
+        print(f"⏱️ Relatório de Outras Receitas Correntes gerado em {fim - inicio:.2f} segundos")
+
+        return render_template('relatorio_outras_receitas_correntes.html',
+                               dados_relatorio=dados_tabela,
+                               mes_ref=mes_referencia,
+                               dados_para_ia=dados_para_ia,
+                               dados_pdf=dados_pdf,
+                               resumo_nougs=resumo_nougs,
+                               lista_nougs=lista_nougs,
+                               noug_selecionada=noug_selecionada)
+                               
+    except Exception as e:
+        traceback.print_exc()
+        return render_template('erro.html',
+                             titulo="Erro no Relatório de Outras Receitas Correntes",
+                             mensagem=f"Erro ao gerar relatório: {str(e)}")
+
 @receita_bp.route('/receita-estimada')
 def receita_estimada():
     """Relatório de receita estimada comparativo entre anos"""
@@ -267,6 +300,37 @@ def grafico_receita_liquida():
         traceback.print_exc()
         return render_template('erro.html',
                              titulo="Erro no Gráfico de Receita Líquida",
+                             mensagem=f"Erro ao gerar gráfico: {str(e)}")
+
+@receita_bp.route('/grafico-receita-capital')
+def grafico_receita_capital():
+    """Relatório: Gráfico de Receita Líquida (Receita de Capital) - GRÁFICO VISUAL"""
+    try:
+        inicio = time.time()
+        df_completo = carregar_dataframe_receita()
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+
+        # CORREÇÃO: Usar a função corrigida que processa CATEGORIA = 2 e retorna 4 valores
+        dados_tabela, mes_referencia, dados_grafico, dados_chart = gerar_grafico_receita_capital(
+            df_completo, HIERARQUIA_RECEITAS, noug_selecionada
+        )
+        
+        fim = time.time()
+        print(f"⏱️ Gráfico de receita de capital gerado em {fim - inicio:.2f} segundos")
+
+        return render_template('grafico_receita_capital.html',
+                               dados_relatorio=dados_tabela,
+                               dados_grafico=dados_grafico,
+                               dados_chart=dados_chart,
+                               mes_ref=mes_referencia,
+                               lista_nougs=lista_nougs,
+                               noug_selecionada=noug_selecionada)
+
+    except Exception as e:
+        traceback.print_exc()
+        return render_template('erro.html',
+                             titulo="Erro no Gráfico de Receita de Capital",
                              mensagem=f"Erro ao gerar gráfico: {str(e)}")
 
 @receita_bp.route('/receita-por-adm')
@@ -357,4 +421,39 @@ def receitas_tributarias():
         traceback.print_exc()
         return render_template('erro.html',
                              titulo="Erro no Relatório de Receitas Tributárias",
+                             mensagem=f"Erro ao gerar relatório: {str(e)}")
+
+@receita_bp.route('/receitas-operacoes-credito')
+def receitas_operacoes_credito():
+    """Relatório de receitas de operações de crédito líquidas - RELATÓRIO DETALHADO"""
+    try:
+        inicio = time.time()
+        df_completo = carregar_dataframe_receita()
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+
+        # CORREÇÃO: Importar a função específica do arquivo receitas_operacoes_credito
+        from relatorios.receita.receitas_operacoes_credito import gerar_grafico_receita_capital as gerar_relatorio_operacoes_credito
+        
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs = gerar_relatorio_operacoes_credito(
+            df_completo, HIERARQUIA_RECEITAS, noug_selecionada
+        )
+        
+        fim = time.time()
+        print(f"⏱️ Relatório de Receitas de Operações de Crédito gerado em {fim - inicio:.2f} segundos")
+
+        return render_template('relatorio_receitas_operacoes_credito.html',
+                               dados_relatorio=dados_tabela,
+                               mes_ref=mes_referencia,
+                               dados_para_ia=dados_para_ia,
+                               dados_pdf=dados_pdf,
+                               resumo_nougs=resumo_nougs,
+                               lista_nougs=lista_nougs,
+                               noug_selecionada=noug_selecionada,
+                               tipo_visualizacao='relatorio')
+                               
+    except Exception as e:
+        traceback.print_exc()
+        return render_template('erro.html',
+                             titulo="Erro no Relatório de Receitas de Operações de Crédito",
                              mensagem=f"Erro ao gerar relatório: {str(e)}")

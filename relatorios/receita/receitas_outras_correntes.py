@@ -1,8 +1,8 @@
 """
-Relatório: Receitas de Transferências Correntes Líquidas Realizada
-Analisa receitas das origens 17 e 77 com desdobramentos por alínea
+Relatório: Outras Receitas Correntes Líquidas Realizada
+Analisa receitas das origens 79 e 99 com desdobramentos por alínea
 REGRAS:
-- ORIGEM = 17 e 77 (receitas de transferências correntes)
+- ORIGEM = 79 e 99 (outras receitas correntes)
 - Desdobramento por ALINEA e NOALINEA
 - Valores de RECEITA LÍQUIDA
 - Comparativo 2024 vs 2025 com variações absoluta e percentual
@@ -11,12 +11,12 @@ REGRAS:
 import pandas as pd
 from ..utils import MotorRelatorios, obter_mes_numero, formatar_percentual
 
-def gerar_relatorio_receitas_transferencias(df_completo, estrutura_hierarquica=None, noug_selecionada=None):
+def gerar_relatorio_outras_receitas_correntes(df_completo, estrutura_hierarquica=None, noug_selecionada=None):
     """
-    Gera relatório de receitas de transferências correntes líquidas com comparativo 2024 vs 2025
+    Gera relatório de outras receitas correntes líquidas com comparativo 2024 vs 2025
     
     REGRAS DE NEGÓCIO:
-    - Filtra apenas ORIGEM = 17 e 77 (receitas de transferências correntes)
+    - Filtra apenas ORIGEM = 79 e 99 (outras receitas correntes)
     - Agrupa por ESPÉCIE primeiro
     - Desdobra por ALINEA e NOALINEA
     - Compara 2024 vs 2025 com variações absoluta e percentual
@@ -33,14 +33,14 @@ def gerar_relatorio_receitas_transferencias(df_completo, estrutura_hierarquica=N
     motor = MotorRelatorios(df_completo, tipo_dados='receita')
     df_processar = motor.filtrar_por_noug(noug_selecionada)
     
-    # Filtra apenas origens de transferências correntes (17 e 77) para 2025 e 2024
+    # Filtra apenas origens de outras receitas correntes (79 e 99) para 2025 e 2024
     df_2025 = df_processar[
         (df_processar['COEXERCICIO'] == 2025) & 
-        (df_processar['ORIGEM'].isin(['17', '77']))
+        (df_processar['ORIGEM'].isin(['79', '99']))
     ]
     df_2024 = df_processar[
         (df_processar['COEXERCICIO'] == 2024) & 
-        (df_processar['ORIGEM'].isin(['17', '77']))
+        (df_processar['ORIGEM'].isin(['79', '99']))
     ]
     
     if df_2025.empty:
@@ -56,7 +56,7 @@ def gerar_relatorio_receitas_transferencias(df_completo, estrutura_hierarquica=N
         print("⚠️ Colunas 'ALINEA' ou 'NOALINEA' não encontradas na planilha")
         return [], obter_mes_numero(df_processar), [], {}, []
     
-    print("🔍 Processando receitas de transferências correntes (ORIGEM 17 e 77)...")
+    print("🔍 Processando outras receitas correntes (ORIGEM 79 e 99)...")
     
     # Calcula mês de referência
     mes_referencia = obter_mes_numero(df_2025)
@@ -201,7 +201,7 @@ def gerar_relatorio_receitas_transferencias(df_completo, estrutura_hierarquica=N
     # NOVO: Gerar resumo das NOUGs com saldos
     resumo_nougs = _gerar_resumo_nougs_com_saldo(df_2025, motor)
     
-    print(f"✅ Relatório de receitas de transferências correntes gerado: {len(dados_numericos)} linhas (espécies + alíneas + total)")
+    print(f"✅ Relatório de outras receitas correntes gerado: {len(dados_numericos)} linhas (espécies + alíneas + total)")
     print(f"📋 NOUGs com saldo: {len(resumo_nougs)} unidades")
     
     return dados_numericos, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs
