@@ -18,6 +18,7 @@ from .receitas_transferencias import gerar_relatorio_receitas_transferencias
 from .receitas_outras_correntes import gerar_relatorio_outras_receitas_correntes
 from .receitas_alienacao_bens import gerar_relatorio_receitas_alienacao_bens
 from .receitas_amortizacao_emprestimo import gerar_relatorio_receitas_amortizacao_emprestimo
+from .receitas_transferencia_capital import gerar_relatorio_receitas_transferencia_capital
 
 # Aliases para compatibilidade
 from .receita_estimada import gerar_relatorio_receita_estimada as gerar_relatorio_estimada
@@ -38,5 +39,6 @@ __all__ = [
     'gerar_relatorio_outras_receitas_correntes',
     'gerar_relatorio_receitas_alienacao_bens',
     'gerar_relatorio_receitas_amortizacao_emprestimo',
+    'gerar_relatorio_receitas_transferencia_capital',
     'gerar_relatorio_estimada'  # Alias para compatibilidade
 ]
