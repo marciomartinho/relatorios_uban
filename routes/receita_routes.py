@@ -29,6 +29,9 @@ from relatorios.receita import (
     gerar_relatorio_receitas_transferencia_capital
 )
 
+# Import específico para receitas de operações de crédito
+from relatorios.receita.receitas_operacoes_credito import gerar_grafico_receita_capital as gerar_relatorio_operacoes_credito
+
 # Cria o blueprint
 receita_bp = Blueprint('receita', __name__)
 
@@ -71,7 +74,8 @@ def receitas_patrimoniais():
         lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
         noug_selecionada = request.args.get('noug', None)
 
-        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs = gerar_relatorio_receitas_patrimoniais(
+        # ATUALIZAÇÃO: Agora retorna 6 valores incluindo comparativo_mensal
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs, comparativo_mensal = gerar_relatorio_receitas_patrimoniais(
             df_completo, HIERARQUIA_RECEITAS, noug_selecionada
         )
         
@@ -84,6 +88,7 @@ def receitas_patrimoniais():
                                dados_para_ia=dados_para_ia,
                                dados_pdf=dados_pdf,
                                resumo_nougs=resumo_nougs,
+                               comparativo_mensal=comparativo_mensal,  # NOVO
                                lista_nougs=lista_nougs,
                                noug_selecionada=noug_selecionada)
                                
@@ -135,7 +140,8 @@ def receitas_servicos():
         lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
         noug_selecionada = request.args.get('noug', None)
 
-        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs = gerar_relatorio_receitas_servicos(
+        # ATUALIZAÇÃO: Agora retorna 6 valores incluindo comparativo_mensal
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs, comparativo_mensal = gerar_relatorio_receitas_servicos(
             df_completo, HIERARQUIA_RECEITAS, noug_selecionada
         )
         
@@ -148,6 +154,7 @@ def receitas_servicos():
                                dados_para_ia=dados_para_ia,
                                dados_pdf=dados_pdf,
                                resumo_nougs=resumo_nougs,
+                               comparativo_mensal=comparativo_mensal,  # NOVO
                                lista_nougs=lista_nougs,
                                noug_selecionada=noug_selecionada)
                                
@@ -166,7 +173,8 @@ def receitas_transferencias():
         lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
         noug_selecionada = request.args.get('noug', None)
 
-        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs = gerar_relatorio_receitas_transferencias(
+        # ATUALIZAÇÃO: Agora retorna 6 valores incluindo comparativo_mensal
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs, comparativo_mensal = gerar_relatorio_receitas_transferencias(
             df_completo, HIERARQUIA_RECEITAS, noug_selecionada
         )
         
@@ -179,6 +187,7 @@ def receitas_transferencias():
                                dados_para_ia=dados_para_ia,
                                dados_pdf=dados_pdf,
                                resumo_nougs=resumo_nougs,
+                               comparativo_mensal=comparativo_mensal,  # NOVO
                                lista_nougs=lista_nougs,
                                noug_selecionada=noug_selecionada)
                                
@@ -197,7 +206,8 @@ def outras_receitas_correntes():
         lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
         noug_selecionada = request.args.get('noug', None)
 
-        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs = gerar_relatorio_outras_receitas_correntes(
+        # ATUALIZAÇÃO: Agora retorna 6 valores incluindo comparativo_mensal
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs, comparativo_mensal = gerar_relatorio_outras_receitas_correntes(
             df_completo, HIERARQUIA_RECEITAS, noug_selecionada
         )
         
@@ -210,6 +220,7 @@ def outras_receitas_correntes():
                                dados_para_ia=dados_para_ia,
                                dados_pdf=dados_pdf,
                                resumo_nougs=resumo_nougs,
+                               comparativo_mensal=comparativo_mensal,  # NOVO
                                lista_nougs=lista_nougs,
                                noug_selecionada=noug_selecionada)
                                
@@ -439,10 +450,8 @@ def receitas_operacoes_credito():
         lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
         noug_selecionada = request.args.get('noug', None)
 
-        # CORREÇÃO: Importar a função específica do arquivo receitas_operacoes_credito
-        from relatorios.receita.receitas_operacoes_credito import gerar_grafico_receita_capital as gerar_relatorio_operacoes_credito
-        
-        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs = gerar_relatorio_operacoes_credito(
+        # CORREÇÃO: Usar o nome correto da função importada
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs, comparativo_mensal = gerar_relatorio_operacoes_credito(
             df_completo, HIERARQUIA_RECEITAS, noug_selecionada
         )
         
@@ -455,6 +464,7 @@ def receitas_operacoes_credito():
                                dados_para_ia=dados_para_ia,
                                dados_pdf=dados_pdf,
                                resumo_nougs=resumo_nougs,
+                               comparativo_mensal=comparativo_mensal,  # NOVO
                                lista_nougs=lista_nougs,
                                noug_selecionada=noug_selecionada,
                                tipo_visualizacao='relatorio')
@@ -474,7 +484,8 @@ def receitas_alienacao_bens():
         lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
         noug_selecionada = request.args.get('noug', None)
 
-        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs = gerar_relatorio_receitas_alienacao_bens(
+        # ATUALIZAÇÃO: Agora retorna 6 valores incluindo comparativo_mensal
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs, comparativo_mensal = gerar_relatorio_receitas_alienacao_bens(
             df_completo, HIERARQUIA_RECEITAS, noug_selecionada
         )
         
@@ -487,6 +498,7 @@ def receitas_alienacao_bens():
                                dados_para_ia=dados_para_ia,
                                dados_pdf=dados_pdf,
                                resumo_nougs=resumo_nougs,
+                               comparativo_mensal=comparativo_mensal,  # NOVO
                                lista_nougs=lista_nougs,
                                noug_selecionada=noug_selecionada,
                                tipo_visualizacao='relatorio')
@@ -506,7 +518,8 @@ def receitas_amortizacao_emprestimo():
         lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
         noug_selecionada = request.args.get('noug', None)
 
-        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs = gerar_relatorio_receitas_amortizacao_emprestimo(
+        # ATUALIZAÇÃO: Agora retorna 6 valores incluindo comparativo_mensal
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs, comparativo_mensal = gerar_relatorio_receitas_amortizacao_emprestimo(
             df_completo, HIERARQUIA_RECEITAS, noug_selecionada
         )
         
@@ -519,6 +532,7 @@ def receitas_amortizacao_emprestimo():
                                dados_para_ia=dados_para_ia,
                                dados_pdf=dados_pdf,
                                resumo_nougs=resumo_nougs,
+                               comparativo_mensal=comparativo_mensal,  # NOVO
                                lista_nougs=lista_nougs,
                                noug_selecionada=noug_selecionada,
                                tipo_visualizacao='relatorio')
@@ -538,7 +552,8 @@ def receitas_transferencia_capital():
         lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
         noug_selecionada = request.args.get('noug', None)
 
-        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs = gerar_relatorio_receitas_transferencia_capital(
+        # ATUALIZAÇÃO: Agora retorna 6 valores incluindo comparativo_mensal
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs, comparativo_mensal = gerar_relatorio_receitas_transferencia_capital(
             df_completo, HIERARQUIA_RECEITAS, noug_selecionada
         )
         
@@ -551,6 +566,7 @@ def receitas_transferencia_capital():
                                dados_para_ia=dados_para_ia,
                                dados_pdf=dados_pdf,
                                resumo_nougs=resumo_nougs,
+                               comparativo_mensal=comparativo_mensal,  # NOVO
                                lista_nougs=lista_nougs,
                                noug_selecionada=noug_selecionada,
                                tipo_visualizacao='relatorio')

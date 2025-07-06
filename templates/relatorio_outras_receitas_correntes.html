@@ -257,6 +257,44 @@ window.addEventListener('load', function() {
         }
     }
 </style>
+
+<script>
+// Função para converter número do mês para nome
+function obterNomeMes(numeroMes) {
+    const meses = {
+        '01': 'Janeiro',
+        '02': 'Fevereiro', 
+        '03': 'Março',
+        '04': 'Abril',
+        '05': 'Maio',
+        '06': 'Junho',
+        '07': 'Julho',
+        '08': 'Agosto',
+        '09': 'Setembro',
+        '10': 'Outubro',
+        '11': 'Novembro',
+        '12': 'Dezembro'
+    };
+    
+    return meses[numeroMes] || `Mês ${numeroMes}`;
+}
+</script>
+{% endblock %}
+
+{% block filtros %}
+{% if lista_nougs %}
+<div class="filtro-container">
+    <label for="filtro-noug">Filtrar por Unidade Gestora:</label>
+    <select id="filtro-noug" onchange="aplicarFiltro()">
+        <option value="todos">-- Mostrar Todas as Unidades (Consolidado) --</option>
+        {% for noug in lista_nougs %}
+            <option value="{{ noug }}" {% if noug == noug_selecionada %}selected{% endif %}>
+                {{ noug }}
+            </option>
+        {% endfor %}
+    </select>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block conteudo %}
@@ -266,7 +304,7 @@ window.addEventListener('load', function() {
         <li><strong>Origens de Outras Receitas:</strong> Apenas ORIGEM = 79 (Outras Receitas Correntes) e ORIGEM = 99 (Outras Receitas Correntes Intraorçamentárias)</li>
         <li><strong>Desdobramento:</strong> Por ESPÉCIE e suas respectivas ALÍNEAS</li>
         <li><strong>Detalhamento:</strong> Todas as espécies mostram suas alíneas (ALINEA + NOALINEA)</li>
-        <li><strong>Valores:</strong> RECEITA LÍQUIDA realizada</li>
+        <li><strong>Valores:</strong> RECEITA LÍQUIDA realizada (Conta Contábil 621200000 - 621300000)</li>
         <li><strong>Comparativo:</strong> Receita realizada em {{ mes_ref }}/2024 vs {{ mes_ref }}/2025</li>
         <li><strong>Variação:</strong> Diferença absoluta e percentual entre os períodos</li>
         <li><strong>💡 Estrutura:</strong> Todas as alíneas são exibidas automaticamente</li>
@@ -370,7 +408,7 @@ window.addEventListener('load', function() {
             </span>
         </div>
         <div>
-            <strong>Receita Total 2024:</strong><br>
+            <strong>Receita Total {{ mes_ref }}/2024:</strong><br>
             <span style="color: #6c757d; font-size: 18px;">
                 {% for linha in dados_relatorio %}
                     {% if linha.tipo == 'total' %}
@@ -380,7 +418,7 @@ window.addEventListener('load', function() {
             </span>
         </div>
         <div>
-            <strong>Receita Total 2025:</strong><br>
+            <strong>Receita Total {{ mes_ref }}/2025:</strong><br>
             <span style="color: #28a745; font-size: 18px;">
                 {% for linha in dados_relatorio %}
                     {% if linha.tipo == 'total' %}
@@ -403,6 +441,36 @@ window.addEventListener('load', function() {
         </div>
     </div>
 </div>
+
+<!-- NOVO: Comparativo Mensal Acumulado -->
+{% if comparativo_mensal %}
+<div class="resumo-container" style="border-left-color: #ff6b6b;">
+    <h4>📅 Comparativo Mensal Acumulado - Outras Receitas Correntes</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
+        {% for mes in comparativo_mensal %}
+        <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #ff6b6b;">
+            <div style="font-weight: 600; color: #333; font-size: 14px; margin-bottom: 8px;">
+                📈 Total até <span id="titulo-mes-{{ mes.mes }}"></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="color: #6c757d; font-size: 12px;">2024:</span>
+                <span style="color: #6c757d; font-size: 13px; font-weight: 500;">{{ mes.saldo_2024_fmt }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="color: #28a745; font-size: 12px;">2025:</span>
+                <span style="color: #28a745; font-size: 13px; font-weight: 500;">{{ mes.saldo_2025_fmt }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 4px;">
+                <span style="color: #333; font-size: 12px; font-weight: 600;">Variação:</span>
+                <span class="{% if mes.variacao_perc < 0 %}valor-negativo{% elif mes.variacao_perc > 0 %}valor-positivo{% endif %}" style="font-size: 13px; font-weight: bold;">
+                    {{ mes.variacao_perc_fmt }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 <!-- Gráfico de Pizza com as Principais Espécies -->
 <div class="chart-container">
@@ -430,13 +498,13 @@ window.addEventListener('load', function() {
 <div class="nougs-container">
     <h4>
         <span>🏢</span>
-        <span>Unidades Gestoras (NOUGs) com Outras Receitas Correntes em 2025</span>
+        <span>Unidades Gestoras com Outras Receitas Correntes em 2025</span>
         <span style="font-size: 14px; color: #666; font-weight: normal;">({{ resumo_nougs|length }} unidades)</span>
     </h4>
     
     <div class="nougs-lista">
         {% for noug in resumo_nougs %}
-        <div class="noug-item" onclick="filtrarPorNoug('{{ noug.noug }}')" title="Clique para filtrar por esta NOUG">
+        <div class="noug-item" onclick="filtrarPorNoug('{{ noug.noug }}')" title="Clique para filtrar por esta UG">
             <span class="noug-nome">{{ noug.noug }}</span>
             <span class="noug-saldo">{{ noug.saldo_fmt }}</span>
         </div>
@@ -464,11 +532,29 @@ window.addEventListener('load', function() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔍 Iniciando verificação do gráfico de pizza...');
     
+    // Converter títulos dos meses após DOM carregar
+    converterTitulosMeses();
+    
     // Aguardar um pouco para garantir que tudo carregou
     setTimeout(function() {
         verificarECriarGrafico();
     }, 1000);
 });
+
+// NOVA FUNÇÃO: Converter números dos meses para nomes
+function converterTitulosMeses() {
+    {% if comparativo_mensal %}
+    const comparativoMensal = {{ comparativo_mensal | tojson | safe }};
+    
+    comparativoMensal.forEach(function(mes) {
+        const elemento = document.getElementById('titulo-mes-' + mes.mes);
+        if (elemento) {
+            const nomeMes = obterNomeMes(mes.mes_fmt);
+            elemento.textContent = nomeMes;
+        }
+    });
+    {% endif %}
+}
 
 function verificarECriarGrafico() {
     console.log('🔍 Verificando Chart.js...');

@@ -7,6 +7,7 @@ REGRAS:
 - Valores de RECEITA LÍQUIDA
 - Comparativo 2024 vs 2025 com variações absoluta e percentual
 - Estrutura sempre expandida (sem botões de expansão)
+- Comparativo mensal acumulado
 """
 import pandas as pd
 from ..utils import MotorRelatorios, obter_mes_numero, formatar_percentual
@@ -21,6 +22,7 @@ def gerar_relatorio_receitas_servicos(df_completo, estrutura_hierarquica=None, n
     - Desdobra por ALINEA e NOALINEA
     - Compara 2024 vs 2025 com variações absoluta e percentual
     - Estrutura hierárquica: espécie → alíneas (sempre expandida)
+    - Comparativo mensal acumulado
     
     Args:
         df_completo: DataFrame com dados de receita
@@ -28,7 +30,7 @@ def gerar_relatorio_receitas_servicos(df_completo, estrutura_hierarquica=None, n
         noug_selecionada: NOUG selecionada para filtro (opcional)
         
     Returns:
-        Tuple: (dados_numericos, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs)
+        Tuple: (dados_numericos, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs, comparativo_mensal)
     """
     motor = MotorRelatorios(df_completo, tipo_dados='receita')
     df_processar = motor.filtrar_por_noug(noug_selecionada)
@@ -44,17 +46,17 @@ def gerar_relatorio_receitas_servicos(df_completo, estrutura_hierarquica=None, n
     ]
     
     if df_2025.empty:
-        return [], obter_mes_numero(df_processar), [], {}, []
+        return [], obter_mes_numero(df_processar), [], {}, [], []
     
     # Verifica se a coluna RECEITA LIQUIDA existe
     if 'RECEITA LIQUIDA' not in df_2025.columns:
         print("⚠️ Coluna 'RECEITA LIQUIDA' não encontrada na planilha")
-        return [], obter_mes_numero(df_processar), [], {}, []
+        return [], obter_mes_numero(df_processar), [], {}, [], []
     
     # Verifica se as colunas ALINEA e NOALINEA existem
     if 'ALINEA' not in df_2025.columns or 'NOALINEA' not in df_2025.columns:
         print("⚠️ Colunas 'ALINEA' ou 'NOALINEA' não encontradas na planilha")
-        return [], obter_mes_numero(df_processar), [], {}, []
+        return [], obter_mes_numero(df_processar), [], {}, [], []
     
     print("🔍 Processando receitas de serviços (ORIGEM 16 e 76)...")
     
@@ -141,7 +143,7 @@ def gerar_relatorio_receitas_servicos(df_completo, estrutura_hierarquica=None, n
                 'receita_2025': valor_2025_alinea,
                 'variacao_abs': variacao_abs_alinea,
                 'variacao_perc': variacao_perc_alinea,
-                'especie_codigo_fmt': codigo_alinea,
+                'especie_codigo_fmt': codigo_alinea + "YY",  # NOVO: Adiciona YY ao final
                 'nome_especie_fmt': nome_alinea,
                 'receita_2024_fmt': motor.formatar_numero(valor_2024_alinea),
                 'receita_2025_fmt': motor.formatar_numero(valor_2025_alinea),
@@ -201,10 +203,14 @@ def gerar_relatorio_receitas_servicos(df_completo, estrutura_hierarquica=None, n
     # NOVO: Gerar resumo das NOUGs com saldos
     resumo_nougs = _gerar_resumo_nougs_com_saldo(df_2025, motor)
     
+    # NOVO: Gerar comparativo mensal acumulado
+    comparativo_mensal = _gerar_comparativo_mensal_acumulado(df_processar, motor, mes_referencia)
+    
     print(f"✅ Relatório de receitas de serviços gerado: {len(dados_numericos)} linhas (espécies + alíneas + total)")
     print(f"📋 NOUGs com saldo: {len(resumo_nougs)} unidades")
+    print(f"📅 Comparativo mensal: {len(comparativo_mensal)} meses")
     
-    return dados_numericos, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs
+    return dados_numericos, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs, comparativo_mensal
 
 def _obter_nome_especie(df, codigo_especie):
     """
@@ -288,3 +294,85 @@ def _gerar_resumo_nougs_com_saldo(df_2025, motor):
     nougs_com_saldo.sort(key=lambda x: x['saldo'], reverse=True)
     
     return nougs_com_saldo
+
+def _gerar_comparativo_mensal_acumulado(df_completo, motor, mes_referencia):
+    """
+    Gera comparativo mensal acumulado 2024 vs 2025
+    
+    REGRA: 
+    - Mês 1: soma INMES=1
+    - Mês 2: soma INMES=1+2 (acumulado)
+    - Mês 3: soma INMES=1+2+3 (acumulado)
+    - etc.
+    
+    Args:
+        df_completo: DataFrame completo
+        motor: Instância do MotorRelatorios
+        mes_referencia: Mês de referência atual
+        
+    Returns:
+        Lista com comparativos mensais
+    """
+    try:
+        # Filtra apenas origens de serviços
+        df_servicos = df_completo[df_completo['ORIGEM'].isin(['16', '76'])].copy()
+        
+        if df_servicos.empty or 'INMES' not in df_servicos.columns:
+            print("⚠️ Dados insuficientes para comparativo mensal")
+            return []
+        
+        # Obtém meses disponíveis em 2025
+        meses_2025 = sorted(df_servicos[df_servicos['COEXERCICIO'] == 2025]['INMES'].dropna().unique())
+        meses_2024 = sorted(df_servicos[df_servicos['COEXERCICIO'] == 2024]['INMES'].dropna().unique())
+        
+        if not meses_2025:
+            return []
+        
+        max_mes = max(meses_2025)
+        print(f"📅 Gerando comparativo mensal até mês {max_mes-1} (referência: {max_mes})")
+        
+        comparativo = []
+        
+        # Gera comparativo para cada mês (exceto o último)
+        for mes_atual in range(1, max_mes):  # Para até max_mes-1
+            if mes_atual not in meses_2025:
+                continue
+                
+            # Calcula saldo acumulado até o mês atual
+            # 2025: soma de INMES 1 até mes_atual
+            df_2025_acum = df_servicos[
+                (df_servicos['COEXERCICIO'] == 2025) &
+                (df_servicos['INMES'] <= mes_atual)
+            ]
+            saldo_2025 = float(df_2025_acum['RECEITA LIQUIDA'].sum()) if 'RECEITA LIQUIDA' in df_2025_acum.columns else 0.0
+            
+            # 2024: soma de INMES 1 até mes_atual
+            df_2024_acum = df_servicos[
+                (df_servicos['COEXERCICIO'] == 2024) &
+                (df_servicos['INMES'] <= mes_atual)
+            ]
+            saldo_2024 = float(df_2024_acum['RECEITA LIQUIDA'].sum()) if 'RECEITA LIQUIDA' in df_2024_acum.columns else 0.0
+            
+            # Calcula variação
+            variacao_abs = saldo_2025 - saldo_2024
+            variacao_perc = ((saldo_2025 - saldo_2024) / saldo_2024 * 100) if saldo_2024 > 0 else (100 if saldo_2025 > 0 else 0)
+            
+            comparativo.append({
+                'mes': mes_atual,
+                'mes_fmt': f"{mes_atual:02d}",
+                'saldo_2024': saldo_2024,
+                'saldo_2025': saldo_2025,
+                'variacao_abs': variacao_abs,
+                'variacao_perc': variacao_perc,
+                'saldo_2024_fmt': motor.formatar_numero(saldo_2024),
+                'saldo_2025_fmt': motor.formatar_numero(saldo_2025),
+                'variacao_abs_fmt': motor.formatar_numero(variacao_abs),
+                'variacao_perc_fmt': formatar_percentual(variacao_perc)
+            })
+        
+        print(f"✅ Comparativo mensal gerado: {len(comparativo)} períodos")
+        return comparativo
+        
+    except Exception as e:
+        print(f"❌ Erro ao gerar comparativo mensal: {e}")
+        return []
