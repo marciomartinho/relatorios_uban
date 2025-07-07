@@ -91,9 +91,24 @@ def gerar_relatorio_receitas_servicos(df_completo, estrutura_hierarquica=None, n
         variacao_abs_especie = valor_2025_especie - valor_2024_especie
         variacao_perc_especie = ((valor_2025_especie - valor_2024_especie) / valor_2024_especie * 100) if valor_2024_especie > 0 else (100 if valor_2025_especie > 0 else 0)
         
-        # Obtém alíneas desta espécie
-        alineas = _obter_alineas_especie(df_especie_2025)
+        # CORREÇÃO: Obtém alíneas de AMBOS os anos
+        alineas_2025 = _obter_alineas_especie(df_especie_2025)
+        alineas_2024 = _obter_alineas_especie(df_especie_2024)
+        
+        print(f"🔍 Espécie {especie}: {len(alineas_2025)} alíneas em 2025, {len(alineas_2024)} alíneas em 2024")
+        
+        # Combinar alíneas de AMBOS os anos
+        todas_alineas = {}
+        for alinea in alineas_2025:
+            todas_alineas[alinea['ALINEA']] = alinea
+        for alinea in alineas_2024:
+            if alinea['ALINEA'] not in todas_alineas:
+                todas_alineas[alinea['ALINEA']] = alinea
+        
+        alineas = [todas_alineas[codigo] for codigo in sorted(todas_alineas.keys())]
         tem_alineas = len(alineas) > 0
+        
+        print(f"✅ Espécie {especie}: Total de {len(alineas)} alíneas únicas combinadas")
         
         # Adiciona linha da espécie (principal)
         linha_especie = {
@@ -231,7 +246,7 @@ def _obter_nome_especie(df, codigo_especie):
 
 def _obter_alineas_especie(df_especie):
     """
-    Obtém as alíneas de uma espécie
+    Obtém as alíneas de uma espécie com validação melhorada
     
     Args:
         df_especie: DataFrame filtrado da espécie
@@ -241,13 +256,24 @@ def _obter_alineas_especie(df_especie):
     """
     alineas = []
     
+    if df_especie.empty:
+        return alineas
+    
     if 'ALINEA' in df_especie.columns and 'NOALINEA' in df_especie.columns:
-        alineas_unicas = df_especie[['ALINEA', 'NOALINEA']].drop_duplicates()
-        for _, row in alineas_unicas.iterrows():
-            if pd.notna(row['ALINEA']) and pd.notna(row['NOALINEA']):
+        # Filtra apenas registros com alínea e nome válidos
+        df_valido = df_especie[
+            (pd.notna(df_especie['ALINEA'])) & 
+            (pd.notna(df_especie['NOALINEA'])) &
+            (df_especie['ALINEA'] != '') &
+            (df_especie['NOALINEA'] != '')
+        ]
+        
+        if not df_valido.empty:
+            alineas_unicas = df_valido[['ALINEA', 'NOALINEA']].drop_duplicates()
+            for _, row in alineas_unicas.iterrows():
                 alineas.append({
-                    'ALINEA': str(row['ALINEA']),
-                    'NOALINEA': str(row['NOALINEA'])
+                    'ALINEA': str(row['ALINEA']).strip(),
+                    'NOALINEA': str(row['NOALINEA']).strip()
                 })
     
     return alineas

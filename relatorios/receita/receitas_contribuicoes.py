@@ -60,40 +60,91 @@ def gerar_relatorio_receitas_contribuicoes(df_completo, estrutura_hierarquica=No
     
     print("🔍 Processando receitas de contribuições (ORIGEM 12 e 72)...")
     
+    # Debug: Verificar estrutura dos dados
+    print(f"📊 Dados 2025 - Total de registros: {len(df_2025)}")
+    print(f"📊 Dados 2024 - Total de registros: {len(df_2024)}")
+    
+    if not df_2025.empty:
+        print(f"📊 Colunas disponíveis: {list(df_2025.columns)}")
+        print(f"📊 Espécies em 2025: {sorted(df_2025['ESPECIE'].dropna().unique())}")
+        if 'ALINEA' in df_2025.columns:
+            print(f"📊 Alíneas em 2025: {sorted(df_2025['ALINEA'].dropna().unique())}")
+    
+    if not df_2024.empty:
+        print(f"📊 Espécies em 2024: {sorted(df_2024['ESPECIE'].dropna().unique())}")
+        if 'ALINEA' in df_2024.columns:
+            print(f"📊 Alíneas em 2024: {sorted(df_2024['ALINEA'].dropna().unique())}")
+    
     # Calcula mês de referência
     mes_referencia = obter_mes_numero(df_2025)
     
     dados_numericos = []
     dados_para_ia = []
     
-    # Processa cada espécie encontrada
-    especies_disponiveis = sorted(df_2025['ESPECIE'].dropna().unique())
-    print(f"📊 Espécies encontradas: {especies_disponiveis}")
+    # Processa cada espécie encontrada - CORREÇÃO: considerar espécies de AMBOS os anos
+    especies_2025 = set(df_2025['ESPECIE'].dropna().unique())
+    especies_2024 = set(df_2024['ESPECIE'].dropna().unique()) if not df_2024.empty else set()
+    todas_especies = sorted(especies_2025.union(especies_2024))
     
-    for especie in especies_disponiveis:
-        # Busca nome da espécie
+    print(f"📊 Espécies combinadas (2024+2025): {todas_especies}")
+    
+    for especie in todas_especies:
+        print(f"\n🏛️ Processando espécie: {especie}")
+        
+        # Busca nome da espécie - priorizar 2025, depois 2024
         nome_especie = _obter_nome_especie(df_2025, especie)
+        if not nome_especie and not df_2024.empty:
+            nome_especie = _obter_nome_especie(df_2024, especie)
         if not nome_especie:
+            print(f"   ❌ Nome da espécie não encontrado")
             continue
+            
+        print(f"   📝 Nome: {nome_especie}")
             
         # Filtra dados desta espécie
         df_especie_2025 = df_2025[df_2025['ESPECIE'] == especie]
         df_especie_2024 = df_2024[df_2024['ESPECIE'] == especie] if not df_2024.empty else pd.DataFrame()
         
+        print(f"   📊 Registros 2025: {len(df_especie_2025)}")
+        print(f"   📊 Registros 2024: {len(df_especie_2024)}")
+        
         # Calcula valores da espécie (totais)
         valor_2025_especie = float(df_especie_2025['RECEITA LIQUIDA'].sum())
         valor_2024_especie = float(df_especie_2024['RECEITA LIQUIDA'].sum()) if not df_especie_2024.empty else 0.0
         
+        print(f"   💰 Total 2025: R$ {valor_2025_especie:,.2f}")
+        print(f"   💰 Total 2024: R$ {valor_2024_especie:,.2f}")
+        
         if valor_2025_especie == 0 and valor_2024_especie == 0:
+            print(f"   ⚠️ Valores zerados - pulando espécie")
             continue
             
         # Calcula variações da espécie
         variacao_abs_especie = valor_2025_especie - valor_2024_especie
         variacao_perc_especie = ((valor_2025_especie - valor_2024_especie) / valor_2024_especie * 100) if valor_2024_especie > 0 else (100 if valor_2025_especie > 0 else 0)
         
-        # Obtém alíneas desta espécie
-        alineas = _obter_alineas_especie(df_especie_2025)
+        # CORREÇÃO: Obtém alíneas de AMBOS os anos
+        alineas_2025 = _obter_alineas_especie(df_especie_2025)
+        alineas_2024 = _obter_alineas_especie(df_especie_2024) if not df_especie_2024.empty else []
+        
+        # Combinar alíneas de ambos os anos para garantir que todas apareçam
+        todas_alineas = {}
+        
+        # Adicionar alíneas de 2025
+        for alinea in alineas_2025:
+            todas_alineas[alinea['ALINEA']] = alinea
+            
+        # Adicionar alíneas de 2024 que não estão em 2025
+        for alinea in alineas_2024:
+            if alinea['ALINEA'] not in todas_alineas:
+                todas_alineas[alinea['ALINEA']] = alinea
+        
+        # Converter de volta para lista ordenada
+        alineas = [todas_alineas[codigo] for codigo in sorted(todas_alineas.keys())]
         tem_alineas = len(alineas) > 0
+        
+        print(f"   🔖 Alíneas combinadas (2024+2025): {[a['ALINEA'] for a in alineas]}")
+        print(f"   📊 Total de alíneas: {len(alineas)}")
         
         # Adiciona linha da espécie (principal)
         linha_especie = {
@@ -120,6 +171,8 @@ def gerar_relatorio_receitas_contribuicoes(df_completo, estrutura_hierarquica=No
         for alinea in alineas:
             codigo_alinea = alinea['ALINEA']
             nome_alinea = alinea['NOALINEA']
+            
+            print(f"      🔖 Processando alínea: {codigo_alinea} - {nome_alinea}")
                 
             # Filtra dados desta alínea
             df_alinea_2025 = df_especie_2025[df_especie_2025['ALINEA'] == codigo_alinea]
@@ -128,7 +181,11 @@ def gerar_relatorio_receitas_contribuicoes(df_completo, estrutura_hierarquica=No
             valor_2025_alinea = float(df_alinea_2025['RECEITA LIQUIDA'].sum())
             valor_2024_alinea = float(df_alinea_2024['RECEITA LIQUIDA'].sum()) if not df_alinea_2024.empty else 0.0
             
+            print(f"         💰 Alínea 2025: R$ {valor_2025_alinea:,.2f}")
+            print(f"         💰 Alínea 2024: R$ {valor_2024_alinea:,.2f}")
+            
             if valor_2025_alinea == 0 and valor_2024_alinea == 0:
+                print(f"         ⚠️ Valores zerados - pulando alínea")
                 continue
                 
             variacao_abs_alinea = valor_2025_alinea - valor_2024_alinea
@@ -143,7 +200,7 @@ def gerar_relatorio_receitas_contribuicoes(df_completo, estrutura_hierarquica=No
                 'receita_2025': valor_2025_alinea,
                 'variacao_abs': variacao_abs_alinea,
                 'variacao_perc': variacao_perc_alinea,
-                'especie_codigo_fmt': f"{codigo_alinea}YY",  # NOVO: Adiciona YY no final
+                'especie_codigo_fmt': f"{codigo_alinea}YY",  # ADICIONADO: YY no final para alíneas
                 'nome_especie_fmt': nome_alinea,
                 'receita_2024_fmt': motor.formatar_numero(valor_2024_alinea),
                 'receita_2025_fmt': motor.formatar_numero(valor_2025_alinea),
@@ -153,6 +210,7 @@ def gerar_relatorio_receitas_contribuicoes(df_completo, estrutura_hierarquica=No
                 'qtd_alineas': 0
             }
             dados_numericos.append(linha_alinea)
+            print(f"         ✅ Alínea adicionada ao relatório")
     
     # Adiciona totais gerais (apenas das espécies principais)
     especies_principais = [d for d in dados_numericos if d['tipo'] == 'especie']
@@ -242,14 +300,51 @@ def _obter_alineas_especie(df_especie):
     alineas = []
     
     if 'ALINEA' in df_especie.columns and 'NOALINEA' in df_especie.columns:
-        alineas_unicas = df_especie[['ALINEA', 'NOALINEA']].drop_duplicates()
-        for _, row in alineas_unicas.iterrows():
-            if pd.notna(row['ALINEA']) and pd.notna(row['NOALINEA']):
-                alineas.append({
-                    'ALINEA': str(row['ALINEA']),
-                    'NOALINEA': str(row['NOALINEA'])
-                })
+        # Debug: mostrar dados disponíveis
+        print(f"🔍 DEBUG: Analisando alíneas da espécie...")
+        print(f"   Total de registros: {len(df_especie)}")
+        
+        # Filtrar apenas registros válidos (com valores não nulos)
+        df_valido = df_especie[
+            (pd.notna(df_especie['ALINEA'])) & 
+            (pd.notna(df_especie['NOALINEA'])) &
+            (df_especie['ALINEA'] != '') &
+            (df_especie['NOALINEA'] != '')
+        ].copy()
+        
+        print(f"   Registros válidos: {len(df_valido)}")
+        
+        if not df_valido.empty:
+            # Verificar valores únicos de ALINEA
+            alineas_disponiveis = df_valido['ALINEA'].unique()
+            print(f"   Alíneas encontradas: {sorted(alineas_disponiveis)}")
+            
+            # Agrupar por ALINEA e pegar o primeiro NOALINEA de cada grupo
+            alineas_unicas = df_valido.groupby('ALINEA').agg({
+                'NOALINEA': 'first'
+            }).reset_index()
+            
+            print(f"   Alíneas únicas após agrupamento: {len(alineas_unicas)}")
+            
+            for _, row in alineas_unicas.iterrows():
+                codigo_alinea = str(row['ALINEA']).strip()
+                nome_alinea = str(row['NOALINEA']).strip()
+                
+                # Validar se não são strings vazias
+                if codigo_alinea and nome_alinea and codigo_alinea != 'nan' and nome_alinea != 'nan':
+                    alineas.append({
+                        'ALINEA': codigo_alinea,
+                        'NOALINEA': nome_alinea
+                    })
+                    print(f"   ✅ Adicionada: {codigo_alinea} - {nome_alinea}")
+                else:
+                    print(f"   ❌ Ignorada (inválida): {codigo_alinea} - {nome_alinea}")
+        else:
+            print("   ⚠️ Nenhum registro válido encontrado")
+    else:
+        print("   ❌ Colunas ALINEA ou NOALINEA não encontradas")
     
+    print(f"   🎯 Total de alíneas retornadas: {len(alineas)}")
     return alineas
 
 def _gerar_resumo_nougs_com_saldo(df_2025, motor):

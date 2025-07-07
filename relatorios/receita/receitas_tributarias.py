@@ -57,40 +57,99 @@ def gerar_relatorio_receitas_tributarias(df_completo, estrutura_hierarquica=None
     
     print("🔍 Processando receitas tributárias (ORIGEM 11 e 71)...")
     
+    # Debug: Verificar estrutura dos dados
+    print(f"📊 Dados 2025 - Total de registros: {len(df_2025)}")
+    print(f"📊 Dados 2024 - Total de registros: {len(df_2024)}")
+    
+    if not df_2025.empty:
+        print(f"📊 Colunas disponíveis: {list(df_2025.columns)}")
+        print(f"📊 Espécies em 2025: {sorted(df_2025['ESPECIE'].dropna().unique())}")
+    
+    if not df_2024.empty:
+        print(f"📊 Espécies em 2024: {sorted(df_2024['ESPECIE'].dropna().unique())}")
+    
     # Calcula mês de referência
     mes_referencia = obter_mes_numero(df_2025)
     
     dados_numericos = []
     dados_para_ia = []
     
-    # Processa cada espécie encontrada
-    especies_disponiveis = sorted(df_2025['ESPECIE'].dropna().unique())
-    print(f"📊 Espécies encontradas: {especies_disponiveis}")
+    # Processa cada espécie encontrada - CORREÇÃO: considerar espécies de AMBOS os anos
+    especies_2025 = set(df_2025['ESPECIE'].dropna().unique())
+    especies_2024 = set(df_2024['ESPECIE'].dropna().unique()) if not df_2024.empty else set()
+    todas_especies = sorted(especies_2025.union(especies_2024))
     
-    for especie in especies_disponiveis:
-        # Busca nome da espécie
+    print(f"📊 Espécies combinadas (2024+2025): {todas_especies}")
+    
+    for especie in todas_especies:
+        print(f"\n🏛️ Processando espécie: {especie}")
+        
+        # Busca nome da espécie - priorizar 2025, depois 2024
         nome_especie = _obter_nome_especie(df_2025, especie)
+        if not nome_especie and not df_2024.empty:
+            nome_especie = _obter_nome_especie(df_2024, especie)
         if not nome_especie:
+            print(f"   ❌ Nome da espécie não encontrado")
             continue
+            
+        print(f"   📝 Nome: {nome_especie}")
             
         # Filtra dados desta espécie
         df_especie_2025 = df_2025[df_2025['ESPECIE'] == especie]
         df_especie_2024 = df_2024[df_2024['ESPECIE'] == especie] if not df_2024.empty else pd.DataFrame()
         
+        print(f"   📊 Registros 2025: {len(df_especie_2025)}")
+        print(f"   📊 Registros 2024: {len(df_especie_2024)}")
+        
         # Calcula valores da espécie (totais)
         valor_2025_especie = float(df_especie_2025['RECEITA LIQUIDA'].sum())
         valor_2024_especie = float(df_especie_2024['RECEITA LIQUIDA'].sum()) if not df_especie_2024.empty else 0.0
         
+        print(f"   💰 Total 2025: R$ {valor_2025_especie:,.2f}")
+        print(f"   💰 Total 2024: R$ {valor_2024_especie:,.2f}")
+        
         if valor_2025_especie == 0 and valor_2024_especie == 0:
+            print(f"   ⚠️ Valores zerados - pulando espécie")
             continue
             
         # Calcula variações da espécie
         variacao_abs_especie = valor_2025_especie - valor_2024_especie
         variacao_perc_especie = ((valor_2025_especie - valor_2024_especie) / valor_2024_especie * 100) if valor_2024_especie > 0 else (100 if valor_2025_especie > 0 else 0)
         
-        # Conta quantos detalhamentos esta espécie tem
-        detalhamentos = _obter_detalhamentos_especie(df_especie_2025, especie)
+        # CORREÇÃO: Obtém detalhamentos de AMBOS os anos
+        detalhamentos_2025 = _obter_detalhamentos_especie(df_especie_2025, especie)
+        detalhamentos_2024 = _obter_detalhamentos_especie(df_especie_2024, especie) if not df_especie_2024.empty else []
+        
+        # Combinar detalhamentos de ambos os anos
+        todos_detalhamentos = {}
+        
+        # Adicionar detalhamentos de 2025
+        for det in detalhamentos_2025:
+            if especie in ['111', '711']:
+                chave = det['ALINEA']
+            elif especie in ['112', '712']:
+                chave = det['RUBRICA']
+            else:
+                continue
+            todos_detalhamentos[chave] = det
+            
+        # Adicionar detalhamentos de 2024 que não estão em 2025
+        for det in detalhamentos_2024:
+            if especie in ['111', '711']:
+                chave = det['ALINEA']
+            elif especie in ['112', '712']:
+                chave = det['RUBRICA']
+            else:
+                continue
+            if chave not in todos_detalhamentos:
+                todos_detalhamentos[chave] = det
+        
+        # Converter de volta para lista ordenada
+        detalhamentos = [todos_detalhamentos[codigo] for codigo in sorted(todos_detalhamentos.keys())]
         tem_detalhamentos = len(detalhamentos) > 0
+        
+        print(f"   🔖 Detalhamentos combinados (2024+2025): {list(todos_detalhamentos.keys())}")
+        print(f"   📊 Total de detalhamentos: {len(detalhamentos)}")
         
         # Adiciona linha da espécie (principal)
         linha_especie = {
@@ -125,18 +184,24 @@ def gerar_relatorio_receitas_tributarias(df_completo, estrutura_hierarquica=None
                 codigo_det = detalhamento['RUBRICA']
                 nome_det = detalhamento['NORUBRICA']
                 # Verifica se realmente existe coluna RUBRICA ou se está usando fallback
-                campo_filtro = 'RUBRICA' if 'RUBRICA' in df_especie_2025.columns else 'ALINEA'
+                campo_filtro = 'RUBRICA' if 'RUBRICA' in df_especie_2025.columns or (not df_especie_2024.empty and 'RUBRICA' in df_especie_2024.columns) else 'ALINEA'
             else:
                 continue  # Pula espécies que não se encaixam nas regras
                 
+            print(f"      🔖 Processando detalhamento: {codigo_det} - {nome_det}")
+                
             # Filtra dados deste detalhamento
-            df_det_2025 = df_especie_2025[df_especie_2025[campo_filtro] == codigo_det]
+            df_det_2025 = df_especie_2025[df_especie_2025[campo_filtro] == codigo_det] if not df_especie_2025.empty else pd.DataFrame()
             df_det_2024 = df_especie_2024[df_especie_2024[campo_filtro] == codigo_det] if not df_especie_2024.empty else pd.DataFrame()
             
-            valor_2025_det = float(df_det_2025['RECEITA LIQUIDA'].sum())
+            valor_2025_det = float(df_det_2025['RECEITA LIQUIDA'].sum()) if not df_det_2025.empty else 0.0
             valor_2024_det = float(df_det_2024['RECEITA LIQUIDA'].sum()) if not df_det_2024.empty else 0.0
             
+            print(f"         💰 Detalhamento 2025: R$ {valor_2025_det:,.2f}")
+            print(f"         💰 Detalhamento 2024: R$ {valor_2024_det:,.2f}")
+            
             if valor_2025_det == 0 and valor_2024_det == 0:
+                print(f"         ⚠️ Valores zerados - pulando detalhamento")
                 continue
                 
             variacao_abs_det = valor_2025_det - valor_2024_det
@@ -151,7 +216,7 @@ def gerar_relatorio_receitas_tributarias(df_completo, estrutura_hierarquica=None
                 'receita_2025': valor_2025_det,
                 'variacao_abs': variacao_abs_det,
                 'variacao_perc': variacao_perc_det,
-                'especie_codigo_fmt': codigo_det,
+                'especie_codigo_fmt': f"{codigo_det}YY",  # ADICIONADO: YY no final para detalhamentos
                 'nome_especie_fmt': nome_det,
                 'receita_2024_fmt': motor.formatar_numero(valor_2024_det),
                 'receita_2025_fmt': motor.formatar_numero(valor_2025_det),
@@ -161,6 +226,7 @@ def gerar_relatorio_receitas_tributarias(df_completo, estrutura_hierarquica=None
                 'qtd_detalhamentos': 0
             }
             dados_numericos.append(linha_detalhamento)
+            print(f"         ✅ Detalhamento adicionado ao relatório")
     
     # Adiciona totais gerais (apenas das espécies principais)
     especies_principais = [d for d in dados_numericos if d['tipo'] == 'especie']
@@ -250,39 +316,105 @@ def _obter_detalhamentos_especie(df_especie, codigo_especie):
     """
     detalhamentos = []
     
+    if df_especie.empty:
+        return detalhamentos
+    
     if codigo_especie in ['111', '711']:
         # Usar ALINEA/NOALINEA
+        print(f"🔍 DEBUG: Analisando alíneas da espécie {codigo_especie}...")
+        print(f"   Total de registros: {len(df_especie)}")
+        
         if 'ALINEA' in df_especie.columns and 'NOALINEA' in df_especie.columns:
-            alineas_unicas = df_especie[['ALINEA', 'NOALINEA']].drop_duplicates()
-            for _, row in alineas_unicas.iterrows():
-                if pd.notna(row['ALINEA']) and pd.notna(row['NOALINEA']):
-                    detalhamentos.append({
-                        'ALINEA': str(row['ALINEA']),
-                        'NOALINEA': str(row['NOALINEA'])
-                    })
+            # Filtrar apenas registros válidos
+            df_valido = df_especie[
+                (pd.notna(df_especie['ALINEA'])) & 
+                (pd.notna(df_especie['NOALINEA'])) &
+                (df_especie['ALINEA'] != '') &
+                (df_especie['NOALINEA'] != '')
+            ].copy()
+            
+            print(f"   Registros válidos: {len(df_valido)}")
+            
+            if not df_valido.empty:
+                # Agrupar por ALINEA e pegar o primeiro NOALINEA de cada grupo
+                alineas_unicas = df_valido.groupby('ALINEA').agg({
+                    'NOALINEA': 'first'
+                }).reset_index()
+                
+                print(f"   Alíneas únicas após agrupamento: {len(alineas_unicas)}")
+                
+                for _, row in alineas_unicas.iterrows():
+                    codigo_alinea = str(row['ALINEA']).strip()
+                    nome_alinea = str(row['NOALINEA']).strip()
                     
+                    if codigo_alinea and nome_alinea and codigo_alinea != 'nan' and nome_alinea != 'nan':
+                        detalhamentos.append({
+                            'ALINEA': codigo_alinea,
+                            'NOALINEA': nome_alinea
+                        })
+                        print(f"   ✅ Adicionada: {codigo_alinea} - {nome_alinea}")
+                    else:
+                        print(f"   ❌ Ignorada (inválida): {codigo_alinea} - {nome_alinea}")
+                        
     elif codigo_especie in ['112', '712']:
         # Verificar se colunas RUBRICA existem, senão usar ALINEA como fallback
+        print(f"🔍 DEBUG: Analisando rubricas da espécie {codigo_especie}...")
+        print(f"   Total de registros: {len(df_especie)}")
+        
         if 'RUBRICA' in df_especie.columns and 'NORUBRICA' in df_especie.columns:
-            rubricas_unicas = df_especie[['RUBRICA', 'NORUBRICA']].drop_duplicates()
-            for _, row in rubricas_unicas.iterrows():
-                if pd.notna(row['RUBRICA']) and pd.notna(row['NORUBRICA']):
-                    detalhamentos.append({
-                        'RUBRICA': str(row['RUBRICA']),
-                        'NORUBRICA': str(row['NORUBRICA'])
-                    })
+            # Filtrar apenas registros válidos
+            df_valido = df_especie[
+                (pd.notna(df_especie['RUBRICA'])) & 
+                (pd.notna(df_especie['NORUBRICA'])) &
+                (df_especie['RUBRICA'] != '') &
+                (df_especie['NORUBRICA'] != '')
+            ].copy()
+            
+            print(f"   Registros válidos com RUBRICA: {len(df_valido)}")
+            
+            if not df_valido.empty:
+                rubricas_unicas = df_valido.groupby('RUBRICA').agg({
+                    'NORUBRICA': 'first'
+                }).reset_index()
+                
+                for _, row in rubricas_unicas.iterrows():
+                    codigo_rubrica = str(row['RUBRICA']).strip()
+                    nome_rubrica = str(row['NORUBRICA']).strip()
+                    
+                    if codigo_rubrica and nome_rubrica and codigo_rubrica != 'nan' and nome_rubrica != 'nan':
+                        detalhamentos.append({
+                            'RUBRICA': codigo_rubrica,
+                            'NORUBRICA': nome_rubrica
+                        })
+                        print(f"   ✅ Adicionada (RUBRICA): {codigo_rubrica} - {nome_rubrica}")
         else:
             # Fallback: usar ALINEA se RUBRICA não existir
             print(f"⚠️ Colunas RUBRICA/NORUBRICA não encontradas para espécie {codigo_especie}. Usando ALINEA como fallback.")
             if 'ALINEA' in df_especie.columns and 'NOALINEA' in df_especie.columns:
-                alineas_unicas = df_especie[['ALINEA', 'NOALINEA']].drop_duplicates()
-                for _, row in alineas_unicas.iterrows():
-                    if pd.notna(row['ALINEA']) and pd.notna(row['NOALINEA']):
-                        detalhamentos.append({
-                            'RUBRICA': str(row['ALINEA']),  # Usando ALINEA como RUBRICA
-                            'NORUBRICA': str(row['NOALINEA'])  # Usando NOALINEA como NORUBRICA
-                        })
+                df_valido = df_especie[
+                    (pd.notna(df_especie['ALINEA'])) & 
+                    (pd.notna(df_especie['NOALINEA'])) &
+                    (df_especie['ALINEA'] != '') &
+                    (df_especie['NOALINEA'] != '')
+                ].copy()
+                
+                if not df_valido.empty:
+                    alineas_unicas = df_valido.groupby('ALINEA').agg({
+                        'NOALINEA': 'first'
+                    }).reset_index()
+                    
+                    for _, row in alineas_unicas.iterrows():
+                        codigo_alinea = str(row['ALINEA']).strip()
+                        nome_alinea = str(row['NOALINEA']).strip()
+                        
+                        if codigo_alinea and nome_alinea and codigo_alinea != 'nan' and nome_alinea != 'nan':
+                            detalhamentos.append({
+                                'RUBRICA': codigo_alinea,  # Usando ALINEA como RUBRICA
+                                'NORUBRICA': nome_alinea  # Usando NOALINEA como NORUBRICA
+                            })
+                            print(f"   ✅ Adicionada (fallback): {codigo_alinea} - {nome_alinea}")
     
+    print(f"   🎯 Total de detalhamentos retornados: {len(detalhamentos)}")
     return detalhamentos
 
 def _gerar_resumo_nougs_com_saldo(df_2025, motor):
