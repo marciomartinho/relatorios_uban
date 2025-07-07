@@ -1,5 +1,5 @@
 """
-Arquivo COMPLETO: routes/consolidado_routes.py
+Arquivo CORRIGIDO: routes/consolidado_routes.py
 COPIE E COLE ESTE ARQUIVO INTEIRO substituindo o seu atual
 """
 
@@ -53,10 +53,10 @@ def gerar_relatorio_consolidado_pdf():
         if noug_selecionada == 'None' or noug_selecionada == '':
             noug_selecionada = None
         
-        # Carrega dados da receita
+        # Carrega dados da receita - CORREÇÃO AQUI
         try:
-            from utils.data_loaders import carregar_dados_receita
-            df_receita = carregar_dados_receita()
+            from utils.data_loaders import carregar_dataframe_receita  # NOME CORRETO
+            df_receita = carregar_dataframe_receita()  # NOME CORRETO
             print(f"📊 Dados de receita carregados: {len(df_receita)} registros")
         except Exception as e:
             print(f"❌ Erro ao carregar dados: {e}")
@@ -152,8 +152,9 @@ def gerar_relatorio_consolidado_pdf_download():
         if noug_selecionada == 'None' or noug_selecionada == '':
             noug_selecionada = None
         
-        from utils.data_loaders import carregar_dados_receita
-        df_receita = carregar_dados_receita()
+        # CORREÇÃO AQUI TAMBÉM
+        from utils.data_loaders import carregar_dataframe_receita  # NOME CORRETO
+        df_receita = carregar_dataframe_receita()  # NOME CORRETO
         
         if df_receita.empty:
             raise Exception("Dados de receita não encontrados")
