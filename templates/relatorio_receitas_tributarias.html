@@ -10,6 +10,12 @@
 <!-- Chart.js para gráficos - VERSÃO MAIS COMPATÍVEL -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
+<!-- Bibliotecas para sistema de download -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
 <script>
 // Aguardar Chart.js carregar
 window.addEventListener('load', function() {
@@ -26,6 +32,8 @@ window.addEventListener('load', function() {
 </script>
 
 <style>
+    /* === ESTILOS ORIGINAIS DO RELATÓRIO === */
+    
     /* Garantir que o gráfico apareça */
     .chart-container {
         position: relative;
@@ -256,6 +264,166 @@ window.addEventListener('load', function() {
             font-size: 13px;
         }
     }
+
+    /* === NOVOS ESTILOS PARA SISTEMA DE DOWNLOAD === */
+    
+    /* Seção de downloads */
+    .download-section {
+        margin: 20px 0 30px 0;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        color: white;
+    }
+    
+    .download-section h4 {
+        margin: 0 0 20px 0;
+        color: white;
+        font-size: 18px;
+        text-align: center;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .download-buttons {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .download-btn {
+        padding: 15px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        position: relative;
+        overflow: hidden;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .download-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    
+    .download-btn:active {
+        transform: translateY(-1px);
+    }
+    
+    .btn-png {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+    }
+    
+    .btn-html {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+    }
+    
+    .btn-zip {
+        background: linear-gradient(135deg, #ffc107, #ff8f00);
+        color: #333;
+    }
+    
+    .btn-pdf {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        color: white;
+    }
+    
+    /* Loading para downloads */
+    .download-loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 8px;
+        margin: 15px 0;
+        backdrop-filter: blur(10px);
+    }
+    
+    .download-spinner {
+        border: 3px solid rgba(255,255,255,0.3);
+        border-top: 3px solid white;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .download-loading-text {
+        color: white;
+        font-weight: 500;
+        font-size: 14px;
+    }
+    
+    /* Estilos para impressão/PDF */
+    @media print {
+        body {
+            background: white !important;
+            color: black !important;
+        }
+        
+        .download-section,
+        .info-container,
+        .download-loading {
+            display: none !important;
+        }
+        
+        .container {
+            box-shadow: none !important;
+            border: none !important;
+        }
+        
+        .secao-relatorio {
+            page-break-inside: avoid;
+            margin-bottom: 30px;
+        }
+        
+        .chart-container {
+            page-break-inside: avoid;
+        }
+        
+        table {
+            font-size: 10px !important;
+        }
+        
+        th, td {
+            padding: 4px !important;
+        }
+        
+        .nougs-lista {
+            grid-template-columns: 1fr 1fr !important;
+            page-break-inside: avoid;
+        }
+        
+        .comparativo-mensal {
+            grid-template-columns: 1fr 1fr !important;
+        }
+    }
+    
+    /* Identificadores para captura */
+    .secao-relatorio {
+        margin-bottom: 30px;
+        position: relative;
+    }
 </style>
 
 <script>
@@ -298,6 +466,40 @@ function obterNomeMes(numeroMes) {
 {% endblock %}
 
 {% block conteudo %}
+
+<!-- === SEÇÃO DE DOWNLOADS === -->
+<div class="download-section">
+    <h4>
+        <span>📥</span>
+        <span>Downloads do Relatório</span>
+    </h4>
+    
+    <div class="download-buttons">
+        <button class="download-btn btn-png" onclick="downloadTablePNG()">
+            <span>📊</span>
+            <span>Tabela Principal</span>
+        </button>
+        <button class="download-btn btn-zip" onclick="downloadAllPNG()">
+            <span>🗜️</span>
+            <span>Relatório Completo</span>
+        </button>
+        <button class="download-btn btn-html" onclick="downloadHTML()">
+            <span>🌐</span>
+            <span>Arquivo HTML</span>
+        </button>
+        <button class="download-btn btn-pdf" onclick="downloadPDF()">
+            <span>📄</span>
+            <span>Gerar PDF</span>
+        </button>
+    </div>
+    
+    <div class="download-loading" id="downloadLoading">
+        <div class="download-spinner"></div>
+        <div class="download-loading-text">Processando download...</div>
+    </div>
+</div>
+
+<!-- Informações do Relatório (não aparece no download) -->
 <div class="info-container">
     <h4>ℹ️ Informações do Relatório - Receitas Tributárias</h4>
     <ul>
@@ -310,86 +512,91 @@ function obterNomeMes(numeroMes) {
     </ul>
 </div>
 
-<table>
-    <thead>
-        <tr>
-            <th rowspan="2">CÓDIGO ESPÉCIE</th>
-            <th rowspan="2">NOME DA ESPÉCIE/DETALHAMENTO</th>
-            <th colspan="2">RECEITA LÍQUIDA REALIZADA</th>
-            <th colspan="2">VARIAÇÃO</th>
-        </tr>
-        <tr>
-            <th>{{ mes_ref }}/2024</th>
-            <th>{{ mes_ref }}/2025</th>
-            <th>ABSOLUTA</th>
-            <th>PERCENTUAL</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for linha in dados_relatorio %}
-            {% if linha.tipo == 'especie' %}
-                <tr class="especie" id="especie-{{ linha.especie_codigo }}">
-                    <td style="text-align: center; font-family: monospace; font-weight: bold;">
-                        <span class="especie-icon">🏛️</span>{{ linha.especie_codigo_fmt }}
-                        {% if linha.tem_detalhamentos %}
-                            <span style="font-size: 11px; color: #666; font-weight: normal; margin-left: 10px; display: block; margin-top: 2px;">({{ linha.qtd_detalhamentos }} itens)</span>
-                        {% endif %}
-                    </td>
-                    <td style="text-align: left;">
-                        {{ linha.nome_especie_fmt }}
-                    </td>
-                    <td>{{ linha.receita_2024_fmt }}</td>
-                    <td>{{ linha.receita_2025_fmt }}</td>
-                    <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
-                        {{ linha.variacao_abs_fmt }}
-                    </td>
-                    <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
-                        {{ linha.variacao_perc_fmt }}
-                    </td>
-                </tr>
-            {% elif linha.tipo == 'detalhamento' %}
-                <tr class="detalhamento">
-                    <td style="text-align: center; font-family: monospace; font-weight: normal; color: #555;">
-                        <span class="detalhamento-icon">├─</span>{{ linha.especie_codigo_fmt }}YY
-                    </td>
-                    <td style="text-align: left; font-style: italic; color: #666; font-size: 13px;">
-                        {{ linha.nome_especie_fmt }}
-                    </td>
-                    <td>{{ linha.receita_2024_fmt }}</td>
-                    <td>{{ linha.receita_2025_fmt }}</td>
-                    <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
-                        {{ linha.variacao_abs_fmt }}
-                    </td>
-                    <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
-                        {{ linha.variacao_perc_fmt }}
-                    </td>
-                </tr>
-            {% elif linha.tipo == 'total' %}
-                <tr class="total">
-                    <td style="text-align: center; font-weight: bold;">{{ linha.especie_codigo_fmt }}</td>
-                    <td style="text-align: left; font-weight: bold;">{{ linha.nome_especie_fmt }}</td>
-                    <td>{{ linha.receita_2024_fmt }}</td>
-                    <td>{{ linha.receita_2025_fmt }}</td>
-                    <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
-                        {{ linha.variacao_abs_fmt }}
-                    </td>
-                    <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
-                        {{ linha.variacao_perc_fmt }}
-                    </td>
-                </tr>
-            {% endif %}
-        {% else %}
+<!-- === SEÇÃO 1: TABELA PRINCIPAL === -->
+<div class="secao-relatorio" id="secaoTabela">
+    <table>
+        <thead>
             <tr>
-                <td colspan="6" class="text-center" style="color: #666; font-style: italic; padding: 30px;">
-                    Nenhum dado de receita tributária encontrado para os filtros selecionados ou colunas necessárias não disponíveis.
-                </td>
+                <th rowspan="2">CÓDIGO ESPÉCIE</th>
+                <th rowspan="2">NOME DA ESPÉCIE/DETALHAMENTO</th>
+                <th colspan="2">RECEITA LÍQUIDA REALIZADA</th>
+                <th colspan="2">VARIAÇÃO</th>
             </tr>
-        {% endfor %}
-    </tbody>
-</table>
+            <tr>
+                <th>{{ mes_ref }}/2024</th>
+                <th>{{ mes_ref }}/2025</th>
+                <th>ABSOLUTA</th>
+                <th>PERCENTUAL</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for linha in dados_relatorio %}
+                {% if linha.tipo == 'especie' %}
+                    <tr class="especie" id="especie-{{ linha.especie_codigo }}">
+                        <td style="text-align: center; font-family: monospace; font-weight: bold;">
+                            <span class="especie-icon">🏛️</span>{{ linha.especie_codigo_fmt }}
+                            {% if linha.tem_detalhamentos %}
+                                <span style="font-size: 11px; color: #666; font-weight: normal; margin-left: 10px; display: block; margin-top: 2px;">({{ linha.qtd_detalhamentos }} itens)</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: left;">
+                            {{ linha.nome_especie_fmt }}
+                        </td>
+                        <td>{{ linha.receita_2024_fmt }}</td>
+                        <td>{{ linha.receita_2025_fmt }}</td>
+                        <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_abs_fmt }}
+                        </td>
+                        <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_perc_fmt }}
+                        </td>
+                    </tr>
+                {% elif linha.tipo == 'detalhamento' %}
+                    <tr class="detalhamento">
+                        <td style="text-align: center; font-family: monospace; font-weight: normal; color: #555;">
+                            <span class="detalhamento-icon">├─</span>{{ linha.especie_codigo_fmt }}YY
+                        </td>
+                        <td style="text-align: left; font-style: italic; color: #666; font-size: 13px;">
+                            {{ linha.nome_especie_fmt }}
+                        </td>
+                        <td>{{ linha.receita_2024_fmt }}</td>
+                        <td>{{ linha.receita_2025_fmt }}</td>
+                        <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_abs_fmt }}
+                        </td>
+                        <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_perc_fmt }}
+                        </td>
+                    </tr>
+                {% elif linha.tipo == 'total' %}
+                    <tr class="total">
+                        <td style="text-align: center; font-weight: bold;">{{ linha.especie_codigo_fmt }}</td>
+                        <td style="text-align: left; font-weight: bold;">{{ linha.nome_especie_fmt }}</td>
+                        <td>{{ linha.receita_2024_fmt }}</td>
+                        <td>{{ linha.receita_2025_fmt }}</td>
+                        <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_abs_fmt }}
+                        </td>
+                        <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_perc_fmt }}
+                        </td>
+                    </tr>
+                {% endif %}
+            {% else %}
+                <tr>
+                    <td colspan="6" class="text-center" style="color: #666; font-style: italic; padding: 30px;">
+                        Nenhum dado de receita tributária encontrado para os filtros selecionados ou colunas necessárias não disponíveis.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
 {% if dados_relatorio %}
-<div class="resumo-container">
+
+<!-- === SEÇÃO 2: RESUMO DAS RECEITAS === -->
+<div class="secao-relatorio resumo-container" id="secaoResumo">
     <h4>📊 Resumo das Receitas Tributárias</h4>
     <div>
         <div>
@@ -439,9 +646,9 @@ function obterNomeMes(numeroMes) {
     </div>
 </div>
 
-<!-- NOVO: Comparativo Mensal Acumulado (MODIFICADO - sem dica) -->
+<!-- === SEÇÃO 3: COMPARATIVO MENSAL === -->
 {% if comparativo_mensal %}
-<div class="resumo-container" style="border-left-color: #ff6b6b;">
+<div class="secao-relatorio resumo-container" id="secaoComparativo" style="border-left-color: #ff6b6b;">
     <h4>📅 Comparativo Mensal Acumulado - Receitas Tributárias</h4>
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
         {% for mes in comparativo_mensal %}
@@ -469,8 +676,8 @@ function obterNomeMes(numeroMes) {
 </div>
 {% endif %}
 
-<!-- Gráfico de Pizza com as Principais Espécies -->
-<div class="chart-container">
+<!-- === SEÇÃO 4: GRÁFICO DE PIZZA === -->
+<div class="secao-relatorio chart-container" id="secaoGrafico">
     <h4>🥧 Distribuição das Espécies Tributárias - Receita 2025</h4>
     <div class="chart-wrapper">
         <div id="chart-loading" class="chart-loading">
@@ -490,9 +697,9 @@ function obterNomeMes(numeroMes) {
     </div>
 </div>
 
-<!-- Resumo das NOUGs com Saldos -->
+<!-- === SEÇÃO 5: RESUMO DAS NOUGs === -->
 {% if resumo_nougs %}
-<div class="nougs-container">
+<div class="secao-relatorio nougs-container" id="secaoNougs">
     <h4>
         <span>🏢</span>
         <span>Unidades Gestoras com Receita Tributária em 2025</span>
@@ -517,6 +724,7 @@ function obterNomeMes(numeroMes) {
     </div>
 </div>
 {% endif %}
+
 {% endif %}
 
 {% endblock %}
@@ -536,6 +744,9 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() {
         verificarECriarGrafico();
     }, 1000);
+    
+    // Verificar bibliotecas de download
+    verificarBibliotecasDownload();
 });
 
 // NOVA FUNÇÃO: Converter números dos meses para nomes
@@ -728,6 +939,278 @@ function mostrarErro(mensagem) {
     document.getElementById('chart-loading').style.display = 'none';
     document.getElementById('chart-error').style.display = 'flex';
     document.getElementById('chartComparativo').style.display = 'none';
+}
+
+// === SISTEMA DE DOWNLOAD ===
+
+function verificarBibliotecasDownload() {
+    console.log('🔍 Verificando bibliotecas de download...');
+    
+    const bibliotecas = [
+        { nome: 'html2canvas', objeto: window.html2canvas },
+        { nome: 'jsPDF', objeto: window.jspdf },
+        { nome: 'JSZip', objeto: window.JSZip },
+        { nome: 'FileSaver', objeto: window.saveAs }
+    ];
+    
+    bibliotecas.forEach(lib => {
+        if (lib.objeto) {
+            console.log(`✅ ${lib.nome} carregado`);
+        } else {
+            console.error(`❌ ${lib.nome} não carregado`);
+        }
+    });
+}
+
+function showDownloadLoading(show = true) {
+    const loading = document.getElementById('downloadLoading');
+    if (loading) {
+        loading.style.display = show ? 'block' : 'none';
+    }
+}
+
+// 1. Download apenas da tabela principal (PNG)
+async function downloadTablePNG() {
+    showDownloadLoading(true);
+    try {
+        const elemento = document.getElementById('secaoTabela');
+        const canvas = await html2canvas(elemento, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: false
+        });
+        
+        const link = document.createElement('a');
+        link.download = `receitas-tributarias-tabela-${new Date().toISOString().split('T')[0]}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        
+        console.log('✅ Download da tabela concluído');
+    } catch (error) {
+        console.error('❌ Erro no download da tabela:', error);
+        alert('Erro ao gerar imagem da tabela: ' + error.message);
+    } finally {
+        showDownloadLoading(false);
+    }
+}
+
+// 2. Download de todas as seções (ZIP com PNGs)
+async function downloadAllPNG() {
+    showDownloadLoading(true);
+    try {
+        if (!window.JSZip || !window.saveAs) {
+            throw new Error('Bibliotecas JSZip ou FileSaver não carregadas');
+        }
+        
+        const zip = new JSZip();
+        const secoes = [
+            { id: 'secaoTabela', nome: '01-tabela-principal.png' },
+            { id: 'secaoResumo', nome: '02-resumo-receitas.png' },
+            { id: 'secaoComparativo', nome: '03-comparativo-mensal.png' },
+            { id: 'secaoGrafico', nome: '04-grafico-distribuicao.png' },
+            { id: 'secaoNougs', nome: '05-unidades-gestoras.png' }
+        ];
+        
+        for (const secao of secoes) {
+            const elemento = document.getElementById(secao.id);
+            if (elemento) {
+                const canvas = await html2canvas(elemento, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+                
+                // Converter canvas para blob
+                const blob = await new Promise(resolve => {
+                    canvas.toBlob(resolve, 'image/png', 0.95);
+                });
+                
+                zip.file(secao.nome, blob);
+                console.log(`✅ Seção ${secao.nome} adicionada ao ZIP`);
+            }
+        }
+        
+        // Gerar e baixar o ZIP
+        const zipBlob = await zip.generateAsync({
+            type: 'blob',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 }
+        });
+        
+        const dataAtual = new Date().toISOString().split('T')[0];
+        saveAs(zipBlob, `receitas-tributarias-completo-${dataAtual}.zip`);
+        
+        console.log('✅ Download do ZIP concluído');
+    } catch (error) {
+        console.error('❌ Erro no download do ZIP:', error);
+        alert('Erro ao gerar arquivo ZIP: ' + error.message);
+    } finally {
+        showDownloadLoading(false);
+    }
+}
+
+// 3. Download do HTML (otimizado para impressão)
+function downloadHTML() {
+    showDownloadLoading(true);
+    try {
+        // Criar cópia do HTML atual
+        let htmlCompleto = document.documentElement.outerHTML;
+        
+        // Otimizar HTML para impressão (remover elementos internos)
+        htmlCompleto = htmlCompleto
+            .replace(/<div class="download-section">[\s\S]*?<\/div>/, '') // Remove seção de downloads
+            .replace(/<div class="info-container">[\s\S]*?<\/div>/, '') // Remove informações internas
+            .replace(/<div class="download-loading"[\s\S]*?<\/div>/, '') // Remove loading
+            .replace(/onclick="[^"]*"/g, '') // Remove eventos onclick
+            .replace(/cursor:\s*pointer[^;]*;?/g, '') // Remove cursor pointer
+            .replace('<title>Receitas Tributárias Líquidas Realizada - Comparativo</title>', 
+                    '<title>Receitas Tributárias Líquidas Realizada - Relatório Oficial</title>');
+        
+        // Adicionar meta tag para impressão
+        htmlCompleto = htmlCompleto.replace(
+            '<meta name="viewport"',
+            '<meta name="description" content="Relatório Oficial - Receitas Tributárias Líquidas Realizada"><meta name="viewport"'
+        );
+        
+        // Criar blob e download
+        const blob = new Blob([htmlCompleto], { type: 'text/html;charset=utf-8' });
+        const dataAtual = new Date().toISOString().split('T')[0];
+        saveAs(blob, `receitas-tributarias-relatorio-${dataAtual}.html`);
+        
+        console.log('✅ Download do HTML concluído');
+    } catch (error) {
+        console.error('❌ Erro no download do HTML:', error);
+        alert('Erro ao gerar arquivo HTML: ' + error.message);
+    } finally {
+        showDownloadLoading(false);
+    }
+}
+
+// 4. Gerar PDF via jsPDF
+async function downloadPDF() {
+    showDownloadLoading(true);
+    try {
+        if (!window.jspdf) {
+            throw new Error('Biblioteca jsPDF não carregada');
+        }
+        
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        
+        // Configurações
+        const margemEsquerda = 15;
+        const margemTopo = 20;
+        const larguraPagina = 180; // A4 menos margens
+        let posicaoY = margemTopo;
+        
+        // Cabeçalho
+        pdf.setFontSize(18);
+        pdf.setFont(undefined, 'bold');
+        pdf.setTextColor(0, 51, 102);
+        pdf.text('RECEITAS TRIBUTÁRIAS LÍQUIDAS REALIZADA', margemEsquerda, posicaoY);
+        posicaoY += 12;
+        
+        pdf.setFontSize(14);
+        pdf.setFont(undefined, 'normal');
+        pdf.setTextColor(100, 100, 100);
+        pdf.text('Origens 11 e 71 com desdobramentos por espécie - Comparativo 2024 vs 2025', margemEsquerda, posicaoY);
+        posicaoY += 8;
+        
+        const dataRef = '{{ mes_ref }}/2025';
+        pdf.setFontSize(12);
+        pdf.text(`Dados de Referência: ${dataRef}`, margemEsquerda, posicaoY);
+        posicaoY += 8;
+        
+        // Data de geração
+        const dataGeracao = new Date().toLocaleDateString('pt-BR');
+        pdf.text(`Relatório gerado em: ${dataGeracao}`, margemEsquerda, posicaoY);
+        posicaoY += 20;
+        
+        // Capturar cada seção como imagem e adicionar ao PDF
+        const secoes = [
+            { id: 'secaoTabela', titulo: '1. Tabela Principal - Receitas Tributárias' },
+            { id: 'secaoResumo', titulo: '2. Resumo das Receitas Tributárias' },
+            { id: 'secaoComparativo', titulo: '3. Comparativo Mensal Acumulado' },
+            { id: 'secaoGrafico', titulo: '4. Distribuição por Espécie' },
+            { id: 'secaoNougs', titulo: '5. Unidades Gestoras' }
+        ];
+        
+        for (let i = 0; i < secoes.length; i++) {
+            const secao = secoes[i];
+            const elemento = document.getElementById(secao.id);
+            
+            if (elemento) {
+                // Verificar se precisa de nova página
+                if (posicaoY > 240) {
+                    pdf.addPage();
+                    posicaoY = margemTopo;
+                }
+                
+                // Título da seção
+                pdf.setFontSize(14);
+                pdf.setFont(undefined, 'bold');
+                pdf.setTextColor(0, 51, 102);
+                pdf.text(secao.titulo, margemEsquerda, posicaoY);
+                posicaoY += 12;
+                
+                // Capturar imagem da seção
+                const canvas = await html2canvas(elemento, {
+                    scale: 1.5,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+                
+                const imgData = canvas.toDataURL('image/png', 0.95);
+                
+                // Calcular dimensões para caber na página
+                const aspectRatio = canvas.height / canvas.width;
+                const larguraImg = larguraPagina;
+                const alturaImg = Math.min(larguraImg * aspectRatio, 200); // Limitar altura
+                
+                // Verificar se a imagem cabe na página atual
+                if (posicaoY + alturaImg > 270) {
+                    pdf.addPage();
+                    posicaoY = margemTopo;
+                    
+                    // Repetir título na nova página
+                    pdf.setFontSize(14);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.setTextColor(0, 51, 102);
+                    pdf.text(secao.titulo + ' (continuação)', margemEsquerda, posicaoY);
+                    posicaoY += 12;
+                }
+                
+                pdf.addImage(imgData, 'PNG', margemEsquerda, posicaoY, larguraImg, alturaImg);
+                posicaoY += alturaImg + 15;
+                
+                console.log(`✅ Seção ${secao.titulo} adicionada ao PDF`);
+            }
+        }
+        
+        // Rodapé na última página
+        const totalPaginas = pdf.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPaginas; i++) {
+            pdf.setPage(i);
+            pdf.setFontSize(10);
+            pdf.setTextColor(150, 150, 150);
+            pdf.text(`Página ${i} de ${totalPaginas}`, 190, 285, { align: 'right' });
+            pdf.text('Relatório Oficial - Sistema de Receitas Tributárias', margemEsquerda, 285);
+        }
+        
+        // Salvar PDF
+        const dataAtual = new Date().toISOString().split('T')[0];
+        pdf.save(`receitas-tributarias-relatorio-${dataAtual}.pdf`);
+        console.log('✅ PDF gerado com sucesso');
+        
+    } catch (error) {
+        console.error('❌ Erro ao gerar PDF:', error);
+        alert('Erro ao gerar PDF: ' + error.message);
+    } finally {
+        showDownloadLoading(false);
+    }
 }
 
 // === SISTEMA DE FILTRAGEM POR NOUG ===
