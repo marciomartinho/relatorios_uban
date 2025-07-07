@@ -322,15 +322,15 @@ def grafico_receita_liquida():
 
 @receita_bp.route('/grafico-receita-capital')
 def grafico_receita_capital():
-    """Relatório: Gráfico de Receita Líquida (Receita de Capital) - GRÁFICO VISUAL"""
+    """Relatório: Gráfico de Total Receita de Capital (Comparativo 2024 vs 2025)"""
     try:
         inicio = time.time()
         df_completo = carregar_dataframe_receita()
         lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
         noug_selecionada = request.args.get('noug', None)
 
-        # CORREÇÃO: Usar a função corrigida que processa CATEGORIA = 2 e retorna 4 valores
-        dados_tabela, mes_referencia, dados_grafico, dados_chart = gerar_grafico_receita_capital(
+        # ATUALIZAÇÃO: Agora retorna 5 valores incluindo comparativo_mensal
+        dados_tabela, mes_referencia, dados_grafico, dados_chart, comparativo_mensal = gerar_grafico_receita_capital(
             df_completo, HIERARQUIA_RECEITAS, noug_selecionada
         )
         
@@ -341,6 +341,7 @@ def grafico_receita_capital():
                                dados_relatorio=dados_tabela,
                                dados_grafico=dados_grafico,
                                dados_chart=dados_chart,
+                               comparativo_mensal=comparativo_mensal,  # NOVO
                                mes_ref=mes_referencia,
                                lista_nougs=lista_nougs,
                                noug_selecionada=noug_selecionada)

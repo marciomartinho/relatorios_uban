@@ -1,96 +1,96 @@
 {% extends "base_relatorio.html" %}
 
-{% block titulo %}Gráfico de Receita Líquida - Receita de Capital{% endblock %}
+{% block titulo %}Total Receita de Capital - Comparativo 2024 vs 2025{% endblock %}
 
-{% block titulo_relatorio %}GRÁFICO DE RECEITA LÍQUIDA{% endblock %}
+{% block titulo_relatorio %}TOTAL RECEITA DE CAPITAL{% endblock %}
 
-{% block subtitulo %}Receita de Capital - Exercício 2025{% endblock %}
+{% block subtitulo %}Comparativo 2024 vs 2025{% endblock %}
+
+{% block referencia %}Valores Líquidos (Conta Contábil 621200000 - 621300000) - Dados de Referência: {{ mes_ref }}{% endblock %}
 
 {% block head_extra %}
-<!-- Chart.js para gráficos -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-
+<!-- Chart.js para gráficos - CDN alternativo mais confiável -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 <style>
     .chart-container {
         position: relative;
-        height: 600px;
+        height: 500px;
         width: 100%;
+        margin: 30px 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         background: #f8f9fa;
         border-radius: 8px;
         padding: 20px;
-        margin: 30px 0;
         border: 2px solid #dee2e6;
     }
     
     .chart-wrapper {
+        width: 600px;
+        height: 500px;
         position: relative;
-        height: 500px;
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
     }
     
-    #chartReceita {
-        max-height: 500px !important;
-        max-width: 100% !important;
-    }
-    
-    .chart-loading {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 500px;
-        color: #6c757d;
-        font-size: 18px;
-        flex-direction: column;
-    }
-    
-    .chart-error {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 500px;
-        color: #dc3545;
-        font-size: 16px;
+    .chart-title {
         text-align: center;
-        flex-direction: column;
+        font-size: 18px;
+        font-weight: 600;
+        color: #8B4513;
+        margin-bottom: 20px;
     }
     
     .total-display {
         text-align: center;
-        font-size: 24px;
+        font-size: 20px;
         font-weight: bold;
         color: #8B4513;
         margin: 20px 0;
         padding: 20px;
-        background: #fff;
+        background: #f4f1e8;
         border-radius: 8px;
         border-left: 4px solid #8B4513;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+    }
+    
+    .total-item {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 3px solid #D2691E;
+    }
+    
+    .total-item.variacao {
+        border-left-color: #228B22;
+    }
+    
+    .total-item.variacao.negativa {
+        border-left-color: #DC143C;
     }
     
     .legend-table {
         margin-top: 30px;
-        width: 100%;
-        border-collapse: collapse;
+        font-size: 14px;
     }
     
     .legend-table th {
-        background-color: #003366;
+        background-color: #8B4513;
         color: white;
         text-align: center;
         padding: 12px;
-        border: 1px solid #ddd;
     }
     
     .legend-table td {
         padding: 10px 12px;
         border: 1px solid #ddd;
-        text-align: right;
+        text-align: right !important;
     }
     
     .legend-table td:first-child {
-        text-align: left;
+        text-align: left !important;
         font-weight: 500;
     }
     
@@ -103,72 +103,225 @@
         border: 2px solid #fff;
         box-shadow: 0 0 3px rgba(0,0,0,0.3);
     }
+    
+    .total-row {
+        background-color: #8B4513;
+        color: white;
+        font-weight: bold;
+    }
+    
+    .valor-positivo {
+        color: #228B22;
+        font-weight: bold;
+    }
+    
+    .valor-negativo {
+        color: #DC143C;
+        font-weight: bold;
+    }
+    
+    .info-container {
+        background: #f4f1e8;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #D2691E;
+    }
+    
+    .info-container h4 {
+        margin: 0 0 10px 0;
+        color: #D2691E;
+        font-weight: 600;
+    }
+    
+    .info-container ul {
+        margin: 0;
+        padding-left: 20px;
+        color: #555;
+    }
+    
+    .resumo-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #CD853F;
+    }
+    
+    .resumo-container h4 {
+        margin: 0 0 15px 0;
+        color: #CD853F;
+        font-weight: 600;
+    }
+    
+    @media (max-width: 768px) {
+        .chart-wrapper {
+            width: 100%;
+            height: 400px;
+        }
+        
+        .chart-container {
+            height: 400px;
+        }
+        
+        .total-display {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
+
+<script>
+// Função para converter número do mês para nome
+function obterNomeMes(numeroMes) {
+    const meses = {
+        '01': 'Janeiro',
+        '02': 'Fevereiro', 
+        '03': 'Março',
+        '04': 'Abril',
+        '05': 'Maio',
+        '06': 'Junho',
+        '07': 'Julho',
+        '08': 'Agosto',
+        '09': 'Setembro',
+        '10': 'Outubro',
+        '11': 'Novembro',
+        '12': 'Dezembro'
+    };
+    
+    return meses[numeroMes] || `Mês ${numeroMes}`;
+}
+</script>
+{% endblock %}
+
+{% block filtros %}
+{% if lista_nougs %}
+<div class="filtro-container">
+    <label for="filtro-noug">Filtrar por Unidade Gestora:</label>
+    <select id="filtro-noug" onchange="aplicarFiltro()">
+        <option value="todos">-- Mostrar Todas as Unidades (Consolidado) --</option>
+        {% for noug in lista_nougs %}
+            <option value="{{ noug }}" {% if noug == noug_selecionada %}selected{% endif %}>
+                {{ noug }}
+            </option>
+        {% endfor %}
+    </select>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block conteudo %}
+{% set mes_apenas = mes_ref.split('/')[0] if '/' in mes_ref else '05' %}
+
 <div class="info-container">
-    <h4>ℹ️ Informações do Relatório - Receita de Capital</h4>
+    <h4>ℹ️ Informações do Relatório - Total Receita de Capital</h4>
     <ul>
-        <li><strong>Categoria:</strong> {{ dados_chart.categoria if dados_chart and dados_chart.categoria else '2 - Receitas de Capital' }}</li>
-        <li><strong>Composição:</strong> {{ dados_chart.composicao if dados_chart and dados_chart.composicao else 'Operações de Crédito, Alienação de Bens, Transferências de Capital e outras' }}</li>
-        <li><strong>Valores:</strong> {{ dados_chart.valores if dados_chart and dados_chart.valores else 'RECEITA LÍQUIDA realizada no exercício 2025' }}</li>
-        <li><strong>Distribuição:</strong> {{ dados_chart.distribuicao if dados_chart and dados_chart.distribuicao else 'Por origem da receita com participação percentual' }}</li>
-        <li><strong>💡 Finalidade:</strong> {{ dados_chart.finalidade if dados_chart and dados_chart.finalidade else 'Recursos destinados ao investimento e inversões financeiras' }}</li>
+        <li><strong>Categoria:</strong> CATEGORIA = 2 (Receitas de Capital)</li>
+        <li><strong>Valores:</strong> RECEITA LÍQUIDA realizada (Conta Contábil 621200000 - 621300000)</li>
+        <li><strong>Comparativo:</strong> Receita realizada em {{ mes_apenas }}/2024 vs {{ mes_apenas }}/2025</li>
+        <li><strong>Composição:</strong> Operações de Crédito, Alienação de Bens, Transferências de Capital e outras</li>
+        <li><strong>Variação:</strong> Diferença absoluta e percentual entre os períodos</li>
+        <li><strong>💡 Finalidade:</strong> Recursos destinados ao investimento e inversões financeiras</li>
     </ul>
 </div>
 
-<!-- Gráfico de Pizza -->
+<div class="chart-title">Composição da Receita de Capital</div>
+
 <div class="chart-container">
-    <h4>{{ dados_chart.title_text if dados_chart and dados_chart.title_text else 'Composição da Receita de Capital Líquida por Origem' }}</h4>
     <div class="chart-wrapper">
-        <div id="chart-loading" class="chart-loading">
-            <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
-            <div>Carregando gráfico...</div>
-        </div>
-        <div id="chart-error" class="chart-error" style="display: none;">
-            <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
-            <div>Erro ao carregar gráfico</div>
-            <div style="font-size: 14px; margin-top: 5px;">Os dados estão disponíveis na tabela abaixo</div>
-        </div>
-        <canvas id="chartReceita" style="display: none;"></canvas>
+        <canvas id="receitaChart"></canvas>
     </div>
 </div>
 
-<!-- Total -->
-{% if dados_chart and dados_chart.total_fmt %}
 <div class="total-display">
-    Total da Receita de Capital Líquida: {{ dados_chart.total_fmt }}
+    <div class="total-item">
+        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Total {{ mes_apenas }}/2024</div>
+        <div style="color: #6c757d;">{{ dados_chart.total_2024_fmt }}</div>
+    </div>
+    <div class="total-item">
+        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Total {{ mes_apenas }}/2025</div>
+        <div style="color: #228B22;">{{ dados_chart.total_2025_fmt }}</div>
+    </div>
+    <div class="total-item variacao {% if dados_chart.variacao_total_perc < 0 %}negativa{% endif %}">
+        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Variação Total</div>
+        <div class="{% if dados_chart.variacao_total_perc < 0 %}valor-negativo{% else %}valor-positivo{% endif %}">
+            {{ dados_chart.variacao_total_perc_fmt }}
+        </div>
+    </div>
 </div>
-{% endif %}
 
-<!-- Tabela de Dados -->
-{% if dados_relatorio %}
+<!-- Tabela com dados comparativos -->
 <table class="legend-table">
     <thead>
         <tr>
-            <th>ORIGEM DA RECEITA</th>
-            <th>VALOR</th>
-            <th>PARTICIPAÇÃO %</th>
+            <th rowspan="2">ORIGEM DA RECEITA</th>
+            <th colspan="2">RECEITA LÍQUIDA REALIZADA</th>
+            <th colspan="2">VARIAÇÃO</th>
+            <th rowspan="2">PARTICIPAÇÃO 2025</th>
+        </tr>
+        <tr>
+            <th>{{ mes_apenas }}/2024</th>
+            <th>{{ mes_apenas }}/2025</th>
+            <th>ABSOLUTA</th>
+            <th>PERCENTUAL</th>
         </tr>
     </thead>
     <tbody>
         {% for item in dados_relatorio %}
-        <tr>
-            <td>
-                <span class="color-indicator" style="background-color: {{ loop.index0 | safe }}"></span>
-                {{ item.nome_origem }}
-            </td>
-            <td>{{ item.valor_fmt }}</td>
-            <td>{{ item.percentual_fmt }}</td>
-        </tr>
+            <tr {% if item.origem == 'TOTAL' %}class="total-row"{% endif %}>
+                <td style="text-align: left !important;">
+                    {% if item.origem != 'TOTAL' %}
+                        <span class="color-indicator" style="background-color: {{ item.cor }}"></span>
+                    {% endif %}
+                    {{ item.nome }}
+                </td>
+                <td style="text-align: right !important;">{{ item.valor_2024_fmt }}</td>
+                <td style="text-align: right !important;">{{ item.valor_2025_fmt }}</td>
+                <td style="text-align: right !important;" class="{% if item.variacao_abs < 0 %}valor-negativo{% elif item.variacao_abs > 0 %}valor-positivo{% endif %}">
+                    {{ item.variacao_abs_fmt }}
+                </td>
+                <td style="text-align: right !important;" class="{% if item.variacao_perc < 0 %}valor-negativo{% elif item.variacao_perc > 0 %}valor-positivo{% endif %}">
+                    {{ item.variacao_perc_fmt }}
+                </td>
+                <td style="text-align: right !important;">{{ item.percentual_fmt }}</td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="6" class="text-center" style="color: #666; font-style: italic; padding: 30px;">
+                    📊 Sem Dados para Exibir<br>
+                    <small>Não há dados de receita de capital para os filtros selecionados.</small>
+                </td>
+            </tr>
         {% endfor %}
     </tbody>
 </table>
-{% else %}
-<div style="text-align: center; padding: 40px; color: #666;">
-    📊 Sem Dados para Exibir<br>
-    <small>Não há dados de receita de capital líquida para gerar o gráfico.</small>
+
+<!-- Comparativo Mensal Acumulado -->
+{% if comparativo_mensal %}
+<div class="resumo-container">
+    <h4>📅 Comparativo Mensal Acumulado - Receita de Capital</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
+        {% for mes in comparativo_mensal %}
+        <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #CD853F;">
+            <div style="font-weight: 600; color: #333; font-size: 14px; margin-bottom: 8px;">
+                📈 Total até <span id="titulo-mes-{{ mes.mes }}"></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="color: #6c757d; font-size: 12px;">2024:</span>
+                <span style="color: #6c757d; font-size: 13px; font-weight: 500;">{{ mes.saldo_2024_fmt }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="color: #228B22; font-size: 12px;">2025:</span>
+                <span style="color: #228B22; font-size: 13px; font-weight: 500;">{{ mes.saldo_2025_fmt }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 4px;">
+                <span style="color: #333; font-size: 12px; font-weight: 600;">Variação:</span>
+                <span class="{% if mes.variacao_perc < 0 %}valor-negativo{% elif mes.variacao_perc > 0 %}valor-positivo{% endif %}" style="font-size: 13px; font-weight: bold;">
+                    {{ mes.variacao_perc_fmt }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </div>
 {% endif %}
 
@@ -176,185 +329,171 @@
 
 {% block scripts %}
 <script>
-// Dados do gráfico de receita de capital
-const dadosGrafico = {{ dados_chart | tojson | safe }};
-const dadosRelatorio = {{ dados_relatorio | tojson | safe }};
+// === SISTEMA DE GRÁFICO DE PIZZA ===
 
-console.log('📊 Dados do gráfico:', dadosGrafico);
-console.log('📋 Dados do relatório:', dadosRelatorio);
-
-// Aguardar DOM carregar
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 Iniciando criação do gráfico de receita de capital...');
+    
+    // Converter títulos dos meses
+    converterTitulosMeses();
+    
+    // Aguardar um pouco para garantir que tudo carregou
     setTimeout(function() {
-        criarGraficoReceita();
-    }, 500);
+        verificarECriarGrafico();
+    }, 1000);
 });
 
-function criarGraficoReceita() {
-    console.log('🎨 Iniciando criação do gráfico de receita de capital...');
+// Converter números dos meses para nomes
+function converterTitulosMeses() {
+    {% if comparativo_mensal %}
+    const comparativoMensal = {{ comparativo_mensal | tojson | safe }};
     
-    // Verificar se Chart.js carregou
-    if (typeof Chart === 'undefined') {
-        console.error('❌ Chart.js não carregou');
-        mostrarErro('Biblioteca de gráficos não carregada');
-        return;
-    }
-    
-    // Verificar se temos dados
-    if (!dadosRelatorio || dadosRelatorio.length === 0) {
-        console.warn('⚠️ Sem dados para gráfico');
-        mostrarErro('Sem dados suficientes para gerar o gráfico');
-        return;
-    }
-    
-    // Preparar dados
-    const labels = dadosRelatorio.map(item => item.nome_origem || 'N/A');
-    const valores = dadosRelatorio.map(item => parseFloat(item.valor) || 0);
-    const percentuais = dadosRelatorio.map(item => parseFloat(item.percentual) || 0);
-    
-    console.log('🏷️ Labels:', labels);
-    console.log('💰 Valores:', valores);
-    console.log('📊 Percentuais:', percentuais);
-    
-    // Cores para receita de capital (tons de marrom/laranja)
-    const cores = [
-        '#8B4513',  // Marrom escuro
-        '#D2691E',  // Chocolate
-        '#CD853F',  // Peru
-        '#DEB887',  // Burlywood
-        '#F4A460',  // Sandy brown
-        '#DAA520',  // Goldenrod
-        '#B8860B',  // Dark goldenrod
-        '#BC8F8F',  // Rosy brown
-        '#A0522D',  // Sienna
-        '#FF8C00'   // Dark orange
-    ];
-    
-    try {
-        const canvas = document.getElementById('chartReceita');
-        if (!canvas) {
-            throw new Error('Canvas não encontrado');
+    comparativoMensal.forEach(function(mes) {
+        const elemento = document.getElementById('titulo-mes-' + mes.mes);
+        if (elemento) {
+            const nomeMes = obterNomeMes(mes.mes_fmt);
+            elemento.textContent = nomeMes;
         }
-        
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            throw new Error('Contexto 2D não disponível');
-        }
-        
-        // Esconder loading e mostrar canvas
-        document.getElementById('chart-loading').style.display = 'none';
-        document.getElementById('chart-error').style.display = 'none';
-        canvas.style.display = 'block';
-        
-        // Criar gráfico
-        const chart = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: valores,
-                    backgroundColor: cores.slice(0, valores.length),
-                    borderColor: '#ffffff',
-                    borderWidth: 3,
-                    hoverBorderWidth: 4,
-                    hoverBorderColor: '#ffffff'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: dadosGrafico?.title_text || 'Composição da Receita de Capital por Origem',
-                        font: {
-                            size: 18,
-                            weight: 'bold'
-                        },
-                        color: '#8B4513',
-                        padding: 20
-                    },
-                    legend: {
-                        display: true,
-                        position: 'right',
-                        labels: {
-                            boxWidth: 20,
-                            padding: 15,
-                            font: {
-                                size: 14
-                            },
-                            generateLabels: function(chart) {
-                                const data = chart.data;
-                                return data.labels.map((label, index) => {
-                                    const percentage = percentuais[index];
-                                    return {
-                                        text: `${label} (${percentage.toFixed(1)}%)`,
-                                        fillStyle: data.datasets[0].backgroundColor[index],
-                                        strokeStyle: data.datasets[0].borderColor,
-                                        lineWidth: data.datasets[0].borderWidth,
-                                        index: index
-                                    };
-                                });
-                            }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(139, 69, 19, 0.9)',
-                        titleColor: '#ffffff',
-                        bodyColor: '#ffffff',
-                        borderColor: '#ffffff',
-                        borderWidth: 1,
-                        cornerRadius: 8,
-                        displayColors: true,
-                        callbacks: {
-                            label: function(context) {
-                                const value = context.parsed;
-                                const percentage = percentuais[context.dataIndex];
-                                
-                                const valueFormatted = new Intl.NumberFormat('pt-BR', {
-                                    style: 'currency',
-                                    currency: 'BRL',
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 0
-                                }).format(value);
-                                
-                                return `${context.label}: ${valueFormatted} (${percentage.toFixed(1)}%)`;
-                            }
-                        }
-                    }
-                },
-                animation: {
-                    animateScale: true,
-                    animateRotate: true,
-                    duration: 1500,
-                    easing: 'easeOutQuart'
-                },
-                layout: {
-                    padding: 20
-                }
-            }
-        });
-        
-        // Atualizar cores na tabela
-        document.querySelectorAll('.color-indicator').forEach((indicator, index) => {
-            if (index < cores.length) {
-                indicator.style.backgroundColor = cores[index];
-            }
-        });
-        
-        console.log('🎉 Gráfico de receita de capital criado com sucesso!');
-        
-    } catch (error) {
-        console.error('❌ Erro ao criar gráfico:', error);
-        mostrarErro('Erro ao criar o gráfico: ' + error.message);
-    }
+    });
+    {% endif %}
 }
 
-function mostrarErro(mensagem) {
-    console.error('🚨 Erro do gráfico:', mensagem);
-    document.getElementById('chart-loading').style.display = 'none';
-    document.getElementById('chart-error').style.display = 'flex';
-    document.getElementById('chartReceita').style.display = 'none';
+// Verifica se Chart.js carregou, senão tenta carregar novamente
+function verificarECriarGrafico() {
+    if (typeof Chart === 'undefined') {
+        console.log('Chart.js não carregou, tentando carregar novamente...');
+        
+        // Cria um script fallback
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/chart.js@4.4.1/dist/chart.min.js';
+        script.onload = function() {
+            console.log('Chart.js carregado com sucesso!');
+            criarGrafico();
+        };
+        script.onerror = function() {
+            console.error('Erro ao carregar Chart.js');
+            document.getElementById('receitaChart').style.display = 'none';
+            document.querySelector('.chart-container').innerHTML = '<div style="text-align: center; padding: 50px; color: #666;"><h3>⚠️ Gráfico Indisponível</h3><p>Não foi possível carregar a biblioteca de gráficos.<br>Os dados estão disponíveis na tabela abaixo.</p></div>';
+        };
+        document.head.appendChild(script);
+    } else {
+        // Chart.js já está disponível
+        criarGrafico();
+    }
+}
+    
+function criarGrafico() {
+    // Dados do gráfico vindos do Flask
+    const dadosChart = {{ dados_chart | tojson | safe }};
+    
+    // Verificação de segurança
+    if (!dadosChart || !dadosChart.labels || dadosChart.labels.length === 0) {
+        document.querySelector('.chart-container').innerHTML = '<div style="text-align: center; padding: 50px; color: #666;"><h3>📊 Sem Dados para Exibir</h3><p>Não há dados de receita de capital para gerar o gráfico.</p></div>';
+        return;
+    }
+    
+    // Configuração do gráfico de pizza
+    const ctx = document.getElementById('receitaChart').getContext('2d');
+    
+    const chart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: dadosChart.labels,
+            datasets: [{
+                data: dadosChart.data,
+                backgroundColor: dadosChart.backgroundColor,
+                borderColor: '#ffffff',
+                borderWidth: 2,
+                hoverBorderWidth: 3,
+                hoverBorderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Distribuição da Receita de Capital por Origem (2025)',
+                    font: {
+                        size: 16,
+                        weight: 'bold'
+                    },
+                    color: '#8B4513'
+                },
+                legend: {
+                    display: false  // Desabilitamos a legenda padrão para usar nossa tabela
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(139, 69, 19, 0.9)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#ffffff',
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    displayColors: true,
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed;
+                            const total = dadosChart.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            
+                            // Formatar valor em reais
+                            const valueFormatted = new Intl.NumberFormat('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL'
+                            }).format(value);
+                            
+                            return `${context.label}: ${valueFormatted} (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            animation: {
+                animateScale: true,
+                animateRotate: true,
+                duration: 1000
+            },
+            layout: {
+                padding: 20
+            }
+        }
+    });
+
+    // Adiciona interatividade - destacar seção ao passar mouse na tabela
+    document.querySelectorAll('.legend-table tbody tr').forEach((row, index) => {
+        if (index < dadosChart.labels.length) {  // Evita a linha de total
+            row.addEventListener('mouseenter', function() {
+                // Destaca a fatia correspondente no gráfico
+                chart.setActiveElements([{datasetIndex: 0, index: index}]);
+                chart.update('none');
+                this.style.backgroundColor = '#f4f1e8';
+            });
+            
+            row.addEventListener('mouseleave', function() {
+                // Remove o destaque
+                chart.setActiveElements([]);
+                chart.update('none');
+                this.style.backgroundColor = '';
+            });
+        }
+    });
+
+    // Função para redimensionar o gráfico em dispositivos móveis
+    function resizeChart() {
+        if (window.innerWidth <= 768) {
+            chart.resize(300, 300);
+        } else {
+            chart.resize();
+        }
+    }
+
+    window.addEventListener('resize', resizeChart);
+    
+    // Configuração inicial
+    resizeChart();
+    
+    console.log('🎉 Gráfico de receita de capital criado com sucesso!');
 }
 </script>
 {% endblock %}
