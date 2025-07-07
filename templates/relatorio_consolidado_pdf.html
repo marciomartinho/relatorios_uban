@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório Consolidado de Receitas - {{ mes_referencia }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/relatorio_consolidado.css') }}">
+    <style>
+        /* Estilos específicos para PDF */
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+        
+        .no-break {
+            page-break-inside: avoid;
+        }
+        
+        .grafico-pdf {
+            max-width: 100%;
+            height: auto;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 51, 102, 0.1);
+        }
+        
+        .dashboard-graficos {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .grafico-individual {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--azul-gdf-claro);
+        }
+        
+        .grafico-titulo {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--azul-gdf-escuro);
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body class="relatorio-pdf">
+    <!-- PÁGINA 1: CAPA -->
+    <div class="page-container">
+        <div class="capa-relatorio">
+            <div class="header-principal">
+                <div class="logo-gdf">
+                    GDF
+                </div>
+                <div class="titulo-principal">
+                    <h1>Relatório Consolidado</h1>
+                    <h2>Receitas Públicas</h2>
+                    <h3>{{ mes_referencia }}</h3>
+                </div>
+                <div class="data-geracao">
+                    <strong>Gerado em:</strong><br>
+                    {{ data_geracao }}
+                </div>
+            </div>
+            
+            <div class="titulo-capa">
+                <h1>Análise Executiva</h1>
+                <h2>Receitas Consolidadas</h2>
+                <h3>Período: {{ mes_referencia }}</h3>
+            </div>
+            
+            {% if resumo_executivo %}
+            <div class="resumo-capa">
+                <div class="kpi-destaque">
+                    <span class="valor-principal">R$ {{ "{:,.0f}".format(resumo_executivo.total_geral_2025/1000000).replace(',', '.') }}M</span>
+                    <span class="label-principal">Receita Total 2025</span>
+                </div>
+                
+                <div class="variacao-destaque">
+                    <span class="variacao {{ 'positivo' if resumo_executivo.variacao_percentual > 0 else 'negativo' if resumo_executivo.variacao_percentual < 0 else 'neutro' }}">
+                        {{ "{:+.1f}".format(resumo_executivo.variacao_percentual) }}%
+                    </span>
+                    <span class="label-variacao">Variação vs 2024</span>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="destaques-capa">
+                <div class="destaque-item">
+                    <span class="icone">📊</span>
+                    <span class="texto">{{ total_relatorios }} Relatórios Processados</span>
+                </div>
+                <div class="destaque-item">
+                    <span class="icone">⏱️</span>
+                    <span class="texto">{{ "%.1f"|format(tempo_geracao) }}s de Processamento</span>
+                </div>
+                <div class="destaque-item">
+                    <span class="icone">🎯</span>
+                    <span class="texto">{{ resumo_executivo.maior_categoria if resumo_executivo else 'N/A' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PÁGINA 2: DASHBOARD EXECUTIVO -->
+    <div class="page-break"></div>
+    <div class="page-container">
+        <div class="dashboard-executivo">
+            <h1 class="titulo-secao">Dashboard Executivo</h1>
+            
+            <!-- KPIs Principais -->
+            {% if kpis_principais %}
+            <div class="kpis-grid">
+                <div class="kpi-card {{ 'positivo' if kpis_principais.receita_total_2025 > 0 else 'neutro' }}">
+                    <div class="kpi-titulo">Receita Total 2025</div>
+                    <div class="kpi-valor">{{ kpis_principais.receita_total_2025_fmt }}</div>
+                </div>
+                
+                <div class="kpi-card {{ 'positivo' if kpis_principais.receita_total_2024 > 0 else 'neutro' }}">
+                    <div class="kpi-titulo">Receita Total 2024</div>
+                    <div class="kpi-valor">{{ kpis_principais.receita_total_2024_fmt }}</div>
+                </div>
+                
+                <div class="kpi-card {{ 'positivo' if '+' in kpis_principais.variacao_percentual_fmt else 'negativo' if '-' in kpis_principais.variacao_percentual_fmt else 'neutro' }}">
+                    <div class="kpi-titulo">Variação</div>
+                    <div class="kpi-valor">{{ kpis_principais.variacao_percentual_fmt }}</div>
+                </div>
+                
+                <div class="kpi-card alto">
+                    <div class="kpi-titulo">Maior Categoria</div>
+                    <div class="kpi-valor">{{ kpis_principais.maior_fonte }}</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Gráfico Dashboard Principal -->
+            {% if graficos_gerados and graficos_gerados.dashboard %}
+            <div class="no-break">
+                <div class="grafico-container">
+                    <h3>Visão Geral Comparativa</h3>
+                    <img src="{{ graficos_gerados.dashboard }}" alt="Dashboard Principal" class="grafico-pdf">
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Alertas Visuais -->
+            <div class="alertas-container">
+                <h3>Status dos Relatórios</h3>
+                <div class="alertas-grid">
+                    {% if resumo_executivo and resumo_executivo.relatorios_sucesso == total_relatorios %}
+                    <div class="alerta-item success">
+                        <span class="alerta-emoji">✅</span>
+                        <div class="alerta-conteudo">
+                            <strong>Todos os Relatórios Processados</strong>
+                            <p>{{ resumo_executivo.relatorios_sucesso }} de {{ total_relatorios }} relatórios executados com sucesso</p>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alerta-item warning">
+                        <span class="alerta-emoji">⚠️</span>
+                        <div class="alerta-conteudo">
+                            <strong>Alguns Relatórios com Problemas</strong>
+                            <p>{{ resumo_executivo.relatorios_erro if resumo_executivo else 0 }} relatórios apresentaram erros</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="alerta-item info">
+                        <span class="alerta-emoji">📊</span>
+                        <div class="alerta-conteudo">
+                            <strong>Análise Completa</strong>
+                            <p>Dados consolidados de {{ mes_referencia }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PÁGINA 3: RECEITAS CORRENTES -->
+    <div class="page-break"></div>
+    <div class="page-container">
+        <div class="secao-receita">
+            <h1 class="titulo-secao">Receitas Correntes</h1>
+            
+            <!-- Resumo da Seção -->
+            <div class="resumo-secao">
+                <div class="totais-secao">
+                    <div class="total-item">
+                        <span class="label">Total 2025</span>
+                        <span class="valor">R$ {{ "{:,.0f}".format(resumo_executivo.total_correntes_2025/1000000).replace(',', '.') }}M</span>
+                    </div>
+                    <div class="total-item">
+                        <span class="label">Total 2024</span>
+                        <span class="valor">R$ {{ "{:,.0f}".format(resumo_executivo.total_correntes_2024/1000000).replace(',', '.') }}M</span>
+                    </div>
+                    <div class="total-item variacao">
+                        <span class="label">Variação</span>
+                        <span class="valor {{ 'positivo' if resumo_executivo.total_correntes_2025 > resumo_executivo.total_correntes_2024 else 'negativo' }}">
+                            {{ "{:+.1f}".format(((resumo_executivo.total_correntes_2025 - resumo_executivo.total_correntes_2024) / resumo_executivo.total_correntes_2024 * 100) if resumo_executivo.total_correntes_2024 > 0 else 0) }}%
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gráfico Receitas Correntes -->
+            {% if graficos_gerados and graficos_gerados.receitas_correntes %}
+            <div class="no-break">
+                <div class="grafico-container">
+                    <h3>Distribuição das Receitas Correntes</h3>
+                    <img src="{{ graficos_gerados.receitas_correntes }}" alt="Receitas Correntes" class="grafico-pdf">
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Tabela Detalhada -->
+            <div class="tabela-container">
+                <h3>Detalhamento por Categoria</h3>
+                <table class="tabela-receita">
+                    <thead>
+                        <tr>
+                            <th>Categoria</th>
+                            <th>Receita 2025</th>
+                            <th>Receita 2024</th>
+                            <th>Variação</th>
+                            <th>Participação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for codigo, relatorio in dados_consolidados.items() %}
+                        {% if relatorio.categoria == 'correntes' and relatorio.status == 'sucesso' %}
+                        <tr>
+                            <td>{{ relatorio.nome }}</td>
+                            <td>R$ {{ "{:,.2f}".format(0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                            <td>R$ {{ "{:,.2f}".format(0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                            <td>-</td>
+                            <td>-</td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PÁGINA 4: RECEITAS DE CAPITAL -->
+    <div class="page-break"></div>
+    <div class="page-container">
+        <div class="secao-receita">
+            <h1 class="titulo-secao">Receitas de Capital</h1>
+            
+            <!-- Resumo da Seção -->
+            <div class="resumo-secao">
+                <div class="totais-secao">
+                    <div class="total-item">
+                        <span class="label">Total 2025</span>
+                        <span class="valor">R$ {{ "{:,.0f}".format(resumo_executivo.total_capital_2025/1000000).replace(',', '.') }}M</span>
+                    </div>
+                    <div class="total-item">
+                        <span class="label">Total 2024</span>
+                        <span class="valor">R$ {{ "{:,.0f}".format(resumo_executivo.total_capital_2024/1000000).replace(',', '.') }}M</span>
+                    </div>
+                    <div class="total-item variacao">
+                        <span class="label">Variação</span>
+                        <span class="valor {{ 'positivo' if resumo_executivo.total_capital_2025 > resumo_executivo.total_capital_2024 else 'negativo' }}">
+                            {{ "{:+.1f}".format(((resumo_executivo.total_capital_2025 - resumo_executivo.total_capital_2024) / resumo_executivo.total_capital_2024 * 100) if resumo_executivo.total_capital_2024 > 0 else 0) }}%
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gráfico Receitas de Capital -->
+            {% if graficos_gerados and graficos_gerados.receitas_capital %}
+            <div class="no-break">
+                <div class="grafico-container">
+                    <h3>Receitas de Capital - Comparativo</h3>
+                    <img src="{{ graficos_gerados.receitas_capital }}" alt="Receitas de Capital" class="grafico-pdf">
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Tabela Detalhada -->
+            <div class="tabela-container">
+                <h3>Detalhamento por Categoria</h3>
+                <table class="tabela-receita">
+                    <thead>
+                        <tr>
+                            <th>Categoria</th>
+                            <th>Receita 2025</th>
+                            <th>Receita 2024</th>
+                            <th>Variação</th>
+                            <th>Participação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for codigo, relatorio in dados_consolidados.items() %}
+                        {% if relatorio.categoria == 'capital' and relatorio.status == 'sucesso' %}
+                        <tr>
+                            <td>{{ relatorio.nome }}</td>
+                            <td>R$ {{ "{:,.2f}".format(0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                            <td>R$ {{ "{:,.2f}".format(0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                            <td>-</td>
+                            <td>-</td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PÁGINA 5: EVOLUÇÃO TEMPORAL -->
+    <div class="page-break"></div>
+    <div class="page-container">
+        <div class="secao-receita">
+            <h1 class="titulo-secao">Evolução Temporal</h1>
+            
+            <!-- Gráfico Evolução Mensal -->
+            {% if graficos_gerados and graficos_gerados.evolucao_mensal %}
+            <div class="no-break">
+                <div class="grafico-container">
+                    <h3>Evolução Mensal - 2024 vs 2025</h3>
+                    <img src="{{ graficos_gerados.evolucao_mensal }}" alt="Evolução Mensal" class="grafico-pdf">
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Análise Textual -->
+            <div class="resumo-secao">
+                <h3>Análise de Tendências</h3>
+                <p>A evolução das receitas ao longo dos meses demonstra {{ 'crescimento' if resumo_executivo.variacao_percentual > 0 else 'redução' if resumo_executivo.variacao_percentual < 0 else 'estabilidade' }} 
+                em relação ao ano anterior, com destaque para {{ resumo_executivo.maior_categoria if resumo_executivo else 'as categorias principais' }}.</p>
+                
+                <div class="totais-secao">
+                    <div class="total-item">
+                        <span class="label">Crescimento Médio</span>
+                        <span class="valor">{{ "{:.1f}".format(resumo_executivo.variacao_percentual if resumo_executivo else 0) }}%</span>
+                    </div>
+                    <div class="total-item">
+                        <span class="label">Período Analisado</span>
+                        <span class="valor">{{ mes_referencia }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PÁGINA 6: ANEXOS E DETALHES TÉCNICOS -->
+    <div class="page-break"></div>
+    <div class="page-container">
+        <div class="anexos-relatorio">
+            <h1 class="titulo-secao">Anexos e Informações Técnicas</h1>
+            
+            <!-- Estatísticas de Geração -->
+            <div class="estatisticas-geracao">
+                <h3>Estatísticas de Processamento</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Total de Relatórios</span>
+                        <span class="stat-valor">{{ total_relatorios }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Tempo de Geração</span>
+                        <span class="stat-valor">{{ "%.2f"|format(tempo_geracao) }}s</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Relatórios com Sucesso</span>
+                        <span class="stat-valor">{{ resumo_executivo.relatorios_sucesso if resumo_executivo else 0 }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Relatórios com Erro</span>
+                        <span class="stat-valor">{{ resumo_executivo.relatorios_erro if resumo_executivo else 0 }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lista de Relatórios Processados -->
+            <div class="lista-relatorios">
+                <h3>Relatórios Processados</h3>
+                <ul class="relatorios-lista">
+                    {% for codigo, relatorio in dados_consolidados.items() %}
+                    <li class="relatorio-item {{ relatorio.status }}">
+                        <div class="relatorio-nome">{{ relatorio.nome }}</div>
+                        <div class="relatorio-categoria">{{ relatorio.categoria }}</div>
+                        <div class="relatorio-tempo">{{ "%.2f"|format(relatorio.tempo_execucao) if relatorio.tempo_execucao else 'N/A' }}s</div>
+                        <div class="relatorio-status">{{ relatorio.status }}</div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            
+            <!-- Metadados -->
+            <table class="tabela-metadados">
+                <tr>
+                    <td>Data de Geração</td>
+                    <td>{{ data_geracao }}</td>
+                </tr>
+                <tr>
+                    <td>Mês de Referência</td>
+                    <td>{{ mes_referencia }}</td>
+                </tr>
+                <tr>
+                    <td>NOUG Selecionada</td>
+                    <td>{{ noug_selecionada if noug_selecionada else 'Todas' }}</td>
+                </tr>
+                <tr>
+                    <td>Versão do Sistema</td>
+                    <td>Relatório Consolidado v1.0</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Rodapé -->
+    <div class="footer-consolidado">
+        <div class="info-tecnica">
+            <p><strong>Governo do Distrito Federal</strong></p>
+            <p>Relatório Consolidado de Receitas - {{ mes_referencia }}</p>
+            <p>Gerado automaticamente em {{ data_geracao }}</p>
+        </div>
+    </div>
+</body>
+</html>
