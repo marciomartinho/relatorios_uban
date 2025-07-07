@@ -8,6 +8,7 @@ import traceback
 # Importações das configurações
 from config_relatorios import HIERARQUIA_RECEITAS
 from utils.data_loaders import carregar_dataframe_receita
+from relatorios.receita.analise_inconsistencias import gerar_relatorio_analise_inconsistencias
 
 # Importações dos módulos de receita
 from relatorios.receita import (
@@ -578,4 +579,38 @@ def receitas_transferencia_capital():
         traceback.print_exc()
         return render_template('erro.html',
                              titulo="Erro no Relatório de Receitas de Transferências de Capital",
+                             mensagem=f"Erro ao gerar relatório: {str(e)}")
+    
+@receita_bp.route('/analise-inconsistencias')
+def analise_inconsistencias():
+    """Relatório de análise de inconsistências na receita"""
+    try:
+        inicio = time.time()
+        df_completo = carregar_dataframe_receita()
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+
+        # Gera o relatório de inconsistências
+        (dados_receitas_negativas, dados_ugs_invalidas, mes_referencia, 
+         analise_mensal_negativas, analise_mensal_ugs, resumo_geral) = gerar_relatorio_analise_inconsistencias(
+            df_completo, None, noug_selecionada
+        )
+        
+        fim = time.time()
+        print(f"⏱️ Relatório de Análise de Inconsistências gerado em {fim - inicio:.2f} segundos")
+
+        return render_template('analise_inconsistencias.html',
+                               dados_receitas_negativas=dados_receitas_negativas,
+                               dados_ugs_invalidas=dados_ugs_invalidas,
+                               analise_mensal_negativas=analise_mensal_negativas,
+                               analise_mensal_ugs=analise_mensal_ugs,
+                               resumo_geral=resumo_geral,
+                               mes_ref=mes_referencia,
+                               lista_nougs=lista_nougs,
+                               noug_selecionada=noug_selecionada)
+                               
+    except Exception as e:
+        traceback.print_exc()
+        return render_template('erro.html',
+                             titulo="Erro no Relatório de Análise de Inconsistências",
                              mensagem=f"Erro ao gerar relatório: {str(e)}")
