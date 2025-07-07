@@ -54,6 +54,15 @@ MENU_PRINCIPAL = {
             "nome": "Balanço Orçamentário da Receita",
             "url": "/relatorio/balanco-orcamentario",
             "status": "ativo"
+        },
+        {
+            "nome": "📄 Relatório Consolidado PDF",
+            "url": "/relatorio/consolidado-pdf",
+            "status": "ativo",
+            "destaque": True,
+            "descricao": "Relatório executivo que consolida todos os 13+ relatórios de receita",
+            "icone": "📄",
+            "categoria": "consolidado"
         }
     ],
     "Despesa": [
@@ -133,3 +142,267 @@ MENU_PRINCIPAL = {
         }
     ]
 }
+
+# --- CONFIGURAÇÕES ESPECÍFICAS DO RELATÓRIO CONSOLIDADO ---
+CONFIGURACAO_CONSOLIDADO = {
+    "nome_completo": "Relatório Consolidado de Receitas PDF",
+    "descricao_detalhada": "Documento executivo profissional que consolida automaticamente todos os relatórios de receita em um único PDF com dashboard, gráficos e análises.",
+    "relatorios_incluidos": [
+        "Balanço Orçamentário da Receita",
+        "Receitas Tributárias", 
+        "Receitas de Contribuições",
+        "Receitas Patrimoniais",
+        "Receitas de Serviços",
+        "Receitas de Transferências Correntes",
+        "Outras Receitas Correntes",
+        "Receitas de Operações de Crédito",
+        "Receitas de Alienação de Bens",
+        "Receitas de Amortização de Empréstimos",
+        "Receitas de Transferências de Capital",
+        "Gráfico de Receita Corrente",
+        "Gráfico de Receita de Capital",
+        "Análise de Inconsistências"
+    ],
+    "features": [
+        "Dashboard executivo com KPIs principais",
+        "Consolidação automática de 13+ relatórios", 
+        "Gráficos profissionais integrados",
+        "Análise comparativa 2024 vs 2025",
+        "Filtro por NOUG disponível",
+        "Export em PDF de alta qualidade",
+        "Tempo de geração otimizado",
+        "Visual corporativo GDF"
+    ],
+    "tempo_estimado_geracao": "2-5 segundos",
+    "paginas_estimadas": "10-15 páginas",
+    "formato_saida": "PDF A4",
+    "cores_corporativas": {
+        "azul_gdf_escuro": "#003366",
+        "azul_gdf_medio": "#0066cc", 
+        "azul_gdf_claro": "#cce5ff",
+        "azul_gdf_muito_claro": "#e7f2ff"
+    }
+}
+
+# --- MAPEAMENTO DE STATUS PARA ESTILOS CSS ---
+STATUS_CSS_MAPPING = {
+    "ativo": "status-ativo",
+    "desenvolvimento": "status-desenvolvimento", 
+    "manutencao": "status-manutencao",
+    "desabilitado": "status-desabilitado"
+}
+
+# --- ÍCONES PARA CADA TIPO DE RELATÓRIO ---
+ICONES_RELATORIOS = {
+    "balanco": "📊",
+    "consolidado": "📄", 
+    "grafico": "📈",
+    "dashboard": "📋",
+    "analise": "🔍",
+    "indicadores": "📊",
+    "comparativo": "⚖️",
+    "por_noug": "🏛️",
+    "variacoes": "📉",
+    "estimada": "📈"
+}
+
+# --- CATEGORIAS DE RELATÓRIOS ---
+CATEGORIAS_RELATORIOS = {
+    "receita": {
+        "nome": "Receitas",
+        "cor": "#0066cc",
+        "icone": "💰"
+    },
+    "despesa": {
+        "nome": "Despesas", 
+        "cor": "#dc3545",
+        "icone": "💸"
+    },
+    "balanco": {
+        "nome": "Balanço Geral",
+        "cor": "#28a745", 
+        "icone": "⚖️"
+    },
+    "consolidado": {
+        "nome": "Relatórios Consolidados",
+        "cor": "#003366",
+        "icone": "📄"
+    },
+    "outros": {
+        "nome": "Outros Relatórios",
+        "cor": "#6c757d",
+        "icone": "📋"
+    }
+}
+
+# --- CONFIGURAÇÕES DE FILTROS DISPONÍVEIS ---
+FILTROS_DISPONIVEIS = {
+    "noug": {
+        "nome": "Unidade Gestora (NOUG)",
+        "tipo": "select",
+        "obrigatorio": False,
+        "multiplo": False,
+        "fonte_dados": "dinamica"  # Carregado dos dados
+    },
+    "exercicio": {
+        "nome": "Exercício",
+        "tipo": "select", 
+        "obrigatorio": False,
+        "multiplo": True,
+        "opcoes_padrao": ["2024", "2025"]
+    },
+    "mes_referencia": {
+        "nome": "Mês de Referência",
+        "tipo": "select",
+        "obrigatorio": False,
+        "multiplo": False,
+        "fonte_dados": "dinamica"
+    },
+    "formato_saida": {
+        "nome": "Formato de Saída",
+        "tipo": "radio",
+        "obrigatorio": False,
+        "opcoes_padrao": [
+            {"valor": "html", "nome": "Visualizar na Tela"},
+            {"valor": "pdf", "nome": "Baixar PDF"}
+        ]
+    }
+}
+
+# --- METADADOS PARA SEO E DOCUMENTAÇÃO ---
+METADADOS_SISTEMA = {
+    "nome_sistema": "Sistema UBAN - Relatórios de Receita",
+    "versao": "2.0",
+    "autor": "Governo do Distrito Federal",
+    "secretaria": "Secretaria de Economia", 
+    "descricao": "Sistema de geração de relatórios orçamentários e financeiros do GDF",
+    "keywords": ["orçamento", "receita", "GDF", "relatórios", "balanço"],
+    "data_atualizacao": "2025-07-07"
+}
+
+# --- FUNÇÃO AUXILIAR PARA OBTER RELATÓRIOS POR CATEGORIA ---
+def obter_relatorios_por_categoria(categoria=None):
+    """
+    Retorna relatórios filtrados por categoria
+    
+    Args:
+        categoria (str): Nome da categoria para filtrar
+        
+    Returns:
+        dict: Relatórios da categoria especificada ou todos se categoria=None
+    """
+    if categoria is None:
+        return MENU_PRINCIPAL
+    
+    return {categoria: MENU_PRINCIPAL.get(categoria, [])}
+
+# --- FUNÇÃO AUXILIAR PARA OBTER RELATÓRIOS ATIVOS ---
+def obter_relatorios_ativos():
+    """
+    Retorna apenas os relatórios com status 'ativo'
+    
+    Returns:
+        dict: Relatórios ativos organizados por categoria
+    """
+    relatorios_ativos = {}
+    
+    for categoria, relatorios in MENU_PRINCIPAL.items():
+        relatorios_categoria = [
+            relatorio for relatorio in relatorios 
+            if relatorio.get("status") == "ativo"
+        ]
+        if relatorios_categoria:
+            relatorios_ativos[categoria] = relatorios_categoria
+    
+    return relatorios_ativos
+
+# --- FUNÇÃO AUXILIAR PARA VERIFICAR SE RELATÓRIO EXISTE ---
+def verificar_relatorio_existe(url):
+    """
+    Verifica se uma URL de relatório existe no menu
+    
+    Args:
+        url (str): URL do relatório a verificar
+        
+    Returns:
+        bool: True se o relatório existe, False caso contrário
+    """
+    for categoria, relatorios in MENU_PRINCIPAL.items():
+        for relatorio in relatorios:
+            if relatorio.get("url") == url:
+                return True
+    return False
+
+# --- FUNÇÃO AUXILIAR PARA OBTER CONFIGURAÇÃO DE RELATÓRIO ---
+def obter_configuracao_relatorio(url):
+    """
+    Obtém a configuração completa de um relatório pela URL
+    
+    Args:
+        url (str): URL do relatório
+        
+    Returns:
+        dict or None: Configuração do relatório ou None se não encontrado
+    """
+    for categoria, relatorios in MENU_PRINCIPAL.items():
+        for relatorio in relatorios:
+            if relatorio.get("url") == url:
+                relatorio_config = relatorio.copy()
+                relatorio_config["categoria_sistema"] = categoria
+                return relatorio_config
+    return None
+
+# --- VALIDAÇÃO DA CONFIGURAÇÃO ---
+def validar_configuracao():
+    """
+    Valida se a configuração está correta
+    
+    Returns:
+        tuple: (bool, list) - (válido, lista_de_erros)
+    """
+    erros = []
+    
+    # Verifica se todas as categorias têm pelo menos um relatório
+    for categoria, relatorios in MENU_PRINCIPAL.items():
+        if not relatorios:
+            erros.append(f"Categoria '{categoria}' não possui relatórios")
+    
+    # Verifica se URLs são únicas
+    urls_vistas = set()
+    for categoria, relatorios in MENU_PRINCIPAL.items():
+        for relatorio in relatorios:
+            url = relatorio.get("url")
+            if url in urls_vistas:
+                erros.append(f"URL duplicada encontrada: {url}")
+            urls_vistas.add(url)
+    
+    # Verifica se o relatório consolidado foi adicionado corretamente
+    consolidado_encontrado = False
+    for categoria, relatorios in MENU_PRINCIPAL.items():
+        for relatorio in relatorios:
+            if relatorio.get("url") == "/relatorio/consolidado-pdf":
+                consolidado_encontrado = True
+                break
+    
+    if not consolidado_encontrado:
+        erros.append("Relatório consolidado não foi encontrado no menu")
+    
+    return len(erros) == 0, erros
+
+# --- EXECUTAR VALIDAÇÃO NO IMPORT ---
+if __name__ == "__main__":
+    valido, erros = validar_configuracao()
+    if valido:
+        print("✅ Configuração validada com sucesso!")
+        print(f"📊 Total de categorias: {len(MENU_PRINCIPAL)}")
+        total_relatorios = sum(len(relatorios) for relatorios in MENU_PRINCIPAL.values())
+        print(f"📋 Total de relatórios: {total_relatorios}")
+        relatorios_ativos = sum(
+            len([r for r in relatorios if r.get("status") == "ativo"]) 
+            for relatorios in MENU_PRINCIPAL.values()
+        )
+        print(f"✅ Relatórios ativos: {relatorios_ativos}")
+    else:
+        print("❌ Erros encontrados na configuração:")
+        for erro in erros:
+            print(f"   - {erro}")

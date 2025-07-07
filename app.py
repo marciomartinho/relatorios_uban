@@ -10,6 +10,7 @@ from routes.receita_routes import receita_bp
 from routes.despesa_routes import despesa_bp
 from routes.indicadores_routes import indicadores_bp
 from routes.admin_routes import admin_bp
+from routes.consolidado_routes import consolidado_bp
 
 # Importa o serviço de cache
 from cache_service import cache_service
@@ -22,6 +23,7 @@ app.register_blueprint(receita_bp, url_prefix='/relatorio')
 app.register_blueprint(despesa_bp, url_prefix='/relatorio')
 app.register_blueprint(indicadores_bp, url_prefix='/relatorio')
 app.register_blueprint(admin_bp, url_prefix='/admin')
+app.register_blueprint(consolidado_bp, url_prefix='/relatorio')
 
 # ===================== ROTAS PRINCIPAIS =====================
 
