@@ -13,6 +13,7 @@
 <!-- Bibliotecas para sistema de download -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
@@ -265,7 +266,7 @@ window.addEventListener('load', function() {
         }
     }
 
-    /* === NOVOS ESTILOS PARA SISTEMA DE DOWNLOAD === */
+    /* === ESTILOS PARA SISTEMA DE DOWNLOAD === */
     
     /* Seção de downloads */
     .download-section {
@@ -307,8 +308,6 @@ window.addEventListener('load', function() {
         align-items: center;
         justify-content: center;
         gap: 10px;
-        position: relative;
-        overflow: hidden;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
@@ -316,10 +315,6 @@ window.addEventListener('load', function() {
     .download-btn:hover {
         transform: translateY(-3px);
         box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-    }
-    
-    .download-btn:active {
-        transform: translateY(-1px);
     }
     
     .btn-png {
@@ -374,6 +369,12 @@ window.addEventListener('load', function() {
         font-size: 14px;
     }
     
+    /* Identificadores para captura */
+    .secao-relatorio {
+        margin-bottom: 30px;
+        position: relative;
+    }
+    
     /* Estilos para impressão/PDF */
     @media print {
         body {
@@ -417,12 +418,6 @@ window.addEventListener('load', function() {
         .comparativo-mensal {
             grid-template-columns: 1fr 1fr !important;
         }
-    }
-    
-    /* Identificadores para captura */
-    .secao-relatorio {
-        margin-bottom: 30px;
-        position: relative;
     }
 </style>
 
@@ -489,7 +484,7 @@ function obterNomeMes(numeroMes) {
         </button>
         <button class="download-btn btn-pdf" onclick="downloadPDF()">
             <span>📄</span>
-            <span>Gerar PDF</span>
+            <span>PDF Otimizado</span>
         </button>
     </div>
     
@@ -731,7 +726,7 @@ function obterNomeMes(numeroMes) {
 
 {% block scripts %}
 <script>
-// === SISTEMA DE GRÁFICO DE PIZZA ===
+// === SISTEMA DE GRÁFICO DE PIZZA (ORIGINAL) ===
 
 // Aguardar DOM carregar completamente
 document.addEventListener('DOMContentLoaded', function() {
@@ -745,7 +740,7 @@ document.addEventListener('DOMContentLoaded', function() {
         verificarECriarGrafico();
     }, 1000);
     
-    // Verificar bibliotecas de download
+    // ADICIONAR: Verificação das bibliotecas
     verificarBibliotecasDownload();
 });
 
@@ -941,14 +936,14 @@ function mostrarErro(mensagem) {
     document.getElementById('chartComparativo').style.display = 'none';
 }
 
-// === SISTEMA DE DOWNLOAD ===
+// === SISTEMA DE DOWNLOAD (SEGUINDO GUIA) ===
 
 function verificarBibliotecasDownload() {
     console.log('🔍 Verificando bibliotecas de download...');
-    
     const bibliotecas = [
         { nome: 'html2canvas', objeto: window.html2canvas },
         { nome: 'jsPDF', objeto: window.jspdf },
+        { nome: 'jsPDF-AutoTable', objeto: window.jspdf && window.jspdf.jsPDF.prototype.autoTable },
         { nome: 'JSZip', objeto: window.JSZip },
         { nome: 'FileSaver', objeto: window.saveAs }
     ];
@@ -969,7 +964,7 @@ function showDownloadLoading(show = true) {
     }
 }
 
-// 1. Download apenas da tabela principal (PNG)
+// 1. Download PNG da tabela
 async function downloadTablePNG() {
     showDownloadLoading(true);
     try {
@@ -995,7 +990,7 @@ async function downloadTablePNG() {
     }
 }
 
-// 2. Download de todas as seções (ZIP com PNGs)
+// 2. Download ZIP completo
 async function downloadAllPNG() {
     showDownloadLoading(true);
     try {
@@ -1006,10 +1001,10 @@ async function downloadAllPNG() {
         const zip = new JSZip();
         const secoes = [
             { id: 'secaoTabela', nome: '01-tabela-principal.png' },
-            { id: 'secaoResumo', nome: '02-resumo-receitas.png' },
-            { id: 'secaoComparativo', nome: '03-comparativo-mensal.png' },
-            { id: 'secaoGrafico', nome: '04-grafico-distribuicao.png' },
-            { id: 'secaoNougs', nome: '05-unidades-gestoras.png' }
+            { id: 'secaoResumo', nome: '02-resumo.png' },
+            { id: 'secaoComparativo', nome: '03-comparativo.png' },
+            { id: 'secaoGrafico', nome: '04-grafico.png' },
+            { id: 'secaoNougs', nome: '05-nougs.png' }
         ];
         
         for (const secao of secoes) {
@@ -1022,7 +1017,6 @@ async function downloadAllPNG() {
                     logging: false
                 });
                 
-                // Converter canvas para blob
                 const blob = await new Promise(resolve => {
                     canvas.toBlob(resolve, 'image/png', 0.95);
                 });
@@ -1032,7 +1026,6 @@ async function downloadAllPNG() {
             }
         }
         
-        // Gerar e baixar o ZIP
         const zipBlob = await zip.generateAsync({
             type: 'blob',
             compression: 'DEFLATE',
@@ -1051,33 +1044,23 @@ async function downloadAllPNG() {
     }
 }
 
-// 3. Download do HTML (otimizado para impressão)
+// 3. Download HTML
 function downloadHTML() {
     showDownloadLoading(true);
     try {
-        // Criar cópia do HTML atual
         let htmlCompleto = document.documentElement.outerHTML;
         
-        // Otimizar HTML para impressão (remover elementos internos)
+        // Limpar elementos internos
         htmlCompleto = htmlCompleto
-            .replace(/<div class="download-section">[\s\S]*?<\/div>/, '') // Remove seção de downloads
-            .replace(/<div class="info-container">[\s\S]*?<\/div>/, '') // Remove informações internas
-            .replace(/<div class="download-loading"[\s\S]*?<\/div>/, '') // Remove loading
-            .replace(/onclick="[^"]*"/g, '') // Remove eventos onclick
-            .replace(/cursor:\s*pointer[^;]*;?/g, '') // Remove cursor pointer
-            .replace('<title>Receitas Tributárias Líquidas Realizada - Comparativo</title>', 
-                    '<title>Receitas Tributárias Líquidas Realizada - Relatório Oficial</title>');
+            .replace(/<div class="download-section">[\s\S]*?<\/div>/, '')
+            .replace(/<div class="info-container">[\s\S]*?<\/div>/, '')
+            .replace(/<div class="download-loading"[\s\S]*?<\/div>/, '')
+            .replace(/onclick="[^"]*"/g, '')
+            .replace(/cursor:\s*pointer[^;]*;?/g, '');
         
-        // Adicionar meta tag para impressão
-        htmlCompleto = htmlCompleto.replace(
-            '<meta name="viewport"',
-            '<meta name="description" content="Relatório Oficial - Receitas Tributárias Líquidas Realizada"><meta name="viewport"'
-        );
-        
-        // Criar blob e download
         const blob = new Blob([htmlCompleto], { type: 'text/html;charset=utf-8' });
         const dataAtual = new Date().toISOString().split('T')[0];
-        saveAs(blob, `receitas-tributarias-relatorio-${dataAtual}.html`);
+        saveAs(blob, `receitas-tributarias-${dataAtual}.html`);
         
         console.log('✅ Download do HTML concluído');
     } catch (error) {
@@ -1088,7 +1071,7 @@ function downloadHTML() {
     }
 }
 
-// 4. Gerar PDF via jsPDF
+// 4. Download PDF (VERSÃO OTIMIZADA COM PAISAGEM)
 async function downloadPDF() {
     showDownloadLoading(true);
     try {
@@ -1097,113 +1080,27 @@ async function downloadPDF() {
         }
         
         const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdf = new jsPDF('landscape', 'mm', 'a4'); // PAISAGEM!
         
-        // Configurações
-        const margemEsquerda = 15;
-        const margemTopo = 20;
-        const larguraPagina = 180; // A4 menos margens
-        let posicaoY = margemTopo;
+        console.log('📄 Iniciando geração do PDF em paisagem...');
         
-        // Cabeçalho
-        pdf.setFontSize(18);
-        pdf.setFont(undefined, 'bold');
-        pdf.setTextColor(0, 51, 102);
-        pdf.text('RECEITAS TRIBUTÁRIAS LÍQUIDAS REALIZADA', margemEsquerda, posicaoY);
-        posicaoY += 12;
+        // === CABEÇALHO ===
+        let posY = adicionarCabecalhoPDF(pdf, true);
         
-        pdf.setFontSize(14);
-        pdf.setFont(undefined, 'normal');
-        pdf.setTextColor(100, 100, 100);
-        pdf.text('Origens 11 e 71 com desdobramentos por espécie - Comparativo 2024 vs 2025', margemEsquerda, posicaoY);
-        posicaoY += 8;
+        // === TABELA PRINCIPAL (PAISAGEM) ===
+        posY = await adicionarTabelaPaisagemPDF(pdf, posY);
         
-        const dataRef = '{{ mes_ref }}/2025';
-        pdf.setFontSize(12);
-        pdf.text(`Dados de Referência: ${dataRef}`, margemEsquerda, posicaoY);
-        posicaoY += 8;
+        // === OUTRAS SEÇÕES ===
+        await adicionarSecoesOtimizadasPDF(pdf);
         
-        // Data de geração
-        const dataGeracao = new Date().toLocaleDateString('pt-BR');
-        pdf.text(`Relatório gerado em: ${dataGeracao}`, margemEsquerda, posicaoY);
-        posicaoY += 20;
+        // === RODAPÉ ===
+        adicionarRodapePDF(pdf);
         
-        // Capturar cada seção como imagem e adicionar ao PDF
-        const secoes = [
-            { id: 'secaoTabela', titulo: '1. Tabela Principal - Receitas Tributárias' },
-            { id: 'secaoResumo', titulo: '2. Resumo das Receitas Tributárias' },
-            { id: 'secaoComparativo', titulo: '3. Comparativo Mensal Acumulado' },
-            { id: 'secaoGrafico', titulo: '4. Distribuição por Espécie' },
-            { id: 'secaoNougs', titulo: '5. Unidades Gestoras' }
-        ];
-        
-        for (let i = 0; i < secoes.length; i++) {
-            const secao = secoes[i];
-            const elemento = document.getElementById(secao.id);
-            
-            if (elemento) {
-                // Verificar se precisa de nova página
-                if (posicaoY > 240) {
-                    pdf.addPage();
-                    posicaoY = margemTopo;
-                }
-                
-                // Título da seção
-                pdf.setFontSize(14);
-                pdf.setFont(undefined, 'bold');
-                pdf.setTextColor(0, 51, 102);
-                pdf.text(secao.titulo, margemEsquerda, posicaoY);
-                posicaoY += 12;
-                
-                // Capturar imagem da seção
-                const canvas = await html2canvas(elemento, {
-                    scale: 1.5,
-                    useCORS: true,
-                    backgroundColor: '#ffffff',
-                    logging: false
-                });
-                
-                const imgData = canvas.toDataURL('image/png', 0.95);
-                
-                // Calcular dimensões para caber na página
-                const aspectRatio = canvas.height / canvas.width;
-                const larguraImg = larguraPagina;
-                const alturaImg = Math.min(larguraImg * aspectRatio, 200); // Limitar altura
-                
-                // Verificar se a imagem cabe na página atual
-                if (posicaoY + alturaImg > 270) {
-                    pdf.addPage();
-                    posicaoY = margemTopo;
-                    
-                    // Repetir título na nova página
-                    pdf.setFontSize(14);
-                    pdf.setFont(undefined, 'bold');
-                    pdf.setTextColor(0, 51, 102);
-                    pdf.text(secao.titulo + ' (continuação)', margemEsquerda, posicaoY);
-                    posicaoY += 12;
-                }
-                
-                pdf.addImage(imgData, 'PNG', margemEsquerda, posicaoY, larguraImg, alturaImg);
-                posicaoY += alturaImg + 15;
-                
-                console.log(`✅ Seção ${secao.titulo} adicionada ao PDF`);
-            }
-        }
-        
-        // Rodapé na última página
-        const totalPaginas = pdf.internal.getNumberOfPages();
-        for (let i = 1; i <= totalPaginas; i++) {
-            pdf.setPage(i);
-            pdf.setFontSize(10);
-            pdf.setTextColor(150, 150, 150);
-            pdf.text(`Página ${i} de ${totalPaginas}`, 190, 285, { align: 'right' });
-            pdf.text('Relatório Oficial - Sistema de Receitas Tributárias', margemEsquerda, 285);
-        }
-        
-        // Salvar PDF
+        // === SALVAR ===
         const dataAtual = new Date().toISOString().split('T')[0];
-        pdf.save(`receitas-tributarias-relatorio-${dataAtual}.pdf`);
-        console.log('✅ PDF gerado com sucesso');
+        pdf.save(`receitas-tributarias-paisagem-${dataAtual}.pdf`);
+        
+        console.log('✅ PDF em paisagem gerado com sucesso!');
         
     } catch (error) {
         console.error('❌ Erro ao gerar PDF:', error);
@@ -1213,7 +1110,357 @@ async function downloadPDF() {
     }
 }
 
-// === SISTEMA DE FILTRAGEM POR NOUG ===
+// === FUNÇÕES AUXILIARES PARA PDF ===
+
+function adicionarCabecalhoPDF(pdf, paisagem = false) {
+    const largura = paisagem ? 297 : 210;
+    const centro = largura / 2;
+    let posY = 15;
+    
+    // Título principal
+    pdf.setFontSize(16);
+    pdf.setFont(undefined, 'bold');
+    pdf.setTextColor(0, 51, 102);
+    pdf.text('RECEITAS TRIBUTÁRIAS LÍQUIDAS REALIZADA', centro, posY, { align: 'center' });
+    posY += 8;
+    
+    // Subtítulo
+    pdf.setFontSize(12);
+    pdf.setFont(undefined, 'normal');
+    pdf.setTextColor(80, 80, 80);
+    pdf.text('Origens 11 e 71 com desdobramentos por espécie', centro, posY, { align: 'center' });
+    posY += 6;
+    
+    // Período
+    pdf.setFontSize(11);
+    pdf.text('Comparativo 2024 vs 2025', centro, posY, { align: 'center' });
+    posY += 5;
+    
+    // Data de geração
+    pdf.setFontSize(10);
+    pdf.setTextColor(100, 100, 100);
+    const agora = new Date().toLocaleString('pt-BR');
+    pdf.text(`Gerado em: ${agora}`, centro, posY, { align: 'center' });
+    posY += 15;
+    
+    return posY;
+}
+
+async function adicionarTabelaPaisagemPDF(pdf, posY) {
+    console.log('📊 Extraindo dados da tabela para PDF paisagem...');
+    
+    // Extrair dados da tabela HTML
+    const dadosTabela = extrairDadosTabelaHTML();
+    
+    if (!dadosTabela || dadosTabela.length === 0) {
+        console.warn('⚠️ Nenhum dado encontrado na tabela');
+        return posY + 20;
+    }
+    
+    // Configurar colunas OTIMIZADAS para paisagem com larguras melhores
+    const colunas = [
+        { header: 'CÓDIGO', dataKey: 'codigo', width: 22 },
+        { header: 'ESPÉCIE/DETALHAMENTO', dataKey: 'nome', width: 130 },
+        { header: 'RECEITA 06/2024', dataKey: 'valor2024', width: 35 },
+        { header: 'RECEITA 06/2025', dataKey: 'valor2025', width: 35 },
+        { header: 'VARIAÇÃO ABSOLUTA', dataKey: 'variacaoAbs', width: 35 },
+        { header: 'VAR. %', dataKey: 'variacaoPerc', width: 20 }
+    ];
+    
+    // Adicionar título da seção
+    pdf.setFontSize(14);
+    pdf.setFont(undefined, 'bold');
+    pdf.setTextColor(0, 51, 102);
+    pdf.text('Tabela Principal - Receitas Tributarias', 15, posY);
+    posY += 10;
+    
+    // Gerar tabela com formatação melhorada
+    pdf.autoTable({
+        columns: colunas,
+        body: dadosTabela,
+        startY: posY,
+        margin: { left: 8, right: 8 },
+        tableWidth: 'auto',
+        styles: {
+            fontSize: 8,
+            cellPadding: { top: 4, right: 3, bottom: 4, left: 3 },
+            textColor: [30, 30, 30],
+            lineColor: [180, 180, 180],
+            lineWidth: 0.5,
+            overflow: 'linebreak',
+            cellWidth: 'wrap',
+            valign: 'middle'
+        },
+        headStyles: {
+            fillColor: [0, 51, 102],
+            textColor: [255, 255, 255],
+            fontSize: 9,
+            fontStyle: 'bold',
+            halign: 'center',
+            valign: 'middle',
+            cellPadding: { top: 5, right: 3, bottom: 5, left: 3 }
+        },
+        columnStyles: {
+            codigo: { 
+                halign: 'center',
+                fontFamily: 'courier',
+                fontSize: 7
+            },
+            nome: { 
+                halign: 'left',
+                cellPadding: { left: 5 }
+            },
+            valor2024: { 
+                halign: 'right',
+                fontFamily: 'courier',
+                fontSize: 7
+            },
+            valor2025: { 
+                halign: 'right',
+                fontFamily: 'courier',
+                fontSize: 7
+            },
+            variacaoAbs: { 
+                halign: 'right',
+                fontFamily: 'courier',
+                fontSize: 7
+            },
+            variacaoPerc: { 
+                halign: 'center',
+                fontWeight: 'bold'
+            }
+        },
+        didParseCell: function(data) {
+            const rowData = dadosTabela[data.row.index];
+            if (rowData && rowData.tipo) {
+                switch (rowData.tipo) {
+                    case 'especie':
+                        data.cell.styles.fillColor = [230, 240, 255];
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fontSize = 9;
+                        data.cell.styles.textColor = [0, 51, 102];
+                        // Destacar linha principal
+                        if (data.column.dataKey === 'nome') {
+                            data.cell.styles.fontStyle = 'bold';
+                        }
+                        break;
+                    case 'detalhamento':
+                        data.cell.styles.fillColor = [248, 250, 255];
+                        data.cell.styles.fontSize = 8;
+                        if (data.column.dataKey === 'nome') {
+                            data.cell.styles.fontStyle = 'italic';
+                            data.cell.styles.textColor = [80, 80, 80];
+                        }
+                        if (data.column.dataKey === 'codigo') {
+                            data.cell.styles.textColor = [120, 120, 120];
+                        }
+                        break;
+                    case 'total':
+                        data.cell.styles.fillColor = [0, 51, 102];
+                        data.cell.styles.textColor = [255, 255, 255];
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fontSize = 9;
+                        break;
+                }
+                
+                // Colorir variações com cores mais suaves
+                if ((data.column.dataKey === 'variacaoAbs' || data.column.dataKey === 'variacaoPerc') && rowData.tipo !== 'total') {
+                    if (rowData.variacaoNumero > 0) {
+                        data.cell.styles.textColor = [25, 135, 84]; // Verde mais escuro
+                        data.cell.styles.fontStyle = 'bold';
+                    } else if (rowData.variacaoNumero < 0) {
+                        data.cell.styles.textColor = [200, 35, 51]; // Vermelho mais escuro
+                        data.cell.styles.fontStyle = 'bold';
+                    }
+                }
+            }
+        },
+        // Adicionar alternancia de cores nas linhas
+        alternateRowStyles: {
+            fillColor: [252, 252, 252]
+        },
+        // Melhorar espaçamento
+        margin: { top: 0, left: 8, right: 8 },
+        pageBreak: 'auto',
+        rowPageBreak: 'avoid',
+        showHead: 'everyPage'
+    });
+    
+    return pdf.lastAutoTable.finalY + 20;
+}
+
+function extrairDadosTabelaHTML() {
+    const dados = [];
+    const linhasTabela = document.querySelectorAll('#secaoTabela tbody tr');
+    
+    linhasTabela.forEach(linha => {
+        const celulas = linha.querySelectorAll('td');
+        if (celulas.length >= 6) {
+            let tipo = 'normal';
+            if (linha.classList.contains('especie')) tipo = 'especie';
+            else if (linha.classList.contains('detalhamento')) tipo = 'detalhamento';
+            else if (linha.classList.contains('total')) tipo = 'total';
+            
+            let codigo = celulas[0].textContent.trim();
+            let nome = celulas[1].textContent.trim();
+            const valor2024 = celulas[2].textContent.trim();
+            const valor2025 = celulas[3].textContent.trim();
+            const variacaoAbs = celulas[4].textContent.trim();
+            const variacaoPerc = celulas[5].textContent.trim();
+            
+            // Limpar códigos e nomes com melhor formatação
+            codigo = codigo.replace(/[🏛️├─]/g, '').replace(/\s+/g, ' ').trim();
+            nome = nome.replace(/\s+/g, ' ').trim();
+            
+            // Melhorar formatação para detalhamentos
+            if (tipo === 'detalhamento') {
+                // Remover prefixo desnecessário e manter indentação visual
+                codigo = codigo.replace(/YY$/, '');
+                // Manter bullet point mas melhorar formatação
+                if (!nome.startsWith('•')) {
+                    nome = '• ' + nome;
+                }
+            } else if (tipo === 'especie') {
+                // Limpar indicadores de quantidade para espécies
+                codigo = codigo.replace(/\(.*?\)/g, '').trim();
+                nome = nome.replace(/\(.*?\)/g, '').trim();
+            }
+            
+            // Extrair número da variação para colorir
+            let variacaoNumero = 0;
+            const variacaoMatch = variacaoPerc.match(/([+-]?[\d,]+\.?\d*)/);
+            if (variacaoMatch) {
+                variacaoNumero = parseFloat(variacaoMatch[1].replace(',', ''));
+            }
+            
+            dados.push({
+                tipo: tipo,
+                codigo: codigo,
+                nome: nome,
+                valor2024: valor2024,
+                valor2025: valor2025,
+                variacaoAbs: variacaoAbs,
+                variacaoPerc: variacaoPerc,
+                variacaoNumero: variacaoNumero
+            });
+        }
+    });
+    
+    return dados;
+}
+
+async function adicionarSecoesOtimizadasPDF(pdf) {
+    const secoes = [
+        { id: 'secaoResumo', titulo: 'Resumo das Receitas Tributarias' },
+        { id: 'secaoComparativo', titulo: 'Comparativo Mensal Acumulado' },
+        { id: 'secaoGrafico', titulo: 'Distribuicao das Especies Tributarias' },
+        { id: 'secaoNougs', titulo: 'Unidades Gestoras' }
+    ];
+    
+    for (const secao of secoes) {
+        const elemento = document.getElementById(secao.id);
+        
+        if (elemento) {
+            pdf.addPage('landscape');
+            let posY = 20;
+            
+            // Título da seção
+            pdf.setFontSize(13);
+            pdf.setFont(undefined, 'bold');
+            pdf.setTextColor(0, 51, 102);
+            pdf.text(secao.titulo, 15, posY);
+            posY += 12;
+            
+            try {
+                // Para o gráfico, aguardar ele carregar completamente
+                if (secao.id === 'secaoGrafico') {
+                    await aguardarGraficoCarregar();
+                }
+                
+                const canvas = await html2canvas(elemento, {
+                    scale: 1.5,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    allowTaint: false,
+                    foreignObjectRendering: false,
+                    // Específico para gráficos
+                    ignoreElements: function(element) {
+                        // Ignorar elementos de loading/erro
+                        return element.id === 'chart-loading' || element.id === 'chart-error';
+                    }
+                });
+                
+                const imgData = canvas.toDataURL('image/png', 0.85);
+                const aspectRatio = canvas.height / canvas.width;
+                const larguraImg = 250;
+                const alturaImg = Math.min(larguraImg * aspectRatio, 150);
+                
+                pdf.addImage(imgData, 'PNG', 15, posY, larguraImg, alturaImg);
+                
+                console.log(`✅ Seção ${secao.titulo} capturada com sucesso`);
+                
+            } catch (error) {
+                console.error(`❌ Erro ao capturar ${secao.titulo}:`, error);
+                pdf.setFontSize(11);
+                pdf.setTextColor(220, 53, 69);
+                pdf.text('Erro ao capturar esta seção. Consulte a versão web.', 15, posY);
+            }
+        }
+    }
+}
+
+// Nova função para aguardar o gráfico carregar
+async function aguardarGraficoCarregar() {
+    return new Promise((resolve) => {
+        const verificarGrafico = () => {
+            const canvas = document.getElementById('chartComparativo');
+            const loading = document.getElementById('chart-loading');
+            const erro = document.getElementById('chart-error');
+            
+            // Verificar se o gráfico está visível e carregado
+            if (canvas && 
+                canvas.style.display !== 'none' && 
+                loading.style.display === 'none' && 
+                erro.style.display === 'none') {
+                
+                // Aguardar mais um pouco para garantir que renderizou
+                setTimeout(resolve, 500);
+            } else {
+                // Tentar novamente em 100ms
+                setTimeout(verificarGrafico, 100);
+            }
+        };
+        
+        verificarGrafico();
+        
+        // Timeout de segurança - 5 segundos
+        setTimeout(resolve, 5000);
+    });
+}
+
+function adicionarRodapePDF(pdf) {
+    const totalPaginas = pdf.internal.getNumberOfPages();
+    
+    for (let i = 1; i <= totalPaginas; i++) {
+        pdf.setPage(i);
+        
+        // Linha de separação
+        pdf.setDrawColor(200, 200, 200);
+        pdf.line(15, 200, 280, 200);
+        
+        // Rodapé
+        pdf.setFontSize(8);
+        pdf.setTextColor(120, 120, 120);
+        pdf.text('Sistema de Receitas Tributárias', 15, 205);
+        
+        const agora = new Date().toLocaleString('pt-BR');
+        pdf.text(`Gerado: ${agora}`, 148, 205, { align: 'center' });
+        pdf.text(`Página ${i} de ${totalPaginas}`, 280, 205, { align: 'right' });
+    }
+}
+
+// === SISTEMA DE FILTRAGEM POR NOUG (ORIGINAL) ===
 
 function filtrarPorNoug(nougSelecionada) {
     console.log('🔍 Filtrando por NOUG:', nougSelecionada);
@@ -1228,31 +1475,5 @@ function filtrarPorNoug(nougSelecionada) {
     const urlAtual = window.location.pathname;
     window.location.href = `${urlAtual}?noug=${encodeURIComponent(nougSelecionada)}`;
 }
-
-// Adicionar indicador visual na NOUG selecionada
-document.addEventListener('DOMContentLoaded', function() {
-    // Obter NOUG selecionada da URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const nougSelecionada = urlParams.get('noug');
-    
-    if (nougSelecionada) {
-        // Destacar a NOUG selecionada na lista
-        document.querySelectorAll('.noug-item').forEach(item => {
-            const nougItem = item.querySelector('.noug-nome').textContent.trim();
-            if (nougItem === nougSelecionada) {
-                item.style.background = '#d4edda';
-                item.style.borderLeft = '4px solid #155724';
-                item.style.fontWeight = 'bold';
-                
-                // Adicionar indicador visual
-                const indicador = document.createElement('span');
-                indicador.innerHTML = ' ✓';
-                indicador.style.color = '#155724';
-                indicador.style.fontWeight = 'bold';
-                item.querySelector('.noug-nome').appendChild(indicador);
-            }
-        });
-    }
-});
 </script>
 {% endblock %}
