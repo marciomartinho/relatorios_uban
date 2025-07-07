@@ -290,24 +290,26 @@ def receita_atualizada_vs_inicial():
 
 @receita_bp.route('/grafico-receita-liquida')
 def grafico_receita_liquida():
-    """Relatório: Gráfico de Receita Líquida (Receita Corrente)"""
+    """Relatório: Gráfico de Total Receita Corrente (Comparativo 2024 vs 2025)"""
     try:
         inicio = time.time()
         df_completo = carregar_dataframe_receita()
         lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
         noug_selecionada = request.args.get('noug', None)
 
-        dados_tabela, mes_referencia, dados_grafico, dados_chart = gerar_grafico_receita_liquida(
+        # ATUALIZAÇÃO: Agora retorna 5 valores incluindo comparativo_mensal
+        dados_tabela, mes_referencia, dados_grafico, dados_chart, comparativo_mensal = gerar_grafico_receita_liquida(
             df_completo, HIERARQUIA_RECEITAS, noug_selecionada
         )
         
         fim = time.time()
-        print(f"⏱️ Gráfico de receita líquida gerado em {fim - inicio:.2f} segundos")
+        print(f"⏱️ Gráfico de receita corrente gerado em {fim - inicio:.2f} segundos")
 
         return render_template('grafico_receita_liquida.html',
                                dados_relatorio=dados_tabela,
                                dados_grafico=dados_grafico,
                                dados_chart=dados_chart,
+                               comparativo_mensal=comparativo_mensal,  # NOVO
                                mes_ref=mes_referencia,
                                lista_nougs=lista_nougs,
                                noug_selecionada=noug_selecionada)
@@ -315,7 +317,7 @@ def grafico_receita_liquida():
     except Exception as e:
         traceback.print_exc()
         return render_template('erro.html',
-                             titulo="Erro no Gráfico de Receita Líquida",
+                             titulo="Erro no Gráfico de Receita Corrente",
                              mensagem=f"Erro ao gerar gráfico: {str(e)}")
 
 @receita_bp.route('/grafico-receita-capital')

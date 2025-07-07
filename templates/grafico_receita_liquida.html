@@ -1,12 +1,12 @@
 {% extends "base_relatorio.html" %}
 
-{% block titulo %}Gráfico de Receita Líquida (Receita Corrente){% endblock %}
+{% block titulo %}Total Receita Corrente - Comparativo 2024 vs 2025{% endblock %}
 
-{% block titulo_relatorio %}GRÁFICO DE RECEITA LÍQUIDA{% endblock %}
+{% block titulo_relatorio %}TOTAL RECEITA CORRENTE{% endblock %}
 
-{% block subtitulo %}Receita Corrente - Exercício 2025{% endblock %}
+{% block subtitulo %}Comparativo 2024 vs 2025{% endblock %}
 
-{% block referencia %}Dados de Referência: {{ mes_ref }}{% endblock %}
+{% block referencia %}Valores Líquidos (Conta Contábil 621200000 - 621300000) - Dados de Referência: {{ mes_ref }}{% endblock %}
 
 {% block head_extra %}
 <!-- Chart.js para gráficos - CDN alternativo mais confiável -->
@@ -21,6 +21,10 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        border: 2px solid #dee2e6;
     }
     
     .chart-wrapper {
@@ -39,14 +43,32 @@
     
     .total-display {
         text-align: center;
-        font-size: 24px;
+        font-size: 20px;
         font-weight: bold;
         color: #003366;
         margin: 20px 0;
-        padding: 15px;
-        background: #f8f9fa;
+        padding: 20px;
+        background: #e7f3ff;
         border-radius: 8px;
         border-left: 4px solid #003366;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+    }
+    
+    .total-item {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 3px solid #0066cc;
+    }
+    
+    .total-item.variacao {
+        border-left-color: #28a745;
+    }
+    
+    .total-item.variacao.negativa {
+        border-left-color: #dc3545;
     }
     
     .legend-table {
@@ -64,11 +86,11 @@
     .legend-table td {
         padding: 10px 12px;
         border: 1px solid #ddd;
-        text-align: right;
+        text-align: right !important;
     }
     
     .legend-table td:first-child {
-        text-align: left;
+        text-align: left !important;
         font-weight: 500;
     }
     
@@ -88,6 +110,50 @@
         font-weight: bold;
     }
     
+    .valor-positivo {
+        color: #28a745;
+        font-weight: bold;
+    }
+    
+    .valor-negativo {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    
+    .info-container {
+        background: #e7f3ff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #0066cc;
+    }
+    
+    .info-container h4 {
+        margin: 0 0 10px 0;
+        color: #0066cc;
+        font-weight: 600;
+    }
+    
+    .info-container ul {
+        margin: 0;
+        padding-left: 20px;
+        color: #555;
+    }
+    
+    .resumo-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #ff6b6b;
+    }
+    
+    .resumo-container h4 {
+        margin: 0 0 15px 0;
+        color: #ff6b6b;
+        font-weight: 600;
+    }
+    
     @media (max-width: 768px) {
         .chart-wrapper {
             width: 100%;
@@ -97,12 +163,67 @@
         .chart-container {
             height: 400px;
         }
+        
+        .total-display {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
+
+<script>
+// Função para converter número do mês para nome
+function obterNomeMes(numeroMes) {
+    const meses = {
+        '01': 'Janeiro',
+        '02': 'Fevereiro', 
+        '03': 'Março',
+        '04': 'Abril',
+        '05': 'Maio',
+        '06': 'Junho',
+        '07': 'Julho',
+        '08': 'Agosto',
+        '09': 'Setembro',
+        '10': 'Outubro',
+        '11': 'Novembro',
+        '12': 'Dezembro'
+    };
+    
+    return meses[numeroMes] || `Mês ${numeroMes}`;
+}
+</script>
+{% endblock %}
+
+{% block filtros %}
+{% if lista_nougs %}
+<div class="filtro-container">
+    <label for="filtro-noug">Filtrar por Unidade Gestora:</label>
+    <select id="filtro-noug" onchange="aplicarFiltro()">
+        <option value="todos">-- Mostrar Todas as Unidades (Consolidado) --</option>
+        {% for noug in lista_nougs %}
+            <option value="{{ noug }}" {% if noug == noug_selecionada %}selected{% endif %}>
+                {{ noug }}
+            </option>
+        {% endfor %}
+    </select>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block conteudo %}
-<div class="chart-title">Composição da Receita Líquida por Origem</div>
+{% set mes_apenas = mes_ref.split('/')[0] if '/' in mes_ref else '05' %}
+
+<div class="info-container">
+    <h4>ℹ️ Informações do Relatório - Total Receita Corrente</h4>
+    <ul>
+        <li><strong>Categorias:</strong> CATEGORIA = 1 (Receitas Correntes) e CATEGORIA = 7 (Receitas Correntes Intraorçamentárias)</li>
+        <li><strong>Valores:</strong> RECEITA LÍQUIDA realizada (Conta Contábil 621200000 - 621300000)</li>
+        <li><strong>Comparativo:</strong> Receita realizada em {{ mes_apenas }}/2024 vs {{ mes_apenas }}/2025</li>
+        <li><strong>Composição:</strong> Distribuição por origem da receita com participação percentual</li>
+        <li><strong>Variação:</strong> Diferença absoluta e percentual entre os períodos</li>
+    </ul>
+</div>
+
+<div class="chart-title">Composição da Receita Corrente</div>
 
 <div class="chart-container">
     <div class="chart-wrapper">
@@ -111,40 +232,128 @@
 </div>
 
 <div class="total-display">
-    Total da Receita Líquida: {{ dados_chart.total_fmt }}
+    <div class="total-item">
+        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Total {{ mes_apenas }}/2024</div>
+        <div style="color: #6c757d;">{{ dados_chart.total_2024_fmt }}</div>
+    </div>
+    <div class="total-item">
+        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Total {{ mes_apenas }}/2025</div>
+        <div style="color: #28a745;">{{ dados_chart.total_2025_fmt }}</div>
+    </div>
+    <div class="total-item variacao {% if dados_chart.variacao_total_perc < 0 %}negativa{% endif %}">
+        <div style="font-size: 14px; color: #666; margin-bottom: 5px;">Variação Total</div>
+        <div class="{% if dados_chart.variacao_total_perc < 0 %}valor-negativo{% else %}valor-positivo{% endif %}">
+            {{ dados_chart.variacao_total_perc_fmt }}
+        </div>
+    </div>
 </div>
 
-<!-- Tabela com legenda detalhada -->
+<!-- Tabela com dados comparativos -->
 <table class="legend-table">
     <thead>
         <tr>
-            <th>ORIGEM DA RECEITA</th>
-            <th>VALOR</th>
-            <th>PARTICIPAÇÃO %</th>
+            <th rowspan="2">ORIGEM DA RECEITA</th>
+            <th colspan="2">RECEITA LÍQUIDA REALIZADA</th>
+            <th colspan="2">VARIAÇÃO</th>
+            <th rowspan="2">PARTICIPAÇÃO 2025</th>
+        </tr>
+        <tr>
+            <th>{{ mes_apenas }}/2024</th>
+            <th>{{ mes_apenas }}/2025</th>
+            <th>ABSOLUTA</th>
+            <th>PERCENTUAL</th>
         </tr>
     </thead>
     <tbody>
         {% for item in dados_relatorio %}
             <tr {% if item.origem == 'TOTAL' %}class="total-row"{% endif %}>
-                <td>
+                <td style="text-align: left !important;">
                     {% if item.origem != 'TOTAL' %}
                         <span class="color-indicator" style="background-color: {{ item.cor }}"></span>
                     {% endif %}
                     {{ item.nome }}
                 </td>
-                <td>{{ item.valor_fmt }}</td>
-                <td>{{ item.percentual_fmt }}</td>
+                <td style="text-align: right !important;">{{ item.valor_2024_fmt }}</td>
+                <td style="text-align: right !important;">{{ item.valor_2025_fmt }}</td>
+                <td style="text-align: right !important;" class="{% if item.variacao_abs < 0 %}valor-negativo{% elif item.variacao_abs > 0 %}valor-positivo{% endif %}">
+                    {{ item.variacao_abs_fmt }}
+                </td>
+                <td style="text-align: right !important;" class="{% if item.variacao_perc < 0 %}valor-negativo{% elif item.variacao_perc > 0 %}valor-positivo{% endif %}">
+                    {{ item.variacao_perc_fmt }}
+                </td>
+                <td style="text-align: right !important;">{{ item.percentual_fmt }}</td>
             </tr>
         {% endfor %}
     </tbody>
 </table>
+
+<!-- Comparativo Mensal Acumulado -->
+{% if comparativo_mensal %}
+<div class="resumo-container">
+    <h4>📅 Comparativo Mensal Acumulado - Receita Corrente</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
+        {% for mes in comparativo_mensal %}
+        <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #ff6b6b;">
+            <div style="font-weight: 600; color: #333; font-size: 14px; margin-bottom: 8px;">
+                📈 Total até <span id="titulo-mes-{{ mes.mes }}"></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="color: #6c757d; font-size: 12px;">2024:</span>
+                <span style="color: #6c757d; font-size: 13px; font-weight: 500;">{{ mes.saldo_2024_fmt }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="color: #28a745; font-size: 12px;">2025:</span>
+                <span style="color: #28a745; font-size: 13px; font-weight: 500;">{{ mes.saldo_2025_fmt }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 4px;">
+                <span style="color: #333; font-size: 12px; font-weight: 600;">Variação:</span>
+                <span class="{% if mes.variacao_perc < 0 %}valor-negativo{% elif mes.variacao_perc > 0 %}valor-positivo{% endif %}" style="font-size: 13px; font-weight: bold;">
+                    {{ mes.variacao_perc_fmt }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // Verifica se Chart.js carregou, senão tenta carregar novamente
+// === SISTEMA DE GRÁFICO DE PIZZA ===
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 Iniciando criação do gráfico...');
+    
+    // Converter títulos dos meses
+    converterTitulosMeses();
+    
+    // Aguardar um pouco para garantir que tudo carregou
+    setTimeout(function() {
+        verificarECriarGrafico();
+    }, 1000);
+});
+
+// Converter números dos meses para nomes
+function converterTitulosMeses() {
+    {% if comparativo_mensal %}
+    const comparativoMensal = {{ comparativo_mensal | tojson | safe }};
+    
+    comparativoMensal.forEach(function(mes) {
+        const elemento = document.getElementById('titulo-mes-' + mes.mes);
+        if (elemento) {
+            const nomeMes = obterNomeMes(mes.mes_fmt);
+            elemento.textContent = nomeMes;
+        }
+    });
+    {% endif %}
+}
+
+// Verifica se Chart.js carregou, senão tenta carregar novamente
+function verificarECriarGrafico() {
     if (typeof Chart === 'undefined') {
-        console.log('Chart.js não carregou, tentando carregar localmente...');
+        console.log('Chart.js não carregou, tentando carregar novamente...');
         
         // Cria um script fallback
         const script = document.createElement('script');
@@ -163,110 +372,120 @@
         // Chart.js já está disponível
         criarGrafico();
     }
+}
     
-    function criarGrafico() {
-        // Dados do gráfico vindos do Flask
-        const dadosChart = {{ dados_chart | tojson | safe }};
-        
-        // Verificação de segurança
-        if (!dadosChart || !dadosChart.labels || dadosChart.labels.length === 0) {
-            document.querySelector('.chart-container').innerHTML = '<div style="text-align: center; padding: 50px; color: #666;"><h3>📊 Sem Dados para Exibir</h3><p>Não há dados de receita líquida para gerar o gráfico.</p></div>';
-            return;
-        }
-        
-        // Configuração do gráfico de pizza
-        const ctx = document.getElementById('receitaChart').getContext('2d');
-        
-        const chart = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: dadosChart.labels,
-                datasets: [{
-                    data: dadosChart.data,
-                    backgroundColor: dadosChart.backgroundColor,
-                    borderColor: '#ffffff',
-                    borderWidth: 2,
-                    hoverBorderWidth: 3,
-                    hoverBorderColor: '#ffffff'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false  // Desabilitamos a legenda padrão para usar nossa tabela
+function criarGrafico() {
+    // Dados do gráfico vindos do Flask
+    const dadosChart = {{ dados_chart | tojson | safe }};
+    
+    // Verificação de segurança
+    if (!dadosChart || !dadosChart.labels || dadosChart.labels.length === 0) {
+        document.querySelector('.chart-container').innerHTML = '<div style="text-align: center; padding: 50px; color: #666;"><h3>📊 Sem Dados para Exibir</h3><p>Não há dados de receita corrente para gerar o gráfico.</p></div>';
+        return;
+    }
+    
+    // Configuração do gráfico de pizza
+    const ctx = document.getElementById('receitaChart').getContext('2d');
+    
+    const chart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: dadosChart.labels,
+            datasets: [{
+                data: dadosChart.data,
+                backgroundColor: dadosChart.backgroundColor,
+                borderColor: '#ffffff',
+                borderWidth: 2,
+                hoverBorderWidth: 3,
+                hoverBorderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Distribuição da Receita Corrente por Origem (2025)',
+                    font: {
+                        size: 16,
+                        weight: 'bold'
                     },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 51, 102, 0.9)',
-                        titleColor: '#ffffff',
-                        bodyColor: '#ffffff',
-                        borderColor: '#ffffff',
-                        borderWidth: 1,
-                        cornerRadius: 8,
-                        displayColors: true,
-                        callbacks: {
-                            label: function(context) {
-                                const value = context.parsed;
-                                const total = dadosChart.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(1);
-                                
-                                // Formatar valor em reais
-                                const valueFormatted = new Intl.NumberFormat('pt-BR', {
-                                    style: 'currency',
-                                    currency: 'BRL'
-                                }).format(value);
-                                
-                                return `${context.label}: ${valueFormatted} (${percentage}%)`;
-                            }
+                    color: '#003366'
+                },
+                legend: {
+                    display: false  // Desabilitamos a legenda padrão para usar nossa tabela
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 51, 102, 0.9)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#ffffff',
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    displayColors: true,
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed;
+                            const total = dadosChart.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            
+                            // Formatar valor em reais
+                            const valueFormatted = new Intl.NumberFormat('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL'
+                            }).format(value);
+                            
+                            return `${context.label}: ${valueFormatted} (${percentage}%)`;
                         }
                     }
-                },
-                animation: {
-                    animateScale: true,
-                    animateRotate: true,
-                    duration: 1000
-                },
-                layout: {
-                    padding: 20
                 }
-            }
-        });
-
-        // Adiciona interatividade - destacar seção ao passar mouse na tabela
-        document.querySelectorAll('.legend-table tbody tr').forEach((row, index) => {
-            if (index < dadosChart.labels.length) {  // Evita a linha de total
-                row.addEventListener('mouseenter', function() {
-                    // Destaca a fatia correspondente no gráfico
-                    chart.setActiveElements([{datasetIndex: 0, index: index}]);
-                    chart.update('none');
-                    this.style.backgroundColor = '#e3f2fd';
-                });
-                
-                row.addEventListener('mouseleave', function() {
-                    // Remove o destaque
-                    chart.setActiveElements([]);
-                    chart.update('none');
-                    this.style.backgroundColor = '';
-                });
-            }
-        });
-
-        // Função para redimensionar o gráfico em dispositivos móveis
-        function resizeChart() {
-            if (window.innerWidth <= 768) {
-                chart.resize(300, 300);
-            } else {
-                chart.resize();
+            },
+            animation: {
+                animateScale: true,
+                animateRotate: true,
+                duration: 1000
+            },
+            layout: {
+                padding: 20
             }
         }
+    });
 
-        window.addEventListener('resize', resizeChart);
-        
-        // Configuração inicial
-        resizeChart();
-        
-        console.log('🎉 Gráfico criado com sucesso!');
+    // Adiciona interatividade - destacar seção ao passar mouse na tabela
+    document.querySelectorAll('.legend-table tbody tr').forEach((row, index) => {
+        if (index < dadosChart.labels.length) {  // Evita a linha de total
+            row.addEventListener('mouseenter', function() {
+                // Destaca a fatia correspondente no gráfico
+                chart.setActiveElements([{datasetIndex: 0, index: index}]);
+                chart.update('none');
+                this.style.backgroundColor = '#e3f2fd';
+            });
+            
+            row.addEventListener('mouseleave', function() {
+                // Remove o destaque
+                chart.setActiveElements([]);
+                chart.update('none');
+                this.style.backgroundColor = '';
+            });
+        }
+    });
+
+    // Função para redimensionar o gráfico em dispositivos móveis
+    function resizeChart() {
+        if (window.innerWidth <= 768) {
+            chart.resize(300, 300);
+        } else {
+            chart.resize();
+        }
     }
+
+    window.addEventListener('resize', resizeChart);
+    
+    // Configuração inicial
+    resizeChart();
+    
+    console.log('🎉 Gráfico criado com sucesso!');
+}
 </script>
 {% endblock %}
