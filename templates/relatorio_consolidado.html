@@ -1,400 +1,342 @@
-<!-- templates/relatorio_consolidado.html -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatório Consolidado de Receitas - {{ mes_referencia }}</title>
-    
-    <!-- CSS Específico do Consolidado -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/relatorio_consolidado.css') }}">
-    
-    <!-- CSS Base dos Relatórios -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/relatorios.css') }}">
-    
-    <!-- Bibliotecas externas -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <title>{{ titulo }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            color: #007bff;
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .header p {
+            color: #666;
+            margin: 10px 0;
+            font-size: 1.1em;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .info-box h3 {
+            color: #495057;
+            margin-top: 0;
+            font-size: 1.3em;
+        }
+        .info-list {
+            list-style: none;
+            padding: 0;
+        }
+        .info-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .info-list li:last-child {
+            border-bottom: none;
+        }
+        .info-list li strong {
+            color: #007bff;
+            font-weight: 600;
+        }
+        .kpis-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .kpi-card {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .kpi-card h4 {
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        .kpi-card .value {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .kpi-card .change {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        .relatorios-section {
+            margin-bottom: 30px;
+        }
+        .relatorios-section h3 {
+            color: #495057;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .relatorio-item {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: box-shadow 0.3s ease;
+        }
+        .relatorio-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .relatorio-item h4 {
+            margin: 0 0 10px 0;
+            color: #007bff;
+        }
+        .relatorio-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-sucesso {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-erro {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .resumo-executivo {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .resumo-executivo h3 {
+            margin-top: 0;
+            font-size: 1.4em;
+        }
+        .resumo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .resumo-item {
+            background-color: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .resumo-item h4 {
+            margin: 0 0 10px 0;
+            opacity: 0.9;
+            font-size: 1em;
+        }
+        .resumo-item .valor {
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            color: #666;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-success {
+            background-color: #28a745;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            .header h1 {
+                font-size: 2em;
+            }
+            .kpis-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="page-container">
-        
-        <!-- Cabeçalho Principal -->
-        <header class="header-container">
-            <a href="{{ url_for('index') }}" class="link-voltar">← Voltar ao Menu</a>
-            
-            <div class="report-header">
-                <h1>RELATÓRIO CONSOLIDADO DE RECEITAS</h1>
-                <h2>{{ mes_referencia }}</h2>
-                <h3>Governo do Distrito Federal</h3>
-            </div>
-            
-            <div class="botoes-acao">
-                <button id="btn-atualizar" class="btn btn-atualizar" onclick="atualizarDados()">
-                    ATUALIZAR
-                </button>
-                <button id="btn-pdf" class="btn btn-pdf" onclick="gerarPDFConsolidado()">
-                    BAIXAR PDF
-                </button>
-                <button id="btn-jpg" class="btn btn-jpg" onclick="exportarRelatorioComoImagem()">
-                    BAIXAR PNG
-                </button>
-            </div>
-        </header>
-
-        <!-- Filtros -->
-        <div class="filtro-container">
-            <label for="filtro-noug">Filtrar por NOUG:</label>
-            <select id="filtro-noug" onchange="aplicarFiltro()">
-                <option value="todos" {% if not noug_selecionada %}selected{% endif %}>
-                    Todas as NOUGs
-                </option>
-                {% for noug in lista_nougs %}
-                <option value="{{ noug }}" {% if noug_selecionada == noug %}selected{% endif %}>
-                    NOUG {{ noug }}
-                </option>
-                {% endfor %}
-            </select>
+    <div class="container">
+        <!-- Cabeçalho -->
+        <div class="header">
+            <h1>{{ titulo }}</h1>
+            <p>Mês de Referência: {{ mes_referencia }}</p>
+            <p>Gerado em: {{ data_geracao }}</p>
         </div>
 
-        <!-- Informações de Geração -->
-        <div class="info-container">
-            <h4>📊 Informações do Relatório</h4>
-            <ul>
-                <li><strong>Mês de Referência:</strong> {{ mes_referencia }}</li>
-                <li><strong>Data de Geração:</strong> {{ data_geracao }}</li>
-                <li><strong>Tempo de Geração:</strong> {{ "{:.2f}".format(tempo_geracao) }}s</li>
-                <li><strong>Filtro NOUG:</strong> 
-                    {% if noug_selecionada %}
-                        NOUG {{ noug_selecionada }}
+        <!-- Informações Gerais -->
+        <div class="info-box">
+            <h3>📋 Informações Gerais</h3>
+            <ul class="info-list">
+                <li><strong>Total de Relatórios:</strong> {{ total_relatorios }}</li>
+                <li><strong>NOUG Selecionada:</strong> {{ noug_selecionada if noug_selecionada else 'Todas' }}</li>
+                <li><strong>Tempo de Geração:</strong> {{ "%.2f"|format(tempo_geracao) }}s</li>
+                <li><strong>Status:</strong> 
+                    {% if resumo_executivo.relatorios_sucesso == total_relatorios %}
+                        <span class="status-sucesso">✅ Todos os relatórios processados</span>
                     {% else %}
-                        Todas as NOUGs
+                        <span class="status-erro">⚠️ {{ resumo_executivo.relatorios_erro }} relatórios com erro</span>
                     {% endif %}
                 </li>
-                <li><strong>Total de Registros:</strong> {{ dados_consolidados.metadados.total_registros|default(0) }}</li>
-                <li><strong>Relatórios Incluídos:</strong> {{ dados_consolidados.estatisticas_execucao.relatorios_bem_sucedidos|default(0) }}/{{ dados_consolidados.estatisticas_execucao.total_relatorios|default(0) }}</li>
             </ul>
         </div>
 
-        <!-- Dashboard Executivo -->
-        <section class="dashboard-executivo">
-            <h2 class="titulo-secao">📈 Dashboard Executivo</h2>
-            
-            <!-- KPIs Principais -->
-            <div class="kpis-grid">
-                {% for kpi_key, kpi in kpis_principais.items() %}
-                <div class="kpi-card {{ kpi.classe_css|default('') }}">
-                    <div class="kpi-titulo">{{ kpi.titulo }}</div>
-                    <div class="kpi-valor">{{ kpi.valor_fmt }}</div>
-                </div>
-                {% endfor %}
+        <!-- KPIs Principais -->
+        {% if kpis_principais %}
+        <div class="kpis-section">
+            <div class="kpi-card">
+                <h4>💰 Receita Total 2025</h4>
+                <div class="value">{{ kpis_principais.receita_total_2025_fmt }}</div>
             </div>
-            
-            <!-- Alertas Visuais -->
-            {% if alertas_visuais %}
-            <div class="alertas-container">
-                <h3>🚨 Status Geral</h3>
-                <div class="alertas-grid">
-                    {% for alerta in alertas_visuais %}
-                    <div class="alerta-item {{ alerta.tipo }}">
-                        <span class="alerta-emoji">{{ alerta.emoji }}</span>
-                        <div class="alerta-conteudo">
-                            <strong>{{ alerta.titulo }}</strong>
-                            <p>{{ alerta.mensagem }}</p>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
+            <div class="kpi-card">
+                <h4>📊 Receita Total 2024</h4>
+                <div class="value">{{ kpis_principais.receita_total_2024_fmt }}</div>
             </div>
-            {% endif %}
-        </section>
-
-        <!-- Seção: Receitas Correntes -->
-        {% if dados_consolidados.receitas_correntes %}
-        <section class="secao-receita">
-            <h2 class="titulo-secao">💰 Receitas Correntes</h2>
-            
-            <!-- Resumo da Seção -->
-            <div class="resumo-secao">
-                <div class="totais-secao">
-                    {% set totais_correntes = dados_consolidados.metadados.totais_consolidados.receitas_correntes %}
-                    <div class="total-item">
-                        <span class="label">2024</span>
-                        <span class="valor">{{ "R$ {:,.2f}".format(totais_correntes.total_2024|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</span>
-                    </div>
-                    <div class="total-item">
-                        <span class="label">2025</span>
-                        <span class="valor">{{ "R$ {:,.2f}".format(totais_correntes.total_2025|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</span>
-                    </div>
-                    <div class="total-item variacao">
-                        <span class="label">Variação</span>
-                        {% set var_perc = totais_correntes.variacao_percentual|default(0) %}
-                        <span class="valor {% if var_perc > 0 %}positivo{% elif var_perc < 0 %}negativo{% else %}neutro{% endif %}">
-                            {{ "{:+.1f}%".format(var_perc) }}
-                        </span>
-                    </div>
-                </div>
+            <div class="kpi-card">
+                <h4>📈 Variação</h4>
+                <div class="value">{{ kpis_principais.variacao_percentual_fmt }}</div>
+                <div class="change">{{ kpis_principais.variacao_absoluta_fmt }}</div>
             </div>
-            
-            <!-- Tabela de Receitas Correntes -->
-            <div class="tabela-container">
-                <table class="tabela-receita">
-                    <thead>
-                        <tr>
-                            <th>Tipo de Receita Corrente</th>
-                            <th>2024</th>
-                            <th>2025</th>
-                            <th>Variação Absoluta</th>
-                            <th>Variação %</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for tipo, dados in dados_consolidados.receitas_correntes.items() %}
-                        {% if dados and dados.totais %}
-                        {% set totais = dados.totais %}
-                        <tr class="principal">
-                            <td>{{ tipo|replace('_', ' ')|title }}</td>
-                            <td>{{ "R$ {:,.2f}".format(totais.total_2024|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</td>
-                            <td>{{ "R$ {:,.2f}".format(totais.total_2025|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</td>
-                            <td>{{ "R$ {:,.2f}".format(totais.variacao_absoluta|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</td>
-                            <td class="{% if totais.variacao_percentual|default(0) > 0 %}valor-positivo{% elif totais.variacao_percentual|default(0) < 0 %}valor-negativo{% endif %}">
-                                {{ "{:+.1f}%".format(totais.variacao_percentual|default(0)) }}
-                            </td>
-                        </tr>
-                        {% endif %}
-                        {% endfor %}
-                        
-                        <!-- Linha Total Receitas Correntes -->
-                        <tr class="total">
-                            <td><strong>TOTAL RECEITAS CORRENTES</strong></td>
-                            <td><strong>{{ "R$ {:,.2f}".format(totais_correntes.total_2024|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</strong></td>
-                            <td><strong>{{ "R$ {:,.2f}".format(totais_correntes.total_2025|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</strong></td>
-                            <td><strong>{{ "R$ {:,.2f}".format(totais_correntes.variacao_absoluta|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</strong></td>
-                            <td><strong>{{ "{:+.1f}%".format(totais_correntes.variacao_percentual|default(0)) }}</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="kpi-card">
+                <h4>🏆 Maior Categoria</h4>
+                <div class="value">{{ kpis_principais.maior_fonte }}</div>
             </div>
-        </section>
+        </div>
         {% endif %}
 
-        <!-- Seção: Receitas de Capital -->
-        {% if dados_consolidados.receitas_capital %}
-        <section class="secao-receita">
-            <h2 class="titulo-secao">🏗️ Receitas de Capital</h2>
-            
-            <!-- Resumo da Seção -->
-            <div class="resumo-secao">
-                <div class="totais-secao">
-                    {% set totais_capital = dados_consolidados.metadados.totais_consolidados.receitas_capital %}
-                    <div class="total-item">
-                        <span class="label">2024</span>
-                        <span class="valor">{{ "R$ {:,.2f}".format(totais_capital.total_2024|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</span>
-                    </div>
-                    <div class="total-item">
-                        <span class="label">2025</span>
-                        <span class="valor">{{ "R$ {:,.2f}".format(totais_capital.total_2025|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</span>
-                    </div>
-                    <div class="total-item variacao">
-                        <span class="label">Variação</span>
-                        {% set var_perc = totais_capital.variacao_percentual|default(0) %}
-                        <span class="valor {% if var_perc > 0 %}positivo{% elif var_perc < 0 %}negativo{% else %}neutro{% endif %}">
-                            {{ "{:+.1f}%".format(var_perc) }}
-                        </span>
-                    </div>
+        <!-- Resumo Executivo -->
+        {% if resumo_executivo %}
+        <div class="resumo-executivo">
+            <h3>📊 Resumo Executivo</h3>
+            <div class="resumo-grid">
+                <div class="resumo-item">
+                    <h4>Receitas Correntes 2025</h4>
+                    <div class="valor">R$ {{ "{:,.2f}".format(resumo_executivo.total_correntes_2025).replace(',', 'X').replace('.', ',').replace('X', '.') }}</div>
+                </div>
+                <div class="resumo-item">
+                    <h4>Receitas Correntes 2024</h4>
+                    <div class="valor">R$ {{ "{:,.2f}".format(resumo_executivo.total_correntes_2024).replace(',', 'X').replace('.', ',').replace('X', '.') }}</div>
+                </div>
+                <div class="resumo-item">
+                    <h4>Receitas de Capital 2025</h4>
+                    <div class="valor">R$ {{ "{:,.2f}".format(resumo_executivo.total_capital_2025).replace(',', 'X').replace('.', ',').replace('X', '.') }}</div>
+                </div>
+                <div class="resumo-item">
+                    <h4>Receitas de Capital 2024</h4>
+                    <div class="valor">R$ {{ "{:,.2f}".format(resumo_executivo.total_capital_2024).replace(',', 'X').replace('.', ',').replace('X', '.') }}</div>
                 </div>
             </div>
-            
-            <!-- Tabela de Receitas de Capital -->
-            <div class="tabela-container">
-                <table class="tabela-receita">
-                    <thead>
-                        <tr>
-                            <th>Tipo de Receita de Capital</th>
-                            <th>2024</th>
-                            <th>2025</th>
-                            <th>Variação Absoluta</th>
-                            <th>Variação %</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for tipo, dados in dados_consolidados.receitas_capital.items() %}
-                        {% if dados and dados.totais %}
-                        {% set totais = dados.totais %}
-                        <tr class="principal">
-                            <td>{{ tipo|replace('_', ' ')|title }}</td>
-                            <td>{{ "R$ {:,.2f}".format(totais.total_2024|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</td>
-                            <td>{{ "R$ {:,.2f}".format(totais.total_2025|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</td>
-                            <td>{{ "R$ {:,.2f}".format(totais.variacao_absoluta|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</td>
-                            <td class="{% if totais.variacao_percentual|default(0) > 0 %}valor-positivo{% elif totais.variacao_percentual|default(0) < 0 %}valor-negativo{% endif %}">
-                                {{ "{:+.1f}%".format(totais.variacao_percentual|default(0)) }}
-                            </td>
-                        </tr>
-                        {% endif %}
-                        {% endfor %}
-                        
-                        <!-- Linha Total Receitas de Capital -->
-                        <tr class="total">
-                            <td><strong>TOTAL RECEITAS DE CAPITAL</strong></td>
-                            <td><strong>{{ "R$ {:,.2f}".format(totais_capital.total_2024|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</strong></td>
-                            <td><strong>{{ "R$ {:,.2f}".format(totais_capital.total_2025|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</strong></td>
-                            <td><strong>{{ "R$ {:,.2f}".format(totais_capital.variacao_absoluta|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</strong></td>
-                            <td><strong>{{ "{:+.1f}%".format(totais_capital.variacao_percentual|default(0)) }}</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
+        </div>
         {% endif %}
 
-        <!-- Seção: Total Geral -->
-        <section class="secao-receita">
-            <h2 class="titulo-secao">📊 Totais Gerais</h2>
-            
-            <div class="resumo-secao">
-                <div class="totais-secao">
-                    {% set totais_gerais = dados_consolidados.metadados.totais_consolidados %}
-                    <div class="total-item">
-                        <span class="label">Total 2024</span>
-                        <span class="valor">{{ "R$ {:,.2f}".format(totais_gerais.total_geral_2024|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</span>
-                    </div>
-                    <div class="total-item">
-                        <span class="label">Total 2025</span>
-                        <span class="valor">{{ "R$ {:,.2f}".format(totais_gerais.total_geral_2025|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</span>
-                    </div>
-                    <div class="total-item variacao">
-                        <span class="label">Variação Geral</span>
-                        {% set variacao_geral = ((totais_gerais.total_geral_2025|default(0) - totais_gerais.total_geral_2024|default(0)) / totais_gerais.total_geral_2024|default(1)) * 100 %}
-                        <span class="valor {% if variacao_geral > 0 %}positivo{% elif variacao_geral < 0 %}negativo{% else %}neutro{% endif %}">
-                            {{ "{:+.1f}%".format(variacao_geral) }}
-                        </span>
-                    </div>
-                </div>
+        <!-- Lista de Relatórios -->
+        <div class="relatorios-section">
+            <h3>📋 Relatórios Processados</h3>
+            {% for codigo, relatorio in dados_consolidados.items() %}
+            <div class="relatorio-item">
+                <h4>{{ relatorio.nome }}</h4>
+                <p>
+                    <strong>Categoria:</strong> {{ relatorio.categoria.title() }} | 
+                    <strong>Status:</strong> 
+                    {% if relatorio.status == 'sucesso' %}
+                        <span class="relatorio-status status-sucesso">✅ Sucesso</span>
+                    {% else %}
+                        <span class="relatorio-status status-erro">❌ Erro</span>
+                    {% endif %}
+                </p>
+                {% if relatorio.status == 'sucesso' and relatorio.tempo_execucao %}
+                <p><strong>Tempo de Execução:</strong> {{ "%.2f"|format(relatorio.tempo_execucao) }}s</p>
+                {% endif %}
+                {% if relatorio.status == 'erro' and relatorio.erro %}
+                <p><strong>Erro:</strong> {{ relatorio.erro }}</p>
+                {% endif %}
             </div>
-            
-            <!-- Tabela Resumo Geral -->
-            <div class="tabela-container">
-                <table class="tabela-receita">
-                    <thead>
-                        <tr>
-                            <th>Categoria</th>
-                            <th>2024</th>
-                            <th>2025</th>
-                            <th>Participação 2025</th>
-                            <th>Variação %</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr class="principal">
-                            <td>Receitas Correntes</td>
-                            <td>{{ "R$ {:,.2f}".format(dados_consolidados.metadados.totais_consolidados.receitas_correntes.total_2024|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</td>
-                            <td>{{ "R$ {:,.2f}".format(dados_consolidados.metadados.totais_consolidados.receitas_correntes.total_2025|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</td>
-                            <td>{{ "{:.1f}%".format((dados_consolidados.metadados.totais_consolidados.receitas_correntes.total_2025|default(0) / totais_gerais.total_geral_2025|default(1)) * 100) }}</td>
-                            <td class="{% if dados_consolidados.metadados.totais_consolidados.receitas_correntes.variacao_percentual|default(0) > 0 %}valor-positivo{% elif dados_consolidados.metadados.totais_consolidados.receitas_correntes.variacao_percentual|default(0) < 0 %}valor-negativo{% endif %}">
-                                {{ "{:+.1f}%".format(dados_consolidados.metadados.totais_consolidados.receitas_correntes.variacao_percentual|default(0)) }}
-                            </td>
-                        </tr>
-                        <tr class="principal">
-                            <td>Receitas de Capital</td>
-                            <td>{{ "R$ {:,.2f}".format(dados_consolidados.metadados.totais_consolidados.receitas_capital.total_2024|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</td>
-                            <td>{{ "R$ {:,.2f}".format(dados_consolidados.metadados.totais_consolidados.receitas_capital.total_2025|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</td>
-                            <td>{{ "{:.1f}%".format((dados_consolidados.metadados.totais_consolidados.receitas_capital.total_2025|default(0) / totais_gerais.total_geral_2025|default(1)) * 100) }}</td>
-                            <td class="{% if dados_consolidados.metadados.totais_consolidados.receitas_capital.variacao_percentual|default(0) > 0 %}valor-positivo{% elif dados_consolidados.metadados.totais_consolidados.receitas_capital.variacao_percentual|default(0) < 0 %}valor-negativo{% endif %}">
-                                {{ "{:+.1f}%".format(dados_consolidados.metadados.totais_consolidados.receitas_capital.variacao_percentual|default(0)) }}
-                            </td>
-                        </tr>
-                        <tr class="total">
-                            <td><strong>TOTAL GERAL</strong></td>
-                            <td><strong>{{ "R$ {:,.2f}".format(totais_gerais.total_geral_2024|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</strong></td>
-                            <td><strong>{{ "R$ {:,.2f}".format(totais_gerais.total_geral_2025|default(0))|replace(",", "X")|replace(".", ",")|replace("X", ".") }}</strong></td>
-                            <td><strong>100,0%</strong></td>
-                            <td><strong>{{ "{:+.1f}%".format(variacao_geral) }}</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
+            {% endfor %}
+        </div>
 
-        <!-- Seção: Estatísticas de Execução -->
-        <section class="resumo-container">
-            <h4>📈 Estatísticas de Execução dos Relatórios</h4>
-            <div>
-                <div>
-                    <strong>Total de Relatórios</strong>
-                    <span>{{ dados_consolidados.estatisticas_execucao.total_relatorios|default(0) }}</span>
-                </div>
-                <div>
-                    <strong>Bem-sucedidos</strong>
-                    <span style="color: #28a745;">{{ dados_consolidados.estatisticas_execucao.relatorios_bem_sucedidos|default(0) }}</span>
-                </div>
-                <div>
-                    <strong>Com Erro</strong>
-                    <span style="color: #dc3545;">{{ dados_consolidados.estatisticas_execucao.relatorios_com_erro|default(0) }}</span>
-                </div>
-                <div>
-                    <strong>Taxa de Sucesso</strong>
-                    <span>{{ "{:.1f}%".format(dados_consolidados.estatisticas_execucao.taxa_sucesso|default(0)) }}</span>
-                </div>
-                <div>
-                    <strong>Tempo Total</strong>
-                    <span>{{ "{:.2f}s".format(dados_consolidados.estatisticas_execucao.tempo_total|default(0)) }}</span>
-                </div>
-            </div>
-        </section>
+        <!-- Botões de Ação -->
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{{ url_for('consolidado.gerar_relatorio_consolidado_pdf_download') }}{% if noug_selecionada %}?noug={{ noug_selecionada }}{% endif %}" class="btn btn-success">
+                📥 Baixar PDF
+            </a>
+            <a href="{{ url_for('consolidado.gerar_relatorio_consolidado_json') }}{% if noug_selecionada %}?noug={{ noug_selecionada }}{% endif %}" class="btn">
+                📊 Dados JSON
+            </a>
+            <a href="/" class="btn">
+                🏠 Voltar ao Menu
+            </a>
+        </div>
 
         <!-- Rodapé -->
-        <footer class="footer-consolidado">
-            <div class="info-tecnica">
-                <p><strong>Sistema UBAN - Relatório Consolidado</strong></p>
-                <p>{{ dados_consolidados.metadados.total_registros|default(0) }} registros processados | 
-                   Gerado em {{ "{:.2f}".format(tempo_geracao) }}s | 
-                   {{ data_geracao }}</p>
-                <p>Governo do Distrito Federal - Secretaria de Economia</p>
-            </div>
-        </footer>
-
+        <div class="footer">
+            <p>Relatório gerado automaticamente pelo Sistema de Análise de Receitas</p>
+            <p>Data de Geração: {{ data_geracao }}</p>
+        </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="{{ url_for('static', filename='js/relatorios.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/export_relatorio.js') }}"></script>
-    
     <script>
-        // Função específica para gerar PDF do consolidado
-        function gerarPDFConsolidado() {
-            alert('Gerando PDF consolidado de alta qualidade...');
-            
-            // Redireciona para a mesma rota com parâmetro de formato PDF
-            const urlAtual = new URL(window.location);
-            urlAtual.searchParams.set('formato', 'pdf');
-            window.location.href = urlAtual.toString();
-        }
-        
-        // Função para aplicar filtro (sobrescreve a padrão)
-        function aplicarFiltro() {
-            const select = document.getElementById('filtro-noug');
-            if (!select) return;
-            
-            const nougSelecionada = select.value;
-            const urlAtual = new URL(window.location);
-            
-            if (nougSelecionada === 'todos') {
-                urlAtual.searchParams.delete('noug');
-            } else {
-                urlAtual.searchParams.set('noug', nougSelecionada);
-            }
-            
-            // Remove parâmetro de formato para voltar ao HTML
-            urlAtual.searchParams.delete('formato');
-            
-            window.location.href = urlAtual.toString();
-        }
-        
-        // Inicialização
+        // Script para animações suaves
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('📊 Relatório Consolidado carregado');
-            console.log('Dados:', {{ dados_consolidados|tojson }});
+            // Animação fade-in para os cards
+            const cards = document.querySelectorAll('.kpi-card, .relatorio-item');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
         });
     </script>
 </body>

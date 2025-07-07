@@ -53,10 +53,10 @@ def gerar_relatorio_consolidado_pdf():
         if noug_selecionada == 'None' or noug_selecionada == '':
             noug_selecionada = None
         
-        # Carrega dados da receita - CORREÇÃO AQUI
+        # Carrega dados da receita
         try:
-            from utils.data_loaders import carregar_dataframe_receita  # NOME CORRETO
-            df_receita = carregar_dataframe_receita()  # NOME CORRETO
+            from utils.data_loaders import carregar_dataframe_receita
+            df_receita = carregar_dataframe_receita()
             print(f"📊 Dados de receita carregados: {len(df_receita)} registros")
         except Exception as e:
             print(f"❌ Erro ao carregar dados: {e}")
@@ -81,13 +81,16 @@ def gerar_relatorio_consolidado_pdf():
         try:
             from relatorios.consolidado.relatorio_consolidado import RelatorioConsolidado
             
+            print("🔧 Iniciando consolidação...")
             consolidado = RelatorioConsolidado(df_receita, mes_referencia, noug_selecionada)
+            
             print("🔄 Executando todos os relatórios...")
-            
             dados_consolidados = consolidado.executar_todos_relatorios()
-            print("📊 Gerando resumo executivo...")
             
+            print("📊 Gerando resumo executivo...")
             resumo_executivo = consolidado.gerar_resumo_executivo()
+            
+            print("📈 Gerando KPIs principais...")
             kpis_principais = consolidado.gerar_kpis_principais()
             
             print("✅ Relatórios consolidados gerados com sucesso")
@@ -106,12 +109,13 @@ def gerar_relatorio_consolidado_pdf():
             'kpis_principais': kpis_principais,
             'noug_selecionada': noug_selecionada,
             'data_geracao': datetime.now().strftime('%d/%m/%Y %H:%M'),
-            'total_relatorios': len(dados_consolidados)
+            'total_relatorios': len(dados_consolidados),
+            'tempo_geracao': resumo_executivo.get('tempo_geracao', 0.0)  # CORREÇÃO PRINCIPAL
         }
         
         print("🧹 Sanitizando dados para JSON...")
         
-        # APLICAR SANITIZAÇÃO - ESTA É A CORREÇÃO PRINCIPAL
+        # APLICAR SANITIZAÇÃO
         try:
             dados_template_limpos = sanitizar_para_json(dados_template)
             print("✅ Dados sanitizados com sucesso")
@@ -152,9 +156,8 @@ def gerar_relatorio_consolidado_pdf_download():
         if noug_selecionada == 'None' or noug_selecionada == '':
             noug_selecionada = None
         
-        # CORREÇÃO AQUI TAMBÉM
-        from utils.data_loaders import carregar_dataframe_receita  # NOME CORRETO
-        df_receita = carregar_dataframe_receita()  # NOME CORRETO
+        from utils.data_loaders import carregar_dataframe_receita
+        df_receita = carregar_dataframe_receita()
         
         if df_receita.empty:
             raise Exception("Dados de receita não encontrados")
@@ -204,6 +207,67 @@ def gerar_relatorio_consolidado_pdf_download():
         return jsonify({
             'status': 'error',
             'message': f'Erro ao gerar PDF: {e}'
+        })
+
+@consolidado_bp.route('/consolidado-json')
+def gerar_relatorio_consolidado_json():
+    """Retorna dados do relatório consolidado em formato JSON"""
+    try:
+        print("📊 Gerando relatório consolidado em JSON...")
+        
+        # Parâmetros da requisição
+        noug_selecionada = request.args.get('noug', None)
+        if noug_selecionada == 'None' or noug_selecionada == '':
+            noug_selecionada = None
+        
+        # Carrega dados da receita
+        from utils.data_loaders import carregar_dataframe_receita
+        df_receita = carregar_dataframe_receita()
+        
+        if df_receita.empty:
+            raise Exception("Dados de receita não encontrados")
+        
+        # Calcula mês de referência
+        try:
+            if 'INMES' in df_receita.columns:
+                mes_ref = int(df_receita['INMES'].max())
+                mes_referencia = f"{mes_ref:02d}/2025"
+            else:
+                mes_referencia = "05/2025"
+        except:
+            mes_referencia = "05/2025"
+        
+        # Executar consolidação
+        from relatorios.consolidado.relatorio_consolidado import RelatorioConsolidado
+        
+        consolidado = RelatorioConsolidado(df_receita, mes_referencia, noug_selecionada)
+        dados_consolidados = consolidado.executar_todos_relatorios()
+        resumo_executivo = consolidado.gerar_resumo_executivo()
+        kpis_principais = consolidado.gerar_kpis_principais()
+        
+        # Preparar resposta JSON
+        resposta = {
+            'status': 'success',
+            'mes_referencia': mes_referencia,
+            'dados_consolidados': dados_consolidados,
+            'resumo_executivo': resumo_executivo,
+            'kpis_principais': kpis_principais,
+            'noug_selecionada': noug_selecionada,
+            'data_geracao': datetime.now().isoformat(),
+            'total_relatorios': len(dados_consolidados)
+        }
+        
+        # Sanitizar para JSON
+        resposta_limpa = sanitizar_para_json(resposta)
+        
+        return jsonify(resposta_limpa)
+        
+    except Exception as e:
+        print(f"❌ Erro ao gerar JSON: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Erro ao gerar relatório consolidado: {e}',
+            'details': str(e)
         })
 
 # Registrar Blueprint (adicionar no seu app.py se não estiver)

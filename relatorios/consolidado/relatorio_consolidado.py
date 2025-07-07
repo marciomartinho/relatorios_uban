@@ -40,6 +40,7 @@ class RelatorioConsolidado:
         self.dados_consolidados = {}
         self.resumo_executivo = {}
         self.kpis_principais = {}
+        self.tempo_total_execucao = 0.0  # ADICIONADO PARA CORREÇÃO
         
         print(f"🚀 RelatorioConsolidado inicializado para {mes_referencia}")
     
@@ -71,6 +72,8 @@ class RelatorioConsolidado:
     
     def executar_todos_relatorios(self):
         """Executa todos os 13 relatórios e consolida os dados"""
+        
+        inicio_geral = datetime.now()  # ADICIONADO PARA CORREÇÃO
         
         # Mapeamento dos relatórios
         relatorios_mapeamento = {
@@ -189,7 +192,11 @@ class RelatorioConsolidado:
                     'timestamp': datetime.now().isoformat()
                 }
         
-        print(f"✅ Relatório consolidado gerado em {sum(item.get('tempo_execucao', 0) for item in self.dados_consolidados.values()):.2f} segundos")
+        # CORREÇÃO: Calcular tempo total
+        fim_geral = datetime.now()
+        self.tempo_total_execucao = (fim_geral - inicio_geral).total_seconds()
+        
+        print(f"✅ Relatório consolidado gerado em {self.tempo_total_execucao:.2f} segundos")
         print(f"📊 {len([r for r in self.dados_consolidados.values() if r['status'] == 'sucesso'])} relatórios executados")
         
         return self.dados_consolidados
@@ -235,8 +242,8 @@ class RelatorioConsolidado:
                         # Procurar linha de total
                         for linha in dados_numericos:
                             if isinstance(linha, dict) and linha.get('tipo') == 'total':
-                                valor_2025 = linha.get('receita_2025', 0)
-                                valor_2024 = linha.get('receita_2024', 0)
+                                valor_2025 = linha.get('receita_2025', 0) or 0
+                                valor_2024 = linha.get('receita_2024', 0) or 0
                                 
                                 if relatorio['categoria'] == 'correntes':
                                     total_correntes_2025 += valor_2025
@@ -271,7 +278,8 @@ class RelatorioConsolidado:
                 'relatorios_sucesso': relatorios_sucesso,
                 'relatorios_erro': relatorios_erro,
                 'mes_referencia': self.mes_referencia,
-                'data_geracao': datetime.now().strftime('%d/%m/%Y %H:%M')
+                'data_geracao': datetime.now().strftime('%d/%m/%Y %H:%M'),
+                'tempo_geracao': self.tempo_total_execucao  # ADICIONADO PARA CORREÇÃO
             }
             
             print("📈 Gerando resumo executivo...")
@@ -282,7 +290,8 @@ class RelatorioConsolidado:
             return {
                 'erro': str(e),
                 'mes_referencia': self.mes_referencia,
-                'data_geracao': datetime.now().strftime('%d/%m/%Y %H:%M')
+                'data_geracao': datetime.now().strftime('%d/%m/%Y %H:%M'),
+                'tempo_geracao': self.tempo_total_execucao  # ADICIONADO PARA CORREÇÃO
             }
     
     def gerar_kpis_principais(self):
@@ -297,6 +306,7 @@ class RelatorioConsolidado:
                 'maior_fonte': self.resumo_executivo.get('maior_categoria', 'N/A'),
                 'relatorios_processados': self.resumo_executivo.get('relatorios_sucesso', 0),
                 'mes_referencia': self.mes_referencia,
+                'tempo_geracao': self.tempo_total_execucao,  # ADICIONADO PARA CORREÇÃO
                 
                 # Formatados
                 'receita_total_2025_fmt': motor.formatar_numero(self.resumo_executivo.get('total_geral_2025', 0)),
@@ -311,5 +321,6 @@ class RelatorioConsolidado:
             print(f"❌ Erro ao gerar KPIs: {e}")
             return {
                 'erro': str(e),
-                'mes_referencia': self.mes_referencia
+                'mes_referencia': self.mes_referencia,
+                'tempo_geracao': 0.0
             }
