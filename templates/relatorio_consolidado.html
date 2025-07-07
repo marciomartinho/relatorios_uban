@@ -339,5 +339,65 @@
             });
         });
     </script>
+
+    <!-- ADICIONAR esta seção no seu relatorio_consolidado.html existente -->
+<!-- Substitua a seção de botões existente por esta: -->
+
+<!-- Botões de Ação Atualizados -->
+<div style="text-align: center; margin: 30px 0;">
+    <!-- Botão Download HTML (NOVO - Principal) -->
+    <a href="{{ url_for('consolidado.download_html_completo') }}{% if noug_selecionada %}?noug={{ noug_selecionada }}{% endif %}" 
+       class="btn btn-success" style="background: #28a745; font-size: 16px; padding: 15px 30px;">
+        📥 Download HTML Completo
+    </a>
+    
+    <!-- Outros botões existentes -->
+    <a href="{{ url_for('consolidado.gerar_relatorio_consolidado_pdf_download') }}{% if noug_selecionada %}?noug={{ noug_selecionada }}{% endif %}" 
+       class="btn" style="background: #6f42c1;">
+        📄 Tentar PDF
+    </a>
+    
+    <a href="{{ url_for('consolidado.gerar_relatorio_consolidado_json') }}{% if noug_selecionada %}?noug={{ noug_selecionada }}{% endif %}" 
+       class="btn">
+        📊 Dados JSON
+    </a>
+    
+    <a href="/" class="btn">
+        🏠 Voltar ao Menu
+    </a>
+</div>
+
+<!-- Seção de Instruções (NOVA) -->
+<div style="background: #e7f3ff; border: 1px solid #bee5eb; border-radius: 8px; padding: 20px; margin: 30px 0;">
+    <h3 style="color: #0c5460; margin-bottom: 15px;">💡 Como usar o Download HTML</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+        <div>
+            <h4 style="color: #1f4e79; margin-bottom: 10px;">🖥️ Para visualização:</h4>
+            <ul style="color: #555; padding-left: 20px;">
+                <li>Clique em "Download HTML Completo"</li>
+                <li>Abra o arquivo baixado no navegador</li>
+                <li>Visualize o relatório completo formatado</li>
+            </ul>
+        </div>
+        <div>
+            <h4 style="color: #1f4e79; margin-bottom: 10px;">📄 Para salvar como PDF:</h4>
+            <ul style="color: #555; padding-left: 20px;">
+                <li>Abra o HTML baixado no navegador</li>
+                <li>Pressione <strong>Ctrl+P</strong></li>
+                <li>Selecione <strong>"Salvar como PDF"</strong></li>
+                <li>Configure margens e orientação</li>
+            </ul>
+        </div>
+        <div>
+            <h4 style="color: #1f4e79; margin-bottom: 10px;">📋 Para compartilhar:</h4>
+            <ul style="color: #555; padding-left: 20px;">
+                <li>Arquivo HTML funciona offline</li>
+                <li>Pode ser enviado por email</li>
+                <li>Mantém formatação original</li>
+                <li>Compatível com qualquer navegador</li>
+            </ul>
+        </div>
+    </div>
+</div>
 </body>
 </html>

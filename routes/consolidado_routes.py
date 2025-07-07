@@ -1,11 +1,11 @@
 """
-Rotas do Relatório Consolidado - VERSÃO FINAL
-Inclui geração de PDF completo
+Rotas do Relatório Consolidado - VERSÃO FINAL CORRIGIDA
+Inclui geração de PDF completo + Download HTML
 
 SUBSTITUIR: routes/consolidado_routes.py
 """
 
-from flask import Blueprint, render_template, request, jsonify, send_file
+from flask import Blueprint, render_template, request, jsonify, send_file, make_response
 import pandas as pd
 import numpy as np
 from decimal import Decimal
@@ -147,6 +147,97 @@ def gerar_relatorio_consolidado_pdf():
         return render_template('erro.html', 
                              erro="Erro ao gerar relatório consolidado", 
                              detalhes=str(e))
+
+@consolidado_bp.route('/consolidado-html-download')
+def download_html_completo():
+    """
+    NOVA ROTA: Download HTML completo otimizado para impressão/salvamento como PDF
+    O usuário pode usar Ctrl+P e "Salvar como PDF" no navegador
+    """
+    try:
+        print("📥 Iniciando download HTML completo...")
+        
+        # Parâmetros da requisição
+        noug_selecionada = request.args.get('noug', None)
+        if noug_selecionada == 'None' or noug_selecionada == '':
+            noug_selecionada = None
+        
+        # Carrega dados da receita
+        try:
+            from utils.data_loaders import carregar_dataframe_receita
+            df_receita = carregar_dataframe_receita()
+            print(f"📊 Dados carregados: {len(df_receita)} registros")
+        except Exception as e:
+            print(f"❌ Erro ao carregar dados: {e}")
+            raise Exception(f"Erro ao carregar dados: {e}")
+        
+        if df_receita.empty:
+            raise Exception("Dados não encontrados")
+        
+        # Calcula mês de referência
+        try:
+            if 'INMES' in df_receita.columns:
+                mes_ref = int(df_receita['INMES'].max())
+                mes_referencia = f"{mes_ref:02d}/2025"
+            else:
+                mes_referencia = "05/2025"
+        except:
+            mes_referencia = "05/2025"
+        
+        # Executar consolidação
+        from relatorios.consolidado.relatorio_consolidado import RelatorioConsolidado
+        
+        consolidado = RelatorioConsolidado(df_receita, mes_referencia, noug_selecionada)
+        dados_consolidados = consolidado.executar_todos_relatorios()
+        resumo_executivo = consolidado.gerar_resumo_executivo()
+        kpis_principais = consolidado.gerar_kpis_principais()
+        
+        # Gerar gráficos HTML
+        try:
+            from relatorios.consolidado.gerador_graficos_html import GeradorGraficosHTML
+            gerador_graficos = GeradorGraficosHTML(dados_consolidados)
+            graficos_html = gerador_graficos.gerar_todos_graficos()
+        except Exception as e:
+            print(f"⚠️ Gráficos não disponíveis: {e}")
+            graficos_html = {}
+        
+        # Preparar dados para template
+        dados_template = {
+            'titulo': 'Relatório Consolidado de Receitas',
+            'mes_referencia': mes_referencia,
+            'dados_consolidados': dados_consolidados,
+            'resumo_executivo': resumo_executivo,
+            'kpis_principais': kpis_principais,
+            'graficos_html': graficos_html,
+            'noug_selecionada': noug_selecionada,
+            'data_geracao': datetime.now().strftime('%d/%m/%Y %H:%M'),
+            'total_relatorios': len(dados_consolidados),
+            'tempo_geracao': resumo_executivo.get('tempo_geracao', 0.0),
+            'modo_download': True  # Flag para template otimizado
+        }
+        
+        # Sanitizar dados
+        dados_template_limpos = sanitizar_para_json(dados_template)
+        
+        # Renderizar template específico para download
+        html_content = render_template('relatorio_consolidado_download.html', **dados_template_limpos)
+        
+        # Configurar resposta para download
+        response = make_response(html_content)
+        nome_arquivo = f'relatorio_consolidado_{mes_referencia.replace("/", "_")}.html'
+        response.headers['Content-Disposition'] = f'attachment; filename="{nome_arquivo}"'
+        response.headers['Content-Type'] = 'text/html; charset=utf-8'
+        
+        print(f"✅ HTML preparado para download: {nome_arquivo}")
+        return response
+        
+    except Exception as e:
+        print(f"❌ Erro no download HTML: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': f'Erro ao gerar HTML: {e}'
+        })
 
 @consolidado_bp.route('/consolidado-pdf-download')
 def gerar_relatorio_consolidado_pdf_download():
@@ -456,12 +547,6 @@ def diagnosticar_sistema():
             'details': str(e)
         })
 
-# Registrar Blueprint (adicionar no seu app.py se não estiver)
-def registrar_rotas_consolidado(app):
-    """Função para registrar as rotas do consolidado"""
-    app.register_blueprint(consolidado_bp)
-
-
 @consolidado_bp.route('/consolidado-alternativo')
 def gerar_relatorio_consolidado_alternativo():
     """Gera relatório consolidado alternativo (sem matplotlib/weasyprint)"""
@@ -569,3 +654,8 @@ def gerar_relatorio_consolidado_alternativo():
         return render_template('erro.html', 
                              erro="Erro ao gerar relatório consolidado alternativo", 
                              detalhes=str(e))
+
+# Registrar Blueprint (adicionar no seu app.py se não estiver)
+def registrar_rotas_consolidado(app):
+    """Função para registrar as rotas do consolidado"""
+    app.register_blueprint(consolidado_bp)
