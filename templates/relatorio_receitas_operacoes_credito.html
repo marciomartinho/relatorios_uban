@@ -9,6 +9,15 @@
 {% block head_extra %}
 <!-- Chart.js para gráficos - VERSÃO MAIS COMPATÍVEL -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<!-- Bibliotecas para sistema de download -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<!-- ✅ SISTEMA DE DOWNLOADS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sistema-downloads.css') }}">
 
 <script>
 // Aguardar Chart.js carregar
@@ -312,215 +321,228 @@ function obterNomeMes(numeroMes) {
     </ul>
 </div>
 
-<table>
-    <thead>
-        <tr>
-            <th rowspan="2">CÓDIGO ESPÉCIE</th>
-            <th rowspan="2">NOME DA ESPÉCIE/ALÍNEA</th>
-            <th colspan="2">RECEITA LÍQUIDA REALIZADA</th>
-            <th colspan="2">VARIAÇÃO</th>
-        </tr>
-        <tr>
-            <th>{{ mes_ref }}/2024</th>
-            <th>{{ mes_ref }}/2025</th>
-            <th>ABSOLUTA</th>
-            <th>PERCENTUAL</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for linha in dados_relatorio %}
-            {% if linha.tipo == 'especie' %}
-                <tr class="especie" id="especie-{{ linha.especie_codigo }}">
-                    <td style="text-align: center; font-family: monospace; font-weight: bold;">
-                        <span class="especie-icon">🏦</span>{{ linha.especie_codigo_fmt }}
-                        {% if linha.tem_alineas %}
-                            <span style="font-size: 11px; color: #666; font-weight: normal; margin-left: 10px; display: block; margin-top: 2px;">({{ linha.qtd_alineas }} alíneas)</span>
-                        {% endif %}
-                    </td>
-                    <td style="text-align: left;">
-                        {{ linha.nome_especie_fmt }}
-                    </td>
-                    <td>{{ linha.receita_2024_fmt }}</td>
-                    <td>{{ linha.receita_2025_fmt }}</td>
-                    <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% endif %}{% if linha.variacao_abs > 0 %}valor-positivo{% endif %}">
-                        {{ linha.variacao_abs_fmt }}
-                    </td>
-                    <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% endif %}{% if linha.variacao_perc > 0 %}valor-positivo{% endif %}">
-                        {{ linha.variacao_perc_fmt }}
-                    </td>
-                </tr>
-            {% endif %}
-            {% if linha.tipo == 'alinea' %}
-                <tr class="alinea">
-                    <td style="text-align: center; font-family: monospace; font-weight: normal; color: #555;">
-                        <span class="alinea-icon">├─</span>{{ linha.especie_codigo_fmt }}
-                    </td>
-                    <td style="text-align: left; font-style: italic; color: #666; font-size: 13px;">
-                        {{ linha.nome_especie_fmt }}
-                    </td>
-                    <td>{{ linha.receita_2024_fmt }}</td>
-                    <td>{{ linha.receita_2025_fmt }}</td>
-                    <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% endif %}{% if linha.variacao_abs > 0 %}valor-positivo{% endif %}">
-                        {{ linha.variacao_abs_fmt }}
-                    </td>
-                    <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% endif %}{% if linha.variacao_perc > 0 %}valor-positivo{% endif %}">
-                        {{ linha.variacao_perc_fmt }}
-                    </td>
-                </tr>
-            {% endif %}
-            {% if linha.tipo == 'total' %}
-                <tr class="total">
-                    <td style="text-align: center; font-weight: bold;">{{ linha.especie_codigo_fmt }}</td>
-                    <td style="text-align: left; font-weight: bold;">{{ linha.nome_especie_fmt }}</td>
-                    <td>{{ linha.receita_2024_fmt }}</td>
-                    <td>{{ linha.receita_2025_fmt }}</td>
-                    <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% endif %}{% if linha.variacao_abs > 0 %}valor-positivo{% endif %}">
-                        {{ linha.variacao_abs_fmt }}
-                    </td>
-                    <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% endif %}{% if linha.variacao_perc > 0 %}valor-positivo{% endif %}">
-                        {{ linha.variacao_perc_fmt }}
-                    </td>
-                </tr>
-            {% endif %}
-        {% else %}
-            <tr>
-                <td colspan="6" class="text-center" style="color: #666; font-style: italic; padding: 30px;">
-                    Nenhum dado de receita de operações de crédito encontrado para os filtros selecionados ou colunas necessárias não disponíveis.
-                </td>
-            </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<!-- ✅ SISTEMA DE DOWNLOADS -->
+<div id="sistema-downloads-container"></div>
 
-{% if dados_relatorio %}
-<div class="resumo-container">
-    <h4>📊 Resumo das Receitas de Operações de Crédito</h4>
-    <div>
-        <div>
-            <strong>Total de Espécies:</strong><br>
-            <span style="color: #0066cc; font-size: 18px;">
-                {{ dados_relatorio | selectattr("tipo", "equalto", "especie") | list | length }}
-            </span>
-        </div>
-        <div>
-            <strong>Total de Alíneas:</strong><br>
-            <span style="color: #6c757d; font-size: 18px;">
-                {{ dados_relatorio | selectattr("tipo", "equalto", "alinea") | list | length }}
-            </span>
-        </div>
-        <div>
-            <strong>Receita Total {{ mes_ref }}/2024:</strong><br>
-            <span style="color: #6c757d; font-size: 18px;">
-                {% for linha in dados_relatorio %}
-                    {% if linha.tipo == 'total' %}
-                        {{ linha.receita_2024_fmt }}
-                    {% endif %}
-                {% endfor %}
-            </span>
-        </div>
-        <div>
-            <strong>Receita Total {{ mes_ref }}/2025:</strong><br>
-            <span style="color: #28a745; font-size: 18px;">
-                {% for linha in dados_relatorio %}
-                    {% if linha.tipo == 'total' %}
-                        {{ linha.receita_2025_fmt }}
-                    {% endif %}
-                {% endfor %}
-            </span>
-        </div>
-        <div>
-            <strong>Variação Total:</strong><br>
-            <span style="font-size: 18px; font-weight: bold;">
-                {% for linha in dados_relatorio %}
-                    {% if linha.tipo == 'total' %}
-                        <span class="{% if linha.variacao_perc < 0 %}valor-negativo{% endif %}{% if linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+<!-- ✅ SEÇÃO DA TABELA PRINCIPAL -->
+<div id="secao-tabela-principal">
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2">CÓDIGO ESPÉCIE</th>
+                <th rowspan="2">NOME DA ESPÉCIE/ALÍNEA</th>
+                <th colspan="2">RECEITA LÍQUIDA REALIZADA</th>
+                <th colspan="2">VARIAÇÃO</th>
+            </tr>
+            <tr>
+                <th>{{ mes_ref }}/2024</th>
+                <th>{{ mes_ref }}/2025</th>
+                <th>ABSOLUTA</th>
+                <th>PERCENTUAL</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for linha in dados_relatorio %}
+                {% if linha.tipo == 'especie' %}
+                    <tr class="especie" id="especie-{{ linha.especie_codigo }}">
+                        <td style="text-align: center; font-family: monospace; font-weight: bold;">
+                            <span class="especie-icon">🏦</span>{{ linha.especie_codigo_fmt }}
+                            {% if linha.tem_alineas %}
+                                <span style="font-size: 11px; color: #666; font-weight: normal; margin-left: 10px; display: block; margin-top: 2px;">({{ linha.qtd_alineas }} alíneas)</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: left;">
+                            {{ linha.nome_especie_fmt }}
+                        </td>
+                        <td>{{ linha.receita_2024_fmt }}</td>
+                        <td>{{ linha.receita_2025_fmt }}</td>
+                        <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_abs_fmt }}
+                        </td>
+                        <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
                             {{ linha.variacao_perc_fmt }}
-                        </span>
-                    {% endif %}
-                {% endfor %}
-            </span>
-        </div>
-    </div>
+                        </td>
+                    </tr>
+                {% elif linha.tipo == 'alinea' %}
+                    <tr class="alinea">
+                        <td style="text-align: center; font-family: monospace; font-weight: normal; color: #555;">
+                            <span class="alinea-icon">├─</span>{{ linha.especie_codigo_fmt }}
+                        </td>
+                        <td style="text-align: left; font-style: italic; color: #666; font-size: 13px;">
+                            {{ linha.nome_especie_fmt }}
+                        </td>
+                        <td>{{ linha.receita_2024_fmt }}</td>
+                        <td>{{ linha.receita_2025_fmt }}</td>
+                        <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_abs_fmt }}
+                        </td>
+                        <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_perc_fmt }}
+                        </td>
+                    </tr>
+                {% elif linha.tipo == 'total' %}
+                    <tr class="total">
+                        <td style="text-align: center; font-weight: bold;">{{ linha.especie_codigo_fmt }}</td>
+                        <td style="text-align: left; font-weight: bold;">{{ linha.nome_especie_fmt }}</td>
+                        <td>{{ linha.receita_2024_fmt }}</td>
+                        <td>{{ linha.receita_2025_fmt }}</td>
+                        <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_abs_fmt }}
+                        </td>
+                        <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_perc_fmt }}
+                        </td>
+                    </tr>
+                {% endif %}
+            {% else %}
+                <tr>
+                    <td colspan="6" class="text-center" style="color: #666; font-style: italic; padding: 30px;">
+                        Nenhum dado de receita de operações de crédito encontrado para os filtros selecionados ou colunas necessárias não disponíveis.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 
-<!-- NOVO: Comparativo Mensal Acumulado -->
-{% if comparativo_mensal %}
-<div class="resumo-container" style="border-left-color: #ff6b6b;">
-    <h4>📅 Comparativo Mensal Acumulado - Receitas de Operações de Crédito</h4>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
-        {% for mes in comparativo_mensal %}
-        <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #ff6b6b;">
-            <div style="font-weight: 600; color: #333; font-size: 14px; margin-bottom: 8px;">
-                📈 Total até <span id="titulo-mes-{{ mes.mes }}"></span>
+{% if dados_relatorio %}
+<!-- ✅ SEÇÃO DE RESUMO -->
+<div id="secao-resumo">
+    <div class="resumo-container">
+        <h4>📊 Resumo das Receitas de Operações de Crédito</h4>
+        <div>
+            <div>
+                <strong>Total de Espécies:</strong><br>
+                <span style="color: #0066cc; font-size: 18px;">
+                    {{ dados_relatorio | selectattr("tipo", "equalto", "especie") | list | length }}
+                </span>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span style="color: #6c757d; font-size: 12px;">2024:</span>
-                <span style="color: #6c757d; font-size: 13px; font-weight: 500;">{{ mes.saldo_2024_fmt }}</span>
+            <div>
+                <strong>Total de Alíneas:</strong><br>
+                <span style="color: #6c757d; font-size: 18px;">
+                    {{ dados_relatorio | selectattr("tipo", "equalto", "alinea") | list | length }}
+                </span>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span style="color: #28a745; font-size: 12px;">2025:</span>
-                <span style="color: #28a745; font-size: 13px; font-weight: 500;">{{ mes.saldo_2025_fmt }}</span>
+            <div>
+                <strong>Receita Total {{ mes_ref }}/2024:</strong><br>
+                <span style="color: #6c757d; font-size: 18px;">
+                    {% for linha in dados_relatorio %}
+                        {% if linha.tipo == 'total' %}
+                            {{ linha.receita_2024_fmt }}
+                        {% endif %}
+                    {% endfor %}
+                </span>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 4px;">
-                <span style="color: #333; font-size: 12px; font-weight: 600;">Variação:</span>
-                <span class="{% if mes.variacao_perc < 0 %}valor-negativo{% elif mes.variacao_perc > 0 %}valor-positivo{% endif %}" style="font-size: 13px; font-weight: bold;">
-                    {{ mes.variacao_perc_fmt }}
+            <div>
+                <strong>Receita Total {{ mes_ref }}/2025:</strong><br>
+                <span style="color: #28a745; font-size: 18px;">
+                    {% for linha in dados_relatorio %}
+                        {% if linha.tipo == 'total' %}
+                            {{ linha.receita_2025_fmt }}
+                        {% endif %}
+                    {% endfor %}
+                </span>
+            </div>
+            <div>
+                <strong>Variação Total:</strong><br>
+                <span style="font-size: 18px; font-weight: bold;">
+                    {% for linha in dados_relatorio %}
+                        {% if linha.tipo == 'total' %}
+                            <span class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                                {{ linha.variacao_perc_fmt }}
+                            </span>
+                        {% endif %}
+                    {% endfor %}
                 </span>
             </div>
         </div>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
-
-<!-- Gráfico de Pizza com as Principais Espécies -->
-<div class="chart-container">
-    <h4>🥧 Distribuição das Espécies de Operações de Crédito - Receita 2025</h4>
-    <div class="chart-wrapper">
-        <div id="chart-loading" class="chart-loading">
-            <div>
-                <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
-                <div>Carregando gráfico...</div>
-            </div>
-        </div>
-        <div id="chart-error" class="chart-error" style="display: none;">
-            <div>
-                <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
-                <div>Erro ao carregar gráfico</div>
-                <div style="font-size: 14px; margin-top: 5px;">Os dados estão disponíveis na tabela acima</div>
-            </div>
-        </div>
-        <canvas id="chartComparativo" style="display: none;"></canvas>
     </div>
 </div>
 
-<!-- Resumo das NOUGs com Saldos -->
-{% if resumo_nougs %}
-<div class="nougs-container">
-    <h4>
-        <span>🏢</span>
-        <span>Unidades Gestoras com Receita de Operações de Crédito em 2025</span>
-        <span style="font-size: 14px; color: #666; font-weight: normal;">({{ resumo_nougs|length }} unidades)</span>
-    </h4>
-    
-    <div class="nougs-lista">
-        {% for noug in resumo_nougs %}
-        <div class="noug-item" onclick="filtrarPorNoug('{{ noug.noug }}')" title="Clique para filtrar por esta UG">
-            <span class="noug-nome">{{ noug.noug }}</span>
-            <span class="noug-saldo">{{ noug.saldo_fmt }}</span>
+<!-- ✅ SEÇÃO DE COMPARATIVO -->
+<div id="secao-comparativo">
+    {% if comparativo_mensal %}
+    <div class="resumo-container" style="border-left-color: #ff6b6b;">
+        <h4>📅 Comparativo Mensal Acumulado - Receitas de Operações de Crédito</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
+            {% for mes in comparativo_mensal %}
+            <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #ff6b6b;">
+                <div style="font-weight: 600; color: #333; font-size: 14px; margin-bottom: 8px;">
+                    📈 Total até <span id="titulo-mes-{{ mes.mes }}"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span style="color: #6c757d; font-size: 12px;">2024:</span>
+                    <span style="color: #6c757d; font-size: 13px; font-weight: 500;">{{ mes.saldo_2024_fmt }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span style="color: #28a745; font-size: 12px;">2025:</span>
+                    <span style="color: #28a745; font-size: 13px; font-weight: 500;">{{ mes.saldo_2025_fmt }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 4px;">
+                    <span style="color: #333; font-size: 12px; font-weight: 600;">Variação:</span>
+                    <span class="{% if mes.variacao_perc < 0 %}valor-negativo{% elif mes.variacao_perc > 0 %}valor-positivo{% endif %}" style="font-size: 13px; font-weight: bold;">
+                        {{ mes.variacao_perc_fmt }}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
-    
-    <div class="nougs-total">
-        <strong>Total Geral das NOUGs:</strong> 
-        <span>
-            {% set total_nougs = resumo_nougs | sum(attribute='saldo') %}
-            {{ "R$ {:,.2f}".format(total_nougs).replace(",", "X").replace(".", ",").replace("X", ".") }}
-        </span>
+    {% endif %}
+</div>
+
+<!-- ✅ SEÇÃO DO GRÁFICO -->
+<div id="secao-grafico">
+    <div class="chart-container">
+        <h4>🥧 Distribuição das Espécies de Operações de Crédito - Receita 2025</h4>
+        <div class="chart-wrapper">
+            <div id="chart-loading" class="chart-loading">
+                <div>
+                    <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+                    <div>Carregando gráfico...</div>
+                </div>
+            </div>
+            <div id="chart-error" class="chart-error" style="display: none;">
+                <div>
+                    <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
+                    <div>Erro ao carregar gráfico</div>
+                    <div style="font-size: 14px; margin-top: 5px;">Os dados estão disponíveis na tabela acima</div>
+                </div>
+            </div>
+            <canvas id="chartComparativo" style="display: none;"></canvas>
+        </div>
     </div>
 </div>
-{% endif %}
+
+<!-- ✅ SEÇÃO DAS NOUGS -->
+<div id="secao-nougs">
+    {% if resumo_nougs %}
+    <div class="nougs-container">
+        <h4>
+            <span>🏢</span>
+            <span>Unidades Gestoras com Receita de Operações de Crédito em 2025</span>
+            <span style="font-size: 14px; color: #666; font-weight: normal;">({{ resumo_nougs|length }} unidades)</span>
+        </h4>
+        
+        <div class="nougs-lista">
+            {% for noug in resumo_nougs %}
+            <div class="noug-item" onclick="filtrarPorNoug('{{ noug.noug }}')" title="Clique para filtrar por esta UG">
+                <span class="noug-nome">{{ noug.noug }}</span>
+                <span class="noug-saldo">{{ noug.saldo_fmt }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="nougs-total">
+            <strong>Total Geral das NOUGs:</strong> 
+            <span>
+                {% set total_nougs = resumo_nougs | sum(attribute='saldo') %}
+                {{ "R$ {:,.2f}".format(total_nougs).replace(",", "X").replace(".", ",").replace("X", ".") }}
+            </span>
+        </div>
+    </div>
+    {% endif %}
+</div>
 {% endif %}
 
 {% endblock %}
@@ -774,6 +796,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+});
+</script>
+
+<!-- ✅ SISTEMA DE DOWNLOADS -->
+<script src="{{ url_for('static', filename='js/sistema-downloads.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ✅ Configuração específica para Receitas de Operações de Crédito
+    const configOperacoesCredito = {
+        nomeRelatorio: 'Receitas de Operações de Crédito',
+        secoesPrincipais: [
+            { id: 'secao-tabela-principal', nome: 'Tabela de Receitas' },
+            { id: 'secao-resumo', nome: 'Resumo das Receitas' },
+            { id: 'secao-comparativo', nome: 'Comparativo Mensal' },
+            { id: 'secao-grafico', nome: 'Gráfico de Distribuição' },
+            { id: 'secao-nougs', nome: 'Unidades Gestoras' }
+        ],
+        tabelaPrincipal: 'secao-tabela-principal'
+    };
+    
+    // ✅ Inicializar sistema de downloads
+    SistemaDownloads.inicializar(configOperacoesCredito);
 });
 </script>
 {% endblock %}

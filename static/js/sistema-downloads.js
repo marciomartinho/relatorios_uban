@@ -1,787 +1,366 @@
 /**
- * SISTEMA DE DOWNLOADS COM PDF OTIMIZADO
- * REMOVE RESUMO E NOUGS - FOCA NA TABELA E COMPARATIVO
+ * SISTEMA DE DOWNLOADS - VERSÃO UNIFICADA E CORRIGIDA
+ * Baseado no sistema original que funciona perfeitamente
  */
+
+// Verificar e carregar bibliotecas necessárias
+function verificarECarregarBibliotecas() {
+    console.log('🔍 Verificando bibliotecas necessárias...');
+    
+    const bibliotecasNecessarias = [
+        {
+            nome: 'html2canvas',
+            url: 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+            verificar: () => window.html2canvas
+        },
+        {
+            nome: 'jsPDF',
+            url: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+            verificar: () => window.jspdf
+        },
+        {
+            nome: 'jsPDF-AutoTable',
+            url: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js',
+            verificar: () => window.jspdf && window.jspdf.jsPDF.prototype.autoTable
+        },
+        {
+            nome: 'JSZip',
+            url: 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+            verificar: () => window.JSZip
+        },
+        {
+            nome: 'FileSaver',
+            url: 'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js',
+            verificar: () => window.saveAs
+        }
+    ];
+    
+    bibliotecasNecessarias.forEach(lib => {
+        if (!lib.verificar()) {
+            console.log(`⏳ Carregando ${lib.nome}...`);
+            const script = document.createElement('script');
+            script.src = lib.url;
+            script.onload = () => console.log(`✅ ${lib.nome} carregado!`);
+            document.head.appendChild(script);
+        } else {
+            console.log(`✅ ${lib.nome} já está carregado`);
+        }
+    });
+}
+
+// Chamar imediatamente ao carregar o script
+verificarECarregarBibliotecas();
 
 const SistemaDownloads = {
     config: {
         nomeRelatorio: 'Relatório',
         secoesPrincipais: [],
-        tabelaPrincipal: null,
-        container: 'sistema-downloads-container'
-    },
-    
-    estado: {
-        inicializado: false,
-        processando: false
+        tabelaPrincipal: 'secao-tabela-principal'
     },
     
     inicializar: function(configuracao) {
         console.log('🚀 Inicializando Sistema de Downloads...');
         
+        // Mesclar configurações
         this.config = { ...this.config, ...configuracao };
-        this.criarHTML();
-        this.adicionarEventListeners();
         
-        this.estado.inicializado = true;
-        console.log('✅ Sistema funcionando!');
+        // Aguardar bibliotecas carregarem
+        setTimeout(() => {
+            this.criarInterface();
+            this.verificarBibliotecas();
+        }, 1500);
+        
+        console.log('✅ Sistema de Downloads inicializado!');
     },
     
-    criarHTML: function() {
-        const container = document.getElementById(this.config.container);
+    criarInterface: function() {
+        const container = document.getElementById('sistema-downloads-container');
         if (!container) {
-            console.error('❌ Container não encontrado');
+            console.error('❌ Container do sistema de downloads não encontrado!');
             return;
         }
         
-        const html = `
-            <div class="sistema-downloads">
-                <div class="downloads-titulo">
-                    <span class="icone">📥</span>
+        container.innerHTML = `
+            <div class="download-section">
+                <h4>
+                    <span>📥</span>
                     <span>Downloads do Relatório</span>
-                </div>
+                </h4>
                 
-                <div class="downloads-grid">
-                    <button class="download-btn btn-tabela" id="btn-tabela">
-                        <span class="icone">📊</span>
+                <div class="download-buttons">
+                    <button class="download-btn btn-png" onclick="SistemaDownloads.downloadTablePNG()">
+                        <span>📊</span>
                         <span>Tabela Principal</span>
                     </button>
-                    
-                    <button class="download-btn btn-html" id="btn-html">
-                        <span class="icone">🌐</span>
+                    <button class="download-btn btn-zip" onclick="SistemaDownloads.downloadAllPNG()">
+                        <span>🗜️</span>
+                        <span>Relatório Completo</span>
+                    </button>
+                    <button class="download-btn btn-html" onclick="SistemaDownloads.downloadHTML()">
+                        <span>🌐</span>
                         <span>Arquivo HTML</span>
                     </button>
-                    
-                    <button class="download-btn btn-pdf" id="btn-pdf">
-                        <span class="icone">📄</span>
-                        <span>Gerar PDF</span>
-                    </button>
-                    
-                    <button class="download-btn btn-completo" id="btn-csv">
-                        <span class="icone">📋</span>
-                        <span>Dados CSV</span>
+                    <button class="download-btn btn-pdf" onclick="SistemaDownloads.downloadPDF()">
+                        <span>📄</span>
+                        <span>PDF Otimizado</span>
                     </button>
                 </div>
                 
-                <div class="downloads-loading" id="downloads-loading">
-                    <div class="loading-spinner"></div>
-                    <div class="loading-texto">Processando...</div>
+                <div class="download-loading" id="downloadLoading">
+                    <div class="download-spinner"></div>
+                    <div class="download-loading-text">Processando download...</div>
                 </div>
             </div>
         `;
-        
-        container.innerHTML = html;
     },
     
-    adicionarEventListeners: function() {
-        document.getElementById('btn-tabela').addEventListener('click', () => this.downloadTabela());
-        document.getElementById('btn-html').addEventListener('click', () => this.downloadHTML());
-        document.getElementById('btn-pdf').addEventListener('click', () => this.gerarPDF());
-        document.getElementById('btn-csv').addEventListener('click', () => this.downloadCSV());
+    verificarBibliotecas: function() {
+        console.log('🔍 Verificando bibliotecas de download...');
+        const bibliotecas = [
+            { nome: 'html2canvas', objeto: window.html2canvas },
+            { nome: 'jsPDF', objeto: window.jspdf },
+            { nome: 'JSZip', objeto: window.JSZip },
+            { nome: 'FileSaver', objeto: window.saveAs }
+        ];
+        
+        bibliotecas.forEach(lib => {
+            if (lib.objeto) {
+                console.log(`✅ ${lib.nome} carregado`);
+            } else {
+                console.error(`❌ ${lib.nome} não carregado`);
+            }
+        });
     },
     
-    mostrarLoading: function(show = true, texto = 'Processando...') {
-        const loading = document.getElementById('downloads-loading');
-        const textoElement = loading?.querySelector('.loading-texto');
-        
+    showDownloadLoading: function(show = true) {
+        const loading = document.getElementById('downloadLoading');
         if (loading) {
-            loading.classList.toggle('ativo', show);
+            loading.style.display = show ? 'block' : 'none';
         }
-        
-        if (textoElement) {
-            textoElement.textContent = texto;
-        }
-        
-        this.estado.processando = show;
     },
     
-    feedbackBotao: function(idBotao, tipo = 'sucesso') {
-        const botao = document.getElementById(idBotao);
-        if (!botao) return;
-        
-        const icone = botao.querySelector('.icone');
-        const textoOriginal = icone.textContent;
-        
-        botao.classList.add(tipo);
-        
-        if (tipo === 'sucesso') {
-            icone.textContent = '✅';
-        } else if (tipo === 'erro') {
-            icone.textContent = '❌';
-        }
-        
-        setTimeout(() => {
-            botao.classList.remove(tipo);
-            icone.textContent = textoOriginal;
-        }, 2000);
-    },
-    
-    downloadTabela: function() {
+    // 1. Download PNG da tabela
+    downloadTablePNG: async function() {
+        this.showDownloadLoading(true);
         try {
-            const tabela = document.querySelector('table');
-            if (!tabela) {
-                throw new Error('Tabela não encontrada');
+            const elemento = document.getElementById(this.config.tabelaPrincipal);
+            if (!elemento) {
+                throw new Error('Tabela principal não encontrada');
             }
             
-            const novaJanela = window.open('', '_blank');
-            const html = this.gerarHTMLTabela(tabela);
-            
-            novaJanela.document.write(html);
-            novaJanela.document.close();
-            
-            this.feedbackBotao('btn-tabela', 'sucesso');
-            
-        } catch (error) {
-            console.error('Erro:', error);
-            this.feedbackBotao('btn-tabela', 'erro');
-            alert('Erro: ' + error.message);
-        }
-    },
-    
-    downloadHTML: function() {
-        this.mostrarLoading(true, 'Gerando HTML...');
-        
-        try {
-            const htmlCompleto = this.gerarHTMLCompleto();
-            
-            const blob = new Blob([htmlCompleto], { type: 'text/html;charset=utf-8' });
-            const dataAtual = new Date().toISOString().split('T')[0];
-            const nomeArquivo = `${this.config.nomeRelatorio.toLowerCase().replace(/\s/g, '-')}-${dataAtual}.html`;
-            
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = nomeArquivo;
-            link.click();
-            URL.revokeObjectURL(url);
-            
-            this.feedbackBotao('btn-html', 'sucesso');
-            
-        } catch (error) {
-            console.error('Erro:', error);
-            this.feedbackBotao('btn-html', 'erro');
-            alert('Erro: ' + error.message);
-        } finally {
-            this.mostrarLoading(false);
-        }
-    },
-    
-    // ✅ NOVA FUNÇÃO: PDF otimizado só com tabela e comparativo
-    gerarPDF: function() {
-        this.mostrarLoading(true, 'Preparando PDF...');
-        
-        try {
-            const htmlPDF = this.gerarHTMLParaPDF();
-            
-            const novaJanela = window.open('', '_blank');
-            novaJanela.document.write(htmlPDF);
-            novaJanela.document.close();
-            
-            // Aguardar carregar e automaticamente abrir impressão
-            novaJanela.onload = function() {
-                setTimeout(function() {
-                    novaJanela.print();
-                }, 500);
-            };
-            
-            this.feedbackBotao('btn-pdf', 'sucesso');
-            
-        } catch (error) {
-            console.error('Erro:', error);
-            this.feedbackBotao('btn-pdf', 'erro');
-            alert('Erro: ' + error.message);
-        } finally {
-            this.mostrarLoading(false);
-        }
-    },
-    
-    downloadCSV: function() {
-        this.mostrarLoading(true, 'Gerando CSV...');
-        
-        try {
-            const tabela = document.querySelector('table');
-            if (!tabela) {
-                throw new Error('Tabela não encontrada');
-            }
-            
-            let csv = '';
-            
-            const headers = tabela.querySelectorAll('thead th');
-            const headerRow = Array.from(headers).map(th => `"${th.textContent.trim()}"`).join(',');
-            csv += headerRow + '\n';
-            
-            const rows = tabela.querySelectorAll('tbody tr');
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                const rowData = Array.from(cells).map(td => {
-                    let text = td.textContent.trim();
-                    text = text.replace(/[🏦├─]/g, '');
-                    text = text.replace(/\s+/g, ' ');
-                    return `"${text}"`;
-                }).join(',');
-                csv += rowData + '\n';
+            const canvas = await html2canvas(elemento, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                logging: false
             });
             
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-            const dataAtual = new Date().toISOString().split('T')[0];
-            const nomeArquivo = `${this.config.nomeRelatorio.toLowerCase().replace(/\s/g, '-')}-${dataAtual}.csv`;
-            
-            const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.href = url;
-            link.download = nomeArquivo;
+            link.download = `${this.config.nomeRelatorio.toLowerCase().replace(/\s+/g, '-')}-tabela-${new Date().toISOString().split('T')[0]}.png`;
+            link.href = canvas.toDataURL('image/png');
             link.click();
-            URL.revokeObjectURL(url);
             
-            this.feedbackBotao('btn-csv', 'sucesso');
-            
+            console.log('✅ Download da tabela concluído');
         } catch (error) {
-            console.error('Erro:', error);
-            this.feedbackBotao('btn-csv', 'erro');
-            alert('Erro: ' + error.message);
+            console.error('❌ Erro no download da tabela:', error);
+            alert('Erro ao gerar imagem da tabela: ' + error.message);
         } finally {
-            this.mostrarLoading(false);
+            this.showDownloadLoading(false);
         }
     },
     
-    // ✅ HTML OTIMIZADO PARA PDF - SÓ TABELA E COMPARATIVO
-    gerarHTMLParaPDF: function() {
-        const titulo = this.config.nomeRelatorio;
-        const dataAtual = new Date().toLocaleString('pt-BR');
-        
-        // Extrair apenas TABELA e COMPARATIVO
-        let conteudoTabela = '';
-        let conteudoComparativo = '';
-        
-        // Extrair tabela
-        const elementoTabela = document.getElementById('secao-tabela-principal');
-        if (elementoTabela) {
-            const tabela = elementoTabela.querySelector('table');
-            if (tabela) {
-                conteudoTabela = tabela.outerHTML;
+    // 2. Download ZIP completo
+    downloadAllPNG: async function() {
+        this.showDownloadLoading(true);
+        try {
+            if (!window.JSZip || !window.saveAs) {
+                throw new Error('Bibliotecas JSZip ou FileSaver não carregadas');
             }
-        }
-        
-        // Extrair comparativo mensal
-        const elementoComparativo = document.getElementById('secao-comparativo');
-        if (elementoComparativo) {
-            conteudoComparativo = elementoComparativo.innerHTML;
-        }
-        
-        return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${titulo} - PDF</title>
-    <style>
-        /* === ESTILOS OTIMIZADOS PARA PDF === */
-        @page {
-            size: A4 landscape; /* ✅ PAISAGEM PARA MELHOR VISUALIZAÇÃO */
-            margin: 12mm;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Arial', sans-serif;
-            font-size: 10px; /* ✅ FONTE MAIOR */
-            line-height: 1.3;
-            color: #333;
-            background: white;
-        }
-        
-        .container {
-            max-width: 100%;
-            margin: 0;
-            padding: 0;
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #003366;
-            page-break-inside: avoid;
-        }
-        
-        .header h1 {
-            color: #003366;
-            font-size: 16px; /* ✅ TÍTULO MAIOR */
-            font-weight: bold;
-            margin-bottom: 6px;
-        }
-        
-        .header .data {
-            color: #666;
-            font-size: 11px;
-            font-weight: normal;
-        }
-        
-        /* === TABELA OTIMIZADA PARA PDF PAISAGEM === */
-        .secao-tabela {
-            margin-bottom: 20px;
-            page-break-inside: avoid;
-        }
-        
-        .secao-tabela h3 {
-            color: #003366;
-            font-size: 13px;
-            font-weight: bold;
-            margin-bottom: 8px;
-            padding: 6px 10px;
-            background: #f0f8ff;
-            border-left: 4px solid #0066cc;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 8px 0;
-            font-size: 9px; /* ✅ FONTE DA TABELA MAIOR */
-            page-break-inside: auto;
-        }
-        
-        thead {
-            display: table-header-group;
-        }
-        
-        tbody {
-            display: table-row-group;
-        }
-        
-        th {
-            background: #003366 !important;
-            color: white !important;
-            padding: 8px 5px; /* ✅ PADDING MAIOR */
-            text-align: center;
-            font-weight: bold;
-            font-size: 9px; /* ✅ CABEÇALHO MAIOR */
-            border: 1px solid white;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-        
-        td {
-            padding: 6px 4px; /* ✅ PADDING MAIOR */
-            text-align: center;
-            border: 1px solid #ddd;
-            font-size: 9px; /* ✅ DADOS MAIORES */
-            page-break-inside: avoid;
-        }
-        
-        /* ✅ VALORES MONETÁRIOS MAIORES E MAIS LEGÍVEIS */
-        td:nth-child(3), td:nth-child(4), td:nth-child(5), td:nth-child(6) {
-            font-size: 9px !important; /* ✅ VALORES AINDA MAIORES */
-            font-weight: 500;
-            font-family: 'Courier New', monospace;
-        }
-        
-        .especie {
-            background: #e6f3ff !important;
-            font-weight: bold;
-            border-left: 3px solid #0066cc !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-        
-        .especie td:first-child {
-            font-family: 'Courier New', monospace;
-            color: #003366;
-            font-weight: bold;
-            font-size: 8px;
-        }
-        
-        .especie td:nth-child(2) {
-            text-align: left;
-            color: #003366;
-            font-weight: bold;
-            font-size: 9px; /* ✅ NOME DA ESPÉCIE MAIOR */
-        }
-        
-        .alinea {
-            background: #f8fbff !important;
-            border-left: 2px solid #b3d9ff !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-        
-        .alinea td:first-child {
-            padding-left: 12px;
-            font-family: 'Courier New', monospace;
-            color: #666;
-            font-size: 8px;
-        }
-        
-        .alinea td:nth-child(2) {
-            text-align: left;
-            font-style: italic;
-            color: #555;
-            padding-left: 8px;
-            font-size: 8px;
-        }
-        
-        .total {
-            background: #003366 !important;
-            color: white !important;
-            font-weight: bold;
-            font-size: 10px !important; /* ✅ TOTAL MAIOR */
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-        
-        .total td {
-            color: white !important;
-            font-weight: bold;
-            font-size: 10px !important; /* ✅ VALORES DO TOTAL MAIORES */
-        }
-        
-        .valor-positivo {
-            color: #28a745 !important;
-            font-weight: bold;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-        
-        .valor-negativo {
-            color: #dc3545 !important;
-            font-weight: bold;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-        
-        /* === COMPARATIVO MENSAL OTIMIZADO === */
-        .secao-comparativo {
-            margin-top: 20px;
-            page-break-inside: avoid;
-        }
-        
-        .secao-comparativo h3 {
-            color: #28a745;
-            font-size: 13px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            padding: 6px 10px;
-            background: #f0f8ff;
-            border-left: 4px solid #28a745;
-        }
-        
-        .comparativo-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr); /* ✅ 3 COLUNAS EM PAISAGEM */
-            gap: 8px;
-            page-break-inside: avoid;
-        }
-        
-        .comparativo-item {
-            background: #f8f9fa !important;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-left: 3px solid #28a745 !important;
-            font-size: 8px;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-        
-        .comparativo-mes {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 4px;
-            text-align: center;
-            font-size: 9px; /* ✅ MÊS MAIOR */
-        }
-        
-        .comparativo-valores {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 2px;
-            font-size: 8px;
-        }
-        
-        .comparativo-variacao {
-            border-top: 1px solid #ddd;
-            padding-top: 2px;
-            margin-top: 2px;
-            display: flex;
-            justify-content: space-between;
-            font-weight: bold;
-            font-size: 8px;
-        }
-        
-        /* === RODAPÉ === */
-        .rodape {
-            text-align: center;
-            margin-top: 15px;
-            padding-top: 8px;
-            border-top: 1px solid #ddd;
-            color: #666;
-            font-size: 9px;
-            page-break-inside: avoid;
-        }
-        
-        /* === QUEBRAS DE PÁGINA === */
-        .secao-tabela {
-            page-break-inside: avoid;
-        }
-        
-        .secao-comparativo {
-            page-break-inside: avoid;
-        }
-        
-        tr {
-            page-break-inside: avoid;
-        }
-        
-        /* === IMPRESSÃO === */
-        @media print {
-            body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
+            
+            const zip = new JSZip();
+            
+            for (const secao of this.config.secoesPrincipais) {
+                const elemento = document.getElementById(secao.id);
+                if (elemento) {
+                    const canvas = await html2canvas(elemento, {
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: '#ffffff',
+                        logging: false
+                    });
+                    
+                    const blob = await new Promise(resolve => {
+                        canvas.toBlob(resolve, 'image/png', 0.95);
+                    });
+                    
+                    zip.file(`${secao.nome}.png`, blob);
+                    console.log(`✅ Seção ${secao.nome} adicionada ao ZIP`);
+                }
             }
+            
+            const zipBlob = await zip.generateAsync({
+                type: 'blob',
+                compression: 'DEFLATE',
+                compressionOptions: { level: 6 }
+            });
+            
+            const dataAtual = new Date().toISOString().split('T')[0];
+            saveAs(zipBlob, `${this.config.nomeRelatorio.toLowerCase().replace(/\s+/g, '-')}-completo-${dataAtual}.zip`);
+            
+            console.log('✅ Download do ZIP concluído');
+        } catch (error) {
+            console.error('❌ Erro no download do ZIP:', error);
+            alert('Erro ao gerar arquivo ZIP: ' + error.message);
+        } finally {
+            this.showDownloadLoading(false);
         }
-    </style>
-    
-    <script>
-        // Abrir automaticamente a impressão quando carregar
-        window.onload = function() {
-            console.log('📄 Abrindo impressão automática...');
-            setTimeout(function() {
-                window.print();
-            }, 800);
-        };
-        
-        window.onafterprint = function() {
-            console.log('📄 Impressão concluída');
-        };
-    </script>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>${titulo}</h1>
-            <div class="data">Relatório gerado em: ${dataAtual}</div>
-        </div>
-        
-        <!-- ✅ SÓ A TABELA -->
-        <div class="secao-tabela">
-            <h3>Tabela Principal</h3>
-            ${conteudoTabela}
-        </div>
-        
-        <!-- ✅ SÓ O COMPARATIVO MENSAL -->
-        ${conteudoComparativo ? `
-        <div class="secao-comparativo">
-            <h3>Comparativo Mensal</h3>
-            ${conteudoComparativo}
-        </div>
-        ` : ''}
-        
-        <div class="rodape">
-            <p><strong>Sistema de Relatórios</strong> | ${titulo} | ${dataAtual}</p>
-        </div>
-    </div>
-</body>
-</html>`;
     },
     
-    // HTML limpo para a tabela
-    gerarHTMLTabela: function(tabela) {
-        const titulo = this.config.nomeRelatorio;
-        const dataAtual = new Date().toLocaleString('pt-BR');
-        
-        return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${titulo}</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: #f8f9fa;
-            color: #333;
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .header h1 {
-            color: #003366;
-            margin: 0 0 10px 0;
-            font-size: 24px;
-            font-weight: bold;
-        }
-        
-        .header .data {
-            color: #666;
-            font-size: 14px;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        
-        th {
-            background: linear-gradient(135deg, #003366, #004080);
-            color: white;
-            padding: 12px 8px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 12px;
-        }
-        
-        td {
-            padding: 10px 8px;
-            text-align: center;
-            border-bottom: 1px solid #eee;
-            font-size: 12px;
-        }
-        
-        .especie {
-            background: linear-gradient(135deg, #e6f3ff, #cce5ff);
-            font-weight: bold;
-            border-left: 4px solid #0066cc;
-        }
-        
-        .especie td:first-child {
-            text-align: center;
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            color: #003366;
-        }
-        
-        .especie td:nth-child(2) {
-            text-align: left;
-            font-weight: bold;
-            color: #003366;
-        }
-        
-        .alinea {
-            background-color: #f8fbff;
-            border-left: 3px solid #b3d9ff;
-        }
-        
-        .alinea td:first-child {
-            padding-left: 30px;
-            font-family: 'Courier New', monospace;
-            color: #666;
-        }
-        
-        .alinea td:nth-child(2) {
-            text-align: left;
-            font-style: italic;
-            color: #555;
-            padding-left: 20px;
-        }
-        
-        .total {
-            background: linear-gradient(135deg, #003366, #004080);
-            color: white;
-            font-weight: bold;
-            font-size: 13px;
-        }
-        
-        .valor-positivo {
-            color: #28a745;
-            font-weight: bold;
-        }
-        
-        .valor-negativo {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        
-        .rodape {
-            text-align: center;
-            margin-top: 20px;
-            padding: 15px;
-            background: white;
-            border-radius: 10px;
-            color: #666;
-            font-size: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
-        @media print {
-            body { 
-                background: white; 
-                padding: 10px;
+    // 3. Download HTML - VERSÃO CORRIGIDA
+    downloadHTML: function() {
+        this.showDownloadLoading(true);
+        try {
+            console.log('🌐 Iniciando geração do HTML...');
+            
+            const htmlCompleto = this.gerarHTMLCompleto();
+            
+            if (!htmlCompleto || htmlCompleto.length < 100) {
+                throw new Error('HTML gerado está vazio ou muito pequeno');
             }
-            .header, .rodape {
-                box-shadow: none;
-                border: 1px solid #ddd;
+            
+            const blob = new Blob([htmlCompleto], { type: 'text/html;charset=utf-8' });
+            const dataFormatada = new Date().toISOString().split('T')[0];
+            const nomeArquivo = `${this.config.nomeRelatorio.toLowerCase().replace(/\s+/g, '-')}-completo-${dataFormatada}.html`;
+            
+            // Verificar se saveAs está disponível
+            if (window.saveAs) {
+                saveAs(blob, nomeArquivo);
+            } else {
+                // Fallback caso FileSaver não esteja carregado
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = nomeArquivo;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
             }
+            
+            console.log('✅ HTML completo gerado com sucesso!');
+        } catch (error) {
+            console.error('❌ Erro ao gerar HTML:', error);
+            alert('Erro ao gerar arquivo HTML: ' + error.message);
+        } finally {
+            this.showDownloadLoading(false);
         }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>${titulo}</h1>
-        <div class="data">Gerado em: ${dataAtual}</div>
-    </div>
-    
-    ${tabela.outerHTML}
-    
-    <div class="rodape">
-        Sistema de Relatórios | ${titulo} | ${dataAtual}
-    </div>
-</body>
-</html>`;
     },
     
-    // ✅ HTML completo melhorado (REMOVENDO RESUMO E NOUGS)
+    // 4. Download PDF
+    downloadPDF: async function() {
+        this.showDownloadLoading(true);
+        try {
+            if (!window.jspdf) {
+                throw new Error('Biblioteca jsPDF não carregada');
+            }
+            
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('landscape', 'mm', 'a4');
+            
+            console.log('📄 Iniciando geração do PDF em paisagem...');
+            
+            // Cabeçalho
+            let posY = this.adicionarCabecalhoPDF(pdf);
+            
+            // Tabela principal
+            posY = await this.adicionarTabelaPDF(pdf, posY);
+            
+            // Outras seções
+            await this.adicionarOutrasSecoesPDF(pdf);
+            
+            // Rodapé
+            this.adicionarRodapePDF(pdf);
+            
+            // Salvar
+            const dataAtual = new Date().toISOString().split('T')[0];
+            pdf.save(`${this.config.nomeRelatorio.toLowerCase().replace(/\s+/g, '-')}-${dataAtual}.pdf`);
+            
+            console.log('✅ PDF gerado com sucesso!');
+        } catch (error) {
+            console.error('❌ Erro ao gerar PDF:', error);
+            alert('Erro ao gerar PDF: ' + error.message);
+        } finally {
+            this.showDownloadLoading(false);
+        }
+    },
+    
+    // Função auxiliar CORRIGIDA para gerar HTML completo
     gerarHTMLCompleto: function() {
         const titulo = this.config.nomeRelatorio;
-        const dataAtual = new Date().toLocaleDateString('pt-BR');
+        const dataAtual = new Date().toLocaleString('pt-BR');
         
-        let conteudoSecoes = '';
+        // Tentar diferentes seletores para encontrar o container principal
+        let containerPrincipal = null;
+        const seletores = ['.container', '.content-wrapper', 'main', 'body > div:first-child'];
         
-        // ✅ FILTRAR APENAS TABELA E COMPARATIVO
-        const secoesPermitidas = ['secao-tabela-principal', 'secao-comparativo'];
-        
-        this.config.secoesPrincipais.forEach(secao => {
-            // ✅ PULAR RESUMO E NOUGS
-            if (!secoesPermitidas.includes(secao.id)) {
-                return;
+        for (const seletor of seletores) {
+            containerPrincipal = document.querySelector(seletor);
+            if (containerPrincipal) {
+                console.log(`✅ Container encontrado com seletor: ${seletor}`);
+                break;
             }
-            
-            const elemento = document.getElementById(secao.id);
-            if (elemento) {
-                let conteudoLimpo = elemento.innerHTML;
-                
-                if (secao.id === 'secao-tabela-principal') {
-                    const tabela = elemento.querySelector('table');
-                    if (tabela) {
-                        conteudoLimpo = tabela.outerHTML;
+        }
+        
+        // Se não encontrar nenhum container, usar o body inteiro
+        if (!containerPrincipal) {
+            console.warn('⚠️ Container principal não encontrado, usando body completo');
+            containerPrincipal = document.body;
+        }
+        
+        // Clonar o container
+        const container = containerPrincipal.cloneNode(true);
+        
+        // Remover elementos desnecessários
+        const elementosRemover = [
+            '#sistema-downloads-container',
+            '.download-section',
+            '.sistema-downloads',
+            'script',
+            '.info-container' // Remove a caixa de informações
+        ];
+        
+        elementosRemover.forEach(seletor => {
+            const elementos = container.querySelectorAll(seletor);
+            elementos.forEach(el => el.remove());
+        });
+        
+        // Extrair todos os estilos da página atual
+        let estilosCompletos = '';
+        const folhasEstilo = document.styleSheets;
+        
+        try {
+            for (let i = 0; i < folhasEstilo.length; i++) {
+                const folha = folhasEstilo[i];
+                try {
+                    const regras = folha.cssRules || folha.rules;
+                    if (regras) {
+                        for (let j = 0; j < regras.length; j++) {
+                            estilosCompletos += regras[j].cssText + '\n';
+                        }
                     }
+                } catch (e) {
+                    // Ignora erros de CORS para estilos externos
+                    console.warn('Não foi possível acessar folha de estilo:', e);
                 }
-                
-                conteudoSecoes += `
-                    <div class="secao">
-                        <h3>${secao.nome}</h3>
-                        <div class="conteudo-secao">
-                            ${conteudoLimpo}
-                        </div>
-                    </div>
-                `;
             }
+        } catch (e) {
+            console.warn('Erro ao extrair estilos:', e);
+        }
+        
+        // Adicionar estilos inline também
+        const estilosInline = document.querySelectorAll('style');
+        estilosInline.forEach(style => {
+            estilosCompletos += style.innerHTML + '\n';
         });
         
         return `<!DOCTYPE html>
@@ -791,192 +370,262 @@ const SistemaDownloads = {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${titulo} - ${dataAtual}</title>
     <style>
+        /* Estilos base */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 20px;
-            background: #f8f9fa;
+            background: #f5f5f5;
             color: #333;
             line-height: 1.6;
         }
         
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        /* Estilos extraídos da página */
+        ${estilosCompletos}
+        
+        /* Ajustes para o HTML exportado */
+        body { background: white !important; }
+        .container, .content-wrapper, main { 
+            max-width: 1200px !important; 
+            margin: 0 auto !important; 
+            padding: 20px !important;
         }
         
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding-bottom: 20px;
-            border-bottom: 3px solid #003366;
+        /* Garantir que tabelas fiquem visíveis */
+        table { 
+            width: 100% !important; 
+            border-collapse: collapse !important; 
+            margin: 20px 0 !important;
         }
         
-        .header h1 {
-            color: #003366;
-            margin: 0 0 15px 0;
-            font-size: 28px;
-            font-weight: bold;
+        th { 
+            background: #003366 !important; 
+            color: white !important; 
+            padding: 10px !important;
+            text-align: center !important;
         }
         
-        .header .data {
-            color: #666;
-            font-size: 16px;
-            font-weight: 500;
+        td { 
+            padding: 8px !important; 
+            border-bottom: 1px solid #ddd !important;
         }
         
-        .secao {
-            margin-bottom: 40px;
-            padding: 25px;
-            background: #f8f9fa;
-            border-radius: 12px;
-            border-left: 5px solid #0066cc;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        .especie { background-color: #cce5ff !important; }
+        .alinea { background-color: #f0f8ff !important; }
+        .total { 
+            background-color: #003366 !important; 
+            color: white !important; 
         }
         
-        .secao h3 {
-            color: #003366;
-            margin-top: 0;
-            margin-bottom: 20px;
-            font-size: 20px;
-            font-weight: 600;
+        .valor-positivo { color: #28a745 !important; font-weight: bold !important; }
+        .valor-negativo { color: #dc3545 !important; font-weight: bold !important; }
+        
+        /* Remover elementos de interface */
+        .download-section, .sistema-downloads, #sistema-downloads-container {
+            display: none !important;
         }
         
-        table {
-            width: 100%;
-            border-collapse: collapse;
+        /* Ajustar gráficos */
+        .chart-container {
+            page-break-inside: avoid;
             margin: 20px 0;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
-        th {
-            background: linear-gradient(135deg, #003366, #004080);
-            color: white;
-            padding: 12px 8px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 12px;
-        }
-        
-        td {
-            padding: 10px 8px;
-            text-align: center;
-            border-bottom: 1px solid #eee;
-            font-size: 12px;
-        }
-        
-        .especie {
-            background: linear-gradient(135deg, #e6f3ff, #cce5ff);
-            font-weight: bold;
-            border-left: 4px solid #0066cc;
-        }
-        
-        .especie td:first-child {
-            font-family: 'Courier New', monospace;
-            color: #003366;
-        }
-        
-        .especie td:nth-child(2) {
-            text-align: left;
-            color: #003366;
-        }
-        
-        .alinea {
-            background-color: #f8fbff;
-            border-left: 3px solid #b3d9ff;
-        }
-        
-        .alinea td:first-child {
-            padding-left: 30px;
-            font-family: 'Courier New', monospace;
-            color: #666;
-        }
-        
-        .alinea td:nth-child(2) {
-            text-align: left;
-            font-style: italic;
-            color: #555;
-            padding-left: 20px;
-        }
-        
-        .total {
-            background: linear-gradient(135deg, #003366, #004080);
-            color: white;
-            font-weight: bold;
-        }
-        
-        .valor-positivo {
-            color: #28a745;
-            font-weight: bold;
-        }
-        
-        .valor-negativo {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        
-        .comparativo-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 15px;
-        }
-        
-        .comparativo-item {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 3px solid #28a745;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
-        .rodape {
-            text-align: center;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid #ddd;
-            color: #666;
-            font-size: 14px;
-        }
-        
+        /* Impressão */
         @media print {
-            body { 
-                background: white; 
-                padding: 10px;
-            }
-            .container { 
-                box-shadow: none; 
-                padding: 20px;
-            }
-            .secao {
-                page-break-inside: avoid;
-                margin-bottom: 20px;
-            }
+            body { margin: 0; padding: 10px; }
+            .chart-container { page-break-inside: avoid; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>${titulo}</h1>
-            <div class="data">Relatório gerado em: ${dataAtual}</div>
-        </div>
-        
-        ${conteudoSecoes}
-        
-        <div class="rodape">
-            <p><strong>Sistema de Relatórios</strong> | ${titulo} | Gerado automaticamente em ${new Date().toLocaleString('pt-BR')}</p>
-        </div>
+    ${container.innerHTML}
+    
+    <div style="margin-top: 50px; padding-top: 20px; border-top: 2px solid #ddd; text-align: center; color: #666;">
+        <p><strong>${titulo}</strong> - Gerado em ${dataAtual}</p>
+        <p>Sistema de Relatórios Financeiros</p>
     </div>
 </body>
 </html>`;
+    },
+    
+    adicionarCabecalhoPDF: function(pdf) {
+        const largura = 297;
+        const centro = largura / 2;
+        let posY = 15;
+        
+        pdf.setFontSize(16);
+        pdf.setFont(undefined, 'bold');
+        pdf.setTextColor(0, 51, 102);
+        pdf.text(this.config.nomeRelatorio.toUpperCase(), centro, posY, { align: 'center' });
+        posY += 8;
+        
+        pdf.setFontSize(12);
+        pdf.setFont(undefined, 'normal');
+        pdf.setTextColor(80, 80, 80);
+        pdf.text('Comparativo 2024 vs 2025', centro, posY, { align: 'center' });
+        posY += 10;
+        
+        pdf.setFontSize(10);
+        pdf.setTextColor(100, 100, 100);
+        const agora = new Date().toLocaleString('pt-BR');
+        pdf.text(`Gerado em: ${agora}`, centro, posY, { align: 'center' });
+        posY += 15;
+        
+        return posY;
+    },
+    
+    adicionarTabelaPDF: async function(pdf, posY) {
+        console.log('📊 Adicionando tabela ao PDF...');
+        
+        const dadosTabela = this.extrairDadosTabela();
+        
+        if (!dadosTabela || dadosTabela.length === 0) {
+            console.warn('⚠️ Nenhum dado encontrado na tabela');
+            return posY + 20;
+        }
+        
+        const colunas = [
+            { header: 'CÓDIGO', dataKey: 'codigo' },
+            { header: 'NOME', dataKey: 'nome' },
+            { header: 'RECEITA 2024', dataKey: 'valor2024' },
+            { header: 'RECEITA 2025', dataKey: 'valor2025' },
+            { header: 'VARIAÇÃO ABS', dataKey: 'variacaoAbs' },
+            { header: 'VAR %', dataKey: 'variacaoPerc' }
+        ];
+        
+        pdf.autoTable({
+            columns: colunas,
+            body: dadosTabela,
+            startY: posY,
+            margin: { left: 10, right: 10 },
+            styles: {
+                fontSize: 8,
+                cellPadding: 3
+            },
+            headStyles: {
+                fillColor: [0, 51, 102],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold'
+            },
+            didParseCell: function(data) {
+                const rowData = dadosTabela[data.row.index];
+                if (rowData && rowData.tipo) {
+                    switch (rowData.tipo) {
+                        case 'especie':
+                            data.cell.styles.fillColor = [230, 240, 255];
+                            data.cell.styles.fontStyle = 'bold';
+                            break;
+                        case 'alinea':
+                            data.cell.styles.fillColor = [248, 250, 255];
+                            break;
+                        case 'total':
+                            data.cell.styles.fillColor = [0, 51, 102];
+                            data.cell.styles.textColor = [255, 255, 255];
+                            data.cell.styles.fontStyle = 'bold';
+                            break;
+                    }
+                }
+            }
+        });
+        
+        return pdf.lastAutoTable.finalY + 20;
+    },
+    
+    extrairDadosTabela: function() {
+        const dados = [];
+        const tabela = document.querySelector(`#${this.config.tabelaPrincipal} table`);
+        
+        if (!tabela) {
+            console.error('Tabela não encontrada');
+            return dados;
+        }
+        
+        const linhas = tabela.querySelectorAll('tbody tr');
+        
+        linhas.forEach(linha => {
+            const celulas = linha.querySelectorAll('td');
+            if (celulas.length >= 6) {
+                let tipo = 'normal';
+                if (linha.classList.contains('especie')) tipo = 'especie';
+                else if (linha.classList.contains('alinea')) tipo = 'alinea';
+                else if (linha.classList.contains('total')) tipo = 'total';
+                
+                dados.push({
+                    tipo: tipo,
+                    codigo: celulas[0].textContent.trim().replace(/[🏛️🔧💰🏢🔄🏦├─]/g, ''),
+                    nome: celulas[1].textContent.trim(),
+                    valor2024: celulas[2].textContent.trim(),
+                    valor2025: celulas[3].textContent.trim(),
+                    variacaoAbs: celulas[4].textContent.trim(),
+                    variacaoPerc: celulas[5].textContent.trim()
+                });
+            }
+        });
+        
+        return dados;
+    },
+    
+    adicionarOutrasSecoesPDF: async function(pdf) {
+        for (const secao of this.config.secoesPrincipais) {
+            if (secao.id === this.config.tabelaPrincipal) continue;
+            
+            const elemento = document.getElementById(secao.id);
+            if (elemento) {
+                pdf.addPage('landscape');
+                let posY = 20;
+                
+                pdf.setFontSize(13);
+                pdf.setFont(undefined, 'bold');
+                pdf.setTextColor(0, 51, 102);
+                pdf.text(secao.nome, 15, posY);
+                posY += 12;
+                
+                try {
+                    const canvas = await html2canvas(elemento, {
+                        scale: 1.5,
+                        useCORS: true,
+                        backgroundColor: '#ffffff',
+                        logging: false
+                    });
+                    
+                    const imgData = canvas.toDataURL('image/png', 0.85);
+                    const aspectRatio = canvas.height / canvas.width;
+                    const larguraImg = 250;
+                    const alturaImg = Math.min(larguraImg * aspectRatio, 150);
+                    
+                    pdf.addImage(imgData, 'PNG', 15, posY, larguraImg, alturaImg);
+                    
+                    console.log(`✅ Seção ${secao.nome} adicionada ao PDF`);
+                } catch (error) {
+                    console.error(`❌ Erro ao capturar ${secao.nome}:`, error);
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(220, 53, 69);
+                    pdf.text('Erro ao capturar esta seção.', 15, posY);
+                }
+            }
+        }
+    },
+    
+    adicionarRodapePDF: function(pdf) {
+        const totalPaginas = pdf.internal.getNumberOfPages();
+        
+        for (let i = 1; i <= totalPaginas; i++) {
+            pdf.setPage(i);
+            
+            pdf.setDrawColor(200, 200, 200);
+            pdf.line(15, 200, 280, 200);
+            
+            pdf.setFontSize(8);
+            pdf.setTextColor(120, 120, 120);
+            pdf.text('Sistema de Relatórios', 15, 205);
+            
+            const agora = new Date().toLocaleString('pt-BR');
+            pdf.text(`Gerado: ${agora}`, 148, 205, { align: 'center' });
+            pdf.text(`Página ${i} de ${totalPaginas}`, 280, 205, { align: 'right' });
+        }
     }
 };
 
+// Exportar globalmente
 window.SistemaDownloads = SistemaDownloads;

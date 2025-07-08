@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RECEITAS TRIBUTÁRIAS LÍQUIDAS REALIZADA - 07/07/2025</title>
+    <style>
+        /* Reset e base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        
+        /* Cabeçalho */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #003366;
+        }
+        
+        .header h1 {
+            color: #003366;
+            font-size: 24px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .header h2 {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 10px;
+            font-weight: normal;
+        }
+        
+        .header .data-geracao {
+            color: #888;
+            font-size: 14px;
+            font-style: italic;
+        }
+        
+        /* Seções */
+        .secao {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #0066cc;
+        }
+        
+        .secao h3 {
+            color: #003366;
+            margin-bottom: 20px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Tabela principal */
+        .tabela-container {
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        th {
+            background: #003366;
+            color: white;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        td {
+            padding: 10px 8px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            font-size: 11px;
+        }
+        
+        .especie {
+            background-color: #cce5ff;
+            font-weight: bold;
+        }
+        
+        .detalhamento {
+            background-color: #f0f8ff;
+        }
+        
+        .detalhamento td:first-child {
+            padding-left: 30px;
+            font-weight: normal;
+            color: #555;
+        }
+        
+        .detalhamento td:nth-child(2) {
+            font-style: italic;
+            color: #666;
+            text-align: left;
+        }
+        
+        .total {
+            background-color: #003366;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .valor-positivo {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .valor-negativo {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        /* Resumo */
+        .resumo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .resumo-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 3px solid #0066cc;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .resumo-item strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .resumo-valor {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0066cc;
+        }
+        
+        /* Comparativo mensal */
+        .comparativo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        
+        .comparativo-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 3px solid #ff6b6b;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .comparativo-mes {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .comparativo-valores {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .comparativo-valores span:first-child {
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .comparativo-valores span:last-child {
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .comparativo-variacao {
+            border-top: 1px solid #eee;
+            padding-top: 8px;
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* NOUGs */
+        .nougs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .noug-item {
+            background: white;
+            padding: 12px 15px;
+            border-radius: 6px;
+            border-left: 3px solid #28a745;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .noug-nome {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .noug-saldo {
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        .nougs-total {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            text-align: center;
+            border: 2px solid #28a745;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .resumo-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .comparativo-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nougs-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            table {
+                font-size: 10px;
+            }
+            
+            th, td {
+                padding: 6px 4px;
+            }
+        }
+        
+        /* Impressão */
+        @media print {
+            body {
+                background: white;
+            }
+            
+            .container {
+                box-shadow: none;
+                margin: 0;
+                padding: 0;
+            }
+            
+            .secao {
+                page-break-inside: avoid;
+                margin-bottom: 20px;
+            }
+            
+            .tabela-container {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Cabeçalho -->
+        <div class="header">
+            <h1>RECEITAS TRIBUTÁRIAS LÍQUIDAS REALIZADA</h1>
+            <h2>Origens 11 e 71 com desdobramentos por espécie - Comparativo 2024 vs 2025</h2>
+            <div class="data-geracao">Relatório gerado em: 07/07/2025</div>
+        </div>
+        
+        <!-- Seção 1: Tabela Principal -->
+        <div class="secao">
+            <h3>📊 Tabela Principal - Receitas Tributárias</h3>
+            <div class="tabela-container">
+                <table><thead>
+            <tr>
+                <th rowspan="2">CÓDIGO ESPÉCIE</th>
+                <th rowspan="2">NOME DA ESPÉCIE/DETALHAMENTO</th>
+                <th colspan="2">RECEITA LÍQUIDA REALIZADA</th>
+                <th colspan="2">VARIAÇÃO</th>
+            </tr>
+            <tr>
+                <th>06/2024</th>
+                <th>06/2025</th>
+                <th>ABSOLUTA</th>
+                <th>PERCENTUAL</th>
+            </tr>
+        </thead><tbody><tr class="especie"><td class="">111
+                            
+                                (10 itens)</td><td class="">Impostos</td><td class="">R$ 10.842.731.513,98</td><td class="">R$ 11.645.594.767,68</td><td class="valor-positivo">R$ 802.863.253,70</td><td class="valor-positivo">+7,40%</td></tr><tr class="detalhamento"><td class="">→111250YYYY</td><td class="">Imposto sobre a Propriedade Predial e Territorial Urbana</td><td class="">R$ 825.135.866,88</td><td class="">R$ 856.064.857,58</td><td class="valor-positivo">R$ 30.928.990,70</td><td class="valor-positivo">+3,75%</td></tr><tr class="detalhamento"><td class="">→111251YYYY</td><td class="">Imposto sobre a Propriedade de Veículos Automotores</td><td class="">R$ 1.106.976.721,24</td><td class="">R$ 1.172.572.607,74</td><td class="valor-positivo">R$ 65.595.886,50</td><td class="valor-positivo">+5,93%</td></tr><tr class="detalhamento"><td class="">→111252YYYY</td><td class="">Imposto sobre Transmissão "Causa Mortis" e Doação de Bens e Direitos</td><td class="">R$ 116.751.483,59</td><td class="">R$ 119.915.298,91</td><td class="valor-positivo">R$ 3.163.815,32</td><td class="valor-positivo">+2,71%</td></tr><tr class="detalhamento"><td class="">→111253YYYY</td><td class="">Imposto sobre Transmissão "Inter Vivos" de Bens Imóveis e de Direitos</td><td class="">R$ 313.133.802,53</td><td class="">R$ 246.371.922,31</td><td class="valor-negativo">R$ -66.761.880,22</td><td class="valor-negativo">-21,32%</td></tr><tr class="detalhamento"><td class="">→111303YYYY</td><td class="">Imposto sobre a Renda - Retido na Fonte</td><td class="">R$ 2.303.350.103,75</td><td class="">R$ 2.531.257.582,52</td><td class="valor-positivo">R$ 227.907.478,77</td><td class="valor-positivo">+9,89%</td></tr><tr class="detalhamento"><td class="">→111450YYYY</td><td class="">Impostos sobre a Produção, circulação de Mercadorias e Serviços</td><td class="">R$ 4.498.019.755,22</td><td class="">R$ 4.849.220.329,62</td><td class="valor-positivo">R$ 351.200.574,40</td><td class="valor-positivo">+7,81%</td></tr><tr class="detalhamento"><td class="">→111451YYYY</td><td class="">Imposto sobre Serviços</td><td class="">R$ 1.654.846.079,57</td><td class="">R$ 1.846.146.085,24</td><td class="valor-positivo">R$ 191.300.005,67</td><td class="valor-positivo">+11,56%</td></tr><tr class="detalhamento"><td class="">→111999YYYY</td><td class="">Outros Impostos</td><td class="">R$ 24.517.701,20</td><td class="">R$ 24.046.083,76</td><td class="valor-negativo">R$ -471.617,44</td><td class="valor-negativo">-1,92%</td></tr><tr class="especie"><td class="">112
+                            
+                                (7 itens)</td><td class="">Taxas</td><td class="">R$ 353.307.727,30</td><td class="">R$ 227.528.945,09</td><td class="valor-negativo">R$ -125.778.782,21</td><td class="valor-negativo">-35,60%</td></tr><tr class="detalhamento"><td class="">→112101YYYY</td><td class="">Taxas de Inspeção, Controle e Fiscalização</td><td class="">R$ 156.694.934,60</td><td class="">R$ 21.233.530,06</td><td class="valor-negativo">R$ -135.461.404,54</td><td class="valor-negativo">-86,45%</td></tr><tr class="detalhamento"><td class="">→112103YYYY</td><td class="">Taxa de Controle e Fiscalização de Produtos Químicos</td><td class="">R$ 206.304,02</td><td class="">R$ 282.400,27</td><td class="valor-positivo">R$ 76.096,25</td><td class="valor-positivo">+36,89%</td></tr><tr class="detalhamento"><td class="">→112104YYYY</td><td class="">Taxa de Controle e Fiscalização Ambiental</td><td class="">R$ 40.043.880,27</td><td class="">R$ 42.593.498,31</td><td class="valor-positivo">R$ 2.549.618,04</td><td class="valor-positivo">+6,37%</td></tr><tr class="detalhamento"><td class="">→112198YYYY</td><td class="">Taxas de Inspeção, Controle e Fiscalização - Outras</td><td class="">R$ 1.279.797,19</td><td class="">R$ 1.426.198,09</td><td class="valor-positivo">R$ 146.400,90</td><td class="valor-positivo">+11,44%</td></tr><tr class="detalhamento"><td class="">→112201YYYY</td><td class="">Taxas pela Prestação de Serviços</td><td class="">R$ 155.082.811,22</td><td class="">R$ 161.987.732,40</td><td class="valor-positivo">R$ 6.904.921,18</td><td class="valor-positivo">+4,45%</td></tr><tr class="detalhamento"><td class="">→112252YYYY</td><td class="">Taxa de Estudo de Impacto de Vizinhança (EIV)</td><td class="valor-zero">R$ 0,00</td><td class="">R$ 5.585,96</td><td class="valor-positivo">R$ 5.585,96</td><td class="valor-positivo">+100,00%</td></tr><tr class="especie"><td class="">711
+                            
+                                (3 itens)</td><td class="">Impostos Intra</td><td class="">R$ 1.237.469,13</td><td class="">R$ 1.339.240,04</td><td class="valor-positivo">R$ 101.770,91</td><td class="valor-positivo">+8,22%</td></tr><tr class="detalhamento"><td class="">→711250YYYY</td><td class="">Imposto sobre a Propriedade Predial e Territorial Urbana</td><td class="">R$ 1.228.912,38</td><td class="">R$ 1.312.841,86</td><td class="valor-positivo">R$ 83.929,48</td><td class="valor-positivo">+6,83%</td></tr><tr class="detalhamento"><td class="">→711251YYYY</td><td class="">Imposto sobre a Propriedade de Veículos Automotores</td><td class="">R$ 8.556,75</td><td class="">R$ 8.620,08</td><td class="valor-positivo">R$ 63,33</td><td class="valor-positivo">+0,74%</td></tr><tr class="detalhamento"><td class="">→711451YYYY</td><td class="">Imposto sobre Serviços</td><td class="valor-zero">R$ 0,00</td><td class="">R$ 17.778,10</td><td class="valor-positivo">R$ 17.778,10</td><td class="valor-positivo">+100,00%</td></tr><tr class="especie"><td class="">712
+                            
+                                (3 itens)</td><td class="">Taxas</td><td class="">R$ 32.937,40</td><td class="">R$ 40.607,44</td><td class="valor-positivo">R$ 7.670,04</td><td class="valor-positivo">+23,29%</td></tr><tr class="detalhamento"><td class="">→712101YYYY</td><td class="">Taxas de Inspeção, Controle e Fiscalização</td><td class="">R$ 13.130,60</td><td class="">R$ 12.379,02</td><td class="valor-negativo">R$ -751,58</td><td class="valor-negativo">-5,72%</td></tr><tr class="detalhamento"><td class="">→712201YYYY</td><td class="">Taxas pela Prestação de Serviços</td><td class="">R$ 19.806,80</td><td class="">R$ 28.228,42</td><td class="valor-positivo">R$ 8.421,62</td><td class="valor-positivo">+42,52%</td></tr><tr class="total"><td class="">TOTAL</td><td class="">TOTAL GERAL</td><td class="">R$ 11.197.309.647,81</td><td class="">R$ 11.874.503.560,25</td><td class="valor-positivo">R$ 677.193.912,44</td><td class="valor-positivo">+6,05%</td></tr></tbody></table>
+            </div>
+        </div>
+        
+        <!-- Seção 2: Resumo -->
+        
+        <div class="secao">
+            <h3>📊 📊 Resumo das Receitas Tributárias</h3>
+            <div class="resumo-grid">
+                <div class="resumo-item">
+                    <strong>Total de Espécies:</strong>
+                    <div class="resumo-valor">4</div>
+                </div>
+                <div class="resumo-item">
+                    <strong>Total de Detalhamentos:</strong>
+                    <div class="resumo-valor">19</div>
+                </div>
+                <div class="resumo-item">
+                    <strong>Receita Total 06/2024:</strong>
+                    <div class="resumo-valor">R$ 11.197.309.647,81</div>
+                </div>
+                <div class="resumo-item">
+                    <strong>Receita Total 06/2025:</strong>
+                    <div class="resumo-valor">R$ 11.874.503.560,25</div>
+                </div>
+                <div class="resumo-item">
+                    <strong>Variação Total:</strong>
+                    <div class="resumo-valor">+6,05%</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Seção 3: Comparativo Mensal -->
+        
+        <div class="secao">
+            <h3>📅 📅 Comparativo Mensal Acumulado - Receitas Tributárias</h3>
+            <div class="comparativo-grid">
+                <div class="comparativo-item">
+                    <div class="comparativo-mes">Total até Janeiro</div>
+                    <div class="comparativo-valores">
+                        <span>2024:</span>
+                        <span>R$ 1.779.516.001,17</span>
+                    </div>
+                    <div class="comparativo-valores">
+                        <span>2025:</span>
+                        <span>R$ 1.981.563.839,99</span>
+                    </div>
+                    <div class="comparativo-variacao">
+                        <span>Variação:</span>
+                        <span class="valor-positivo">+11,35%</span>
+                    </div>
+                </div>
+                <div class="comparativo-item">
+                    <div class="comparativo-mes">Total até Fevereiro</div>
+                    <div class="comparativo-valores">
+                        <span>2024:</span>
+                        <span>R$ 3.618.923.479,23</span>
+                    </div>
+                    <div class="comparativo-valores">
+                        <span>2025:</span>
+                        <span>R$ 4.192.729.460,30</span>
+                    </div>
+                    <div class="comparativo-variacao">
+                        <span>Variação:</span>
+                        <span class="valor-positivo">+15,86%</span>
+                    </div>
+                </div>
+                <div class="comparativo-item">
+                    <div class="comparativo-mes">Total até Março</div>
+                    <div class="comparativo-valores">
+                        <span>2024:</span>
+                        <span>R$ 5.308.498.112,21</span>
+                    </div>
+                    <div class="comparativo-valores">
+                        <span>2025:</span>
+                        <span>R$ 5.733.172.775,29</span>
+                    </div>
+                    <div class="comparativo-variacao">
+                        <span>Variação:</span>
+                        <span class="valor-positivo">+8,00%</span>
+                    </div>
+                </div>
+                <div class="comparativo-item">
+                    <div class="comparativo-mes">Total até Abril</div>
+                    <div class="comparativo-valores">
+                        <span>2024:</span>
+                        <span>R$ 7.033.056.778,30</span>
+                    </div>
+                    <div class="comparativo-valores">
+                        <span>2025:</span>
+                        <span>R$ 7.573.482.337,84</span>
+                    </div>
+                    <div class="comparativo-variacao">
+                        <span>Variação:</span>
+                        <span class="valor-positivo">+7,68%</span>
+                    </div>
+                </div>
+                <div class="comparativo-item">
+                    <div class="comparativo-mes">Total até Maio</div>
+                    <div class="comparativo-valores">
+                        <span>2024:</span>
+                        <span>R$ 9.347.180.373,02</span>
+                    </div>
+                    <div class="comparativo-valores">
+                        <span>2025:</span>
+                        <span>R$ 9.997.027.127,01</span>
+                    </div>
+                    <div class="comparativo-variacao">
+                        <span>Variação:</span>
+                        <span class="valor-positivo">+6,95%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Seção 4: NOUGs -->
+        
+        <div class="secao">
+            <h3>🏢 
+        🏢
+        Unidades Gestoras com Receita Tributária em 2025
+        (6 unidades)
+    </h3>
+            <div class="nougs-grid">
+            <div class="noug-item">
+                <span class="noug-nome">SECR. DE ESTADO DE ECONOMIA DO DF                 </span>
+                <span class="noug-saldo">R$ 11.819.993.511,72</span>
+            </div>
+            <div class="noug-item">
+                <span class="noug-nome">AG. REG. DE ÁGUAS E SAN. BÁSICO DO DF - ADASA     </span>
+                <span class="noug-saldo">R$ 52.710.131,63</span>
+            </div>
+            <div class="noug-item">
+                <span class="noug-nome">INSTITUTO DE MEIO AMBIENTE E REC. HÍDRICOS DO DF  </span>
+                <span class="noug-saldo">R$ 1.731.016,34</span>
+            </div>
+            <div class="noug-item">
+                <span class="noug-nome">FUNDO DE APAR DA DEFENSORIA PÚBLICA DO DF - PRODEF</span>
+                <span class="noug-saldo">R$ 47.306,78</span>
+            </div>
+            <div class="noug-item">
+                <span class="noug-nome">DEPARTAMENTO DE TRÂNSITO DO DF - DETRAN-DF        </span>
+                <span class="noug-saldo">R$ 14.286,02</span>
+            </div>
+            <div class="noug-item">
+                <span class="noug-nome">FUNDO DA PROCURADORIA DO DISTRITO FEDERAL         </span>
+                <span class="noug-saldo">R$ 7.307,76</span>
+            </div></div>
+            <div class="nougs-total">
+                Total Geral das NOUGs: 
+        
+            
+            R$ 11.874.503.560,25
+            </div></div>
+        
+        <!-- Rodapé -->
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 12px;">
+            <p>Sistema de Receitas Tributárias | Gerado automaticamente em 07/07/2025, 23:23:38</p>
+        </div>
+    </div>
+</body>
+</html>
