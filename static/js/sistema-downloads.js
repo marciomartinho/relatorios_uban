@@ -83,7 +83,14 @@ const SistemaDownloads = {
             '.info-container',
             '.download-loading',
             'script',
-            'style[data-download-system]'
+            'style[data-download-system]',
+            // ADICIONAR SELETORES DE GRÁFICO
+            '[id*="grafico"]',
+            '.chart-container',
+            '.grafico-container',
+            '[class*="grafico"]',
+            '.secao-relatorio:has(canvas)',
+            'section:has(.chart-container)'
         ],
         estilosCustomizados: '',
         metadados: {
@@ -766,6 +773,13 @@ const SistemaDownloads = {
         // Clonar e limpar
         const clone = container.cloneNode(true);
         
+        // IMPORTANTE: Remover seções de gráfico ANTES de processar
+        const graficos = clone.querySelectorAll('[id*="grafico"], .chart-container, .grafico-container, [class*="grafico"]');
+        graficos.forEach(el => {
+            console.log('🗑️ Removendo elemento de gráfico:', el.id || el.className);
+            el.remove();
+        });
+        
         // Remover elementos desnecessários
         this.config.seletoresRemover.forEach(seletor => {
             const elementos = clone.querySelectorAll(seletor);
@@ -784,6 +798,12 @@ const SistemaDownloads = {
         let conteudoHTML = '';
         
         for (const secao of this.config.secoesPrincipais) {
+            // PULAR COMPLETAMENTE SEÇÕES DE GRÁFICO NO HTML
+            if (secao.tipo === 'grafico') {
+                console.log(`⏭️ Pulando seção de gráfico: ${secao.nome}`);
+                continue;
+            }
+            
             const elemento = document.getElementById(secao.id);
             
             if (elemento) {
@@ -800,13 +820,15 @@ const SistemaDownloads = {
                     conteudoExtraido = this.extrairSecaoPadrao(elemento);
                 }
                 
-                // Adicionar seção ao HTML
-                conteudoHTML += `
-                    <div class="secao" id="${secao.id}-exportado">
-                        <h3>${secao.icone || '📊'} ${secao.nome}</h3>
-                        ${conteudoExtraido}
-                    </div>
-                `;
+                // Adicionar seção ao HTML apenas se tiver conteúdo
+                if (conteudoExtraido && conteudoExtraido.trim() !== '') {
+                    conteudoHTML += `
+                        <div class="secao" id="${secao.id}-exportado">
+                            <h3>${secao.icone || '📊'} ${secao.nome}</h3>
+                            ${conteudoExtraido}
+                        </div>
+                    `;
+                }
             } else {
                 console.warn(`⚠️ Seção não encontrada: ${secao.id}`);
             }
@@ -1143,70 +1165,13 @@ const SistemaDownloads = {
         }
     },
     
-    // Extrator de Gráficos - CORRIGIDO
+    // Extrator de Gráficos - SIMPLIFICADO (não inclui no HTML)
     ExtratorGrafico: {
         extrair: async function(elemento) {
-            console.log('📊 Tentando extrair gráfico...');
+            console.log('📊 Gráfico ignorado na exportação HTML');
             
-            // Aguardar um tempo para garantir que o gráfico renderizou
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Procurar canvas
-            const canvas = elemento.querySelector('canvas');
-            
-            if (canvas && canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
-                try {
-                    console.log('✅ Canvas encontrado:', canvas.width, 'x', canvas.height);
-                    const dataUrl = canvas.toDataURL('image/png');
-                    
-                    // Verificar se a imagem tem conteúdo
-                    if (dataUrl && dataUrl.length > 100) {
-                        return `
-                            <div class="grafico-container">
-                                <img src="${dataUrl}" alt="Gráfico de Distribuição" style="max-width: 100%; height: auto;">
-                            </div>
-                        `;
-                    }
-                } catch (e) {
-                    console.warn('⚠️ Erro ao converter canvas:', e);
-                }
-            }
-            
-            // Tentar capturar toda a seção como imagem usando html2canvas
-            if (window.html2canvas) {
-                try {
-                    console.log('📸 Tentando capturar seção com html2canvas...');
-                    const canvasCapturado = await html2canvas(elemento, {
-                        scale: 2,
-                        useCORS: true,
-                        backgroundColor: '#ffffff',
-                        logging: false
-                    });
-                    
-                    const dataUrl = canvasCapturado.toDataURL('image/png');
-                    if (dataUrl && dataUrl.length > 100) {
-                        return `
-                            <div class="grafico-container">
-                                <img src="${dataUrl}" alt="Gráfico de Distribuição" style="max-width: 100%; height: auto;">
-                            </div>
-                        `;
-                    }
-                } catch (e) {
-                    console.warn('⚠️ Erro ao capturar com html2canvas:', e);
-                }
-            }
-            
-            // Fallback: procurar por imagens existentes
-            const img = elemento.querySelector('img');
-            if (img) {
-                return `
-                    <div class="grafico-container">
-                        <img src="${img.src}" alt="Gráfico" style="max-width: 100%; height: auto;">
-                    </div>
-                `;
-            }
-            
-            return '<p style="text-align: center; color: #666; padding: 20px;">Gráfico não disponível na versão exportada. Consulte a versão online para visualizar.</p>';
+            // Simplesmente não incluir o gráfico no HTML exportado
+            return '';
         }
     },
     
