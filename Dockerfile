@@ -16,4 +16,5 @@ RUN mkdir -p cache
 
 EXPOSE 5000
 
-CMD ["python", "app.py"]
+# IMPORTANTE: Forçar o Flask a aceitar conexões externas
+CMD ["python", "-c", "import app; app.app.run(host='0.0.0.0', port=5000)"]
