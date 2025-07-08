@@ -10,11 +10,11 @@ from routes.receita_routes import receita_bp
 from routes.despesa_routes import despesa_bp
 from routes.indicadores_routes import indicadores_bp
 from routes.admin_routes import admin_bp
-# REMOVIDO: from routes.consolidado_routes import consolidado_bp
 
 # Importa o serviço de cache
 from cache_service import cache_service
 
+# Cria a aplicação Flask
 app = Flask(__name__)
 
 # ===================== REGISTRO DOS BLUEPRINTS =====================
@@ -23,7 +23,6 @@ app.register_blueprint(receita_bp, url_prefix='/relatorio')
 app.register_blueprint(despesa_bp, url_prefix='/relatorio')
 app.register_blueprint(indicadores_bp, url_prefix='/relatorio')
 app.register_blueprint(admin_bp, url_prefix='/admin')
-# REMOVIDO: app.register_blueprint(consolidado_bp, url_prefix='/relatorio')
 
 # ===================== ROTAS PRINCIPAIS =====================
 
@@ -47,7 +46,13 @@ def erro_interno(e):
                          titulo="Erro Interno no Servidor",
                          mensagem=f"Ocorreu um erro inesperado. Detalhes: {str(e)}"), 500
 
+# ===================== INICIALIZAÇÃO =====================
+# IMPORTANTE: Este bloco é necessário para o Render funcionar
 if __name__ == '__main__':
-    import os
+    # Pega a porta do ambiente ou usa 5000 como padrão
     port = int(os.environ.get('PORT', 5000))
+    
+    # Inicia o servidor Flask
+    # host='0.0.0.0' permite conexões externas
+    # debug=False para produção
     app.run(host='0.0.0.0', port=port, debug=False)
