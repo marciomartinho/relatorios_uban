@@ -1,13 +1,13 @@
 """
-Relatório: Receita por Conta Corrente APRIMORADO COM EXPANSÃO DE FONTES
+Relatório: Receita por Conta Corrente APRIMORADO COM EXPANSÃO DE FONTES E FILTRO DE CATEGORIAS
 Analisa receita usando substring do COCONTACORRENTE e busca nomes na classificação orçamentária
-NOVO: Inclui dados de 2024, variação absoluta e percentual + expansão de fontes
+NOVO: Inclui dados de 2024, variação absoluta e percentual + expansão de fontes + filtro de categorias
 """
 import os
 import pandas as pd
 from ..utils import MotorRelatorios, obter_mes_numero, formatar_percentual
 
-def gerar_relatorio_receita_conta_corrente(df_completo, estrutura_hierarquica=None, noug_selecionada=None):
+def gerar_relatorio_receita_conta_corrente(df_completo, estrutura_hierarquica=None, noug_selecionada=None, categorias_selecionadas=None):
     """
     Gera relatório de receita por conta corrente com comparativo 2024 vs 2025 + expansão de fontes
     
@@ -19,17 +19,26 @@ def gerar_relatorio_receita_conta_corrente(df_completo, estrutura_hierarquica=No
     - Busca nome da fonte na planilha FONTE.xlsx
     - NOVO: Compara 2024 vs 2025 com variações absoluta e percentual
     - NOVO: Estrutura hierárquica receita → fontes com botão de expansão
+    - NOVO: Filtro por categorias de receitas
     
     Args:
         df_completo: DataFrame com dados de receita
         estrutura_hierarquica: Não utilizado (mantido para compatibilidade)
         noug_selecionada: NOUG selecionada para filtro (opcional)
+        categorias_selecionadas: Lista de prefixos de categorias selecionadas (opcional)
         
     Returns:
         Tuple: (dados_numericos, mes_referencia, dados_para_ia, dados_pdf)
     """
     motor = MotorRelatorios(df_completo, tipo_dados='receita')
     df_processar = motor.filtrar_por_noug(noug_selecionada)
+    
+    # Define mapeamento de categorias se não fornecido
+    if categorias_selecionadas is None:
+        # Por padrão, todas as categorias estão selecionadas
+        categorias_selecionadas = ['11', '71', '12', '72', '13', '73', '14', '74', 
+                                 '15', '75', '16', '76', '17', '77', '19', '79',
+                                 '21', '22', '23', '24']
     
     # Filtra dados de 2025 e 2024
     df_2025 = df_processar[df_processar['COEXERCICIO'] == 2025]
@@ -55,12 +64,25 @@ def gerar_relatorio_receita_conta_corrente(df_completo, estrutura_hierarquica=No
     df_2025_trabalho['RECEITA_CODIGO'] = df_2025_trabalho['COCONTACORRENTE'].astype(str).str[:8]
     df_2025_trabalho['FONTE_CODIGO'] = df_2025_trabalho['COCONTACORRENTE'].astype(str).str[8:]
     
+    # NOVO: Aplica filtro de categorias
+    if categorias_selecionadas:
+        print(f"🔍 Aplicando filtro de categorias: {categorias_selecionadas}")
+        # Cria máscara para filtrar apenas receitas das categorias selecionadas
+        mascara = df_2025_trabalho['RECEITA_CODIGO'].str[:2].isin(categorias_selecionadas)
+        df_2025_trabalho = df_2025_trabalho[mascara]
+        print(f"✅ Receitas após filtro: {len(df_2025_trabalho)} registros")
+    
     # Processa 2024 (se disponível)
     df_2024_trabalho = pd.DataFrame()
     if not df_2024.empty and 'COCONTACORRENTE' in df_2024.columns:
         df_2024_trabalho = df_2024.copy()
         df_2024_trabalho['RECEITA_CODIGO'] = df_2024_trabalho['COCONTACORRENTE'].astype(str).str[:8]
         df_2024_trabalho['FONTE_CODIGO'] = df_2024_trabalho['COCONTACORRENTE'].astype(str).str[8:]
+        
+        # NOVO: Aplica mesmo filtro de categorias em 2024
+        if categorias_selecionadas:
+            mascara = df_2024_trabalho['RECEITA_CODIGO'].str[:2].isin(categorias_selecionadas)
+            df_2024_trabalho = df_2024_trabalho[mascara]
     
     # Carrega planilhas de classificação
     df_classificacao = _carregar_classificacao_orcamentaria()

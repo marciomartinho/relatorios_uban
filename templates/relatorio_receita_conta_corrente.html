@@ -26,6 +26,96 @@ window.addEventListener('load', function() {
 </script>
 
 <style>
+    /* Estilos para o filtro de categorias */
+    .filtro-categorias-container {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .filtro-categorias-container h5 {
+        margin: 0 0 15px 0;
+        color: #003366;
+        font-weight: 600;
+    }
+    
+    .categorias-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 10px;
+    }
+    
+    .categoria-checkbox {
+        display: flex;
+        align-items: center;
+        background: white;
+        padding: 8px 12px;
+        border-radius: 5px;
+        border: 1px solid #e0e0e0;
+        transition: all 0.2s ease;
+    }
+    
+    .categoria-checkbox:hover {
+        background: #e7f3ff;
+        border-color: #0066cc;
+    }
+    
+    .categoria-checkbox input[type="checkbox"] {
+        margin-right: 8px;
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+    
+    .categoria-checkbox label {
+        cursor: pointer;
+        margin: 0;
+        flex: 1;
+        font-size: 14px;
+        color: #333;
+    }
+    
+    .btn-aplicar-filtro {
+        margin-top: 15px;
+        background: #0066cc;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.2s ease;
+    }
+    
+    .btn-aplicar-filtro:hover {
+        background: #0052a3;
+    }
+    
+    .btn-limpar-filtro {
+        margin-top: 15px;
+        margin-left: 10px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.2s ease;
+    }
+    
+    .btn-limpar-filtro:hover {
+        background: #545b62;
+    }
+    
+    .contador-categorias {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #666;
+    }
+    
     /* Garantir que o gráfico apareça */
     .chart-container {
         position: relative;
@@ -179,46 +269,110 @@ window.addEventListener('load', function() {
     }
     
     /* Contador de fontes */
-.fonte-counter {
-    font-size: 11px;
-    color: #666;
-    font-weight: normal;
-    margin-left: 10px;
-    display: block;
-    margin-top: 2px;
-}
+    .fonte-counter {
+        font-size: 11px;
+        color: #666;
+        font-weight: normal;
+        margin-left: 10px;
+        display: block;
+        margin-top: 2px;
+    }
 
-/* Ajustar layout da primeira coluna para evitar desalinhamento */
-.receita td:first-child {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    padding: 8px !important;
-}
+    /* Ajustar layout da primeira coluna para evitar desalinhamento */
+    .receita td:first-child {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        padding: 8px !important;
+    }
 
-.codigo-receita-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    text-align: center;
-}
+    .codigo-receita-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+    }
 
-.codigo-receita-linha1 {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+    .codigo-receita-linha1 {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
     
     /* Hover específico para fontes */
     tbody tr.fonte:hover {
         background-color: rgba(240, 248, 255, 0.8) !important;
     }
+    
+    /* Linha oculta por filtro */
+    tr.oculta-por-filtro {
+        display: none !important;
+    }
 </style>
 {% endblock %}
 
 {% block conteudo %}
+<!-- NOVO: Filtro de categorias de receitas -->
+<div class="filtro-categorias-container">
+    <h5>🔍 Filtrar por Categoria de Receita</h5>
+    <div class="categorias-grid">
+        <div class="categoria-checkbox">
+            <input type="checkbox" id="cat-tributarias" value="11,71">
+            <label for="cat-tributarias">Receitas Tributárias</label>
+        </div>
+        <div class="categoria-checkbox">
+            <input type="checkbox" id="cat-contribuicoes" value="12,72">
+            <label for="cat-contribuicoes">Receitas de Contribuições</label>
+        </div>
+        <div class="categoria-checkbox">
+            <input type="checkbox" id="cat-patrimoniais" value="13,73">
+            <label for="cat-patrimoniais">Receitas Patrimoniais</label>
+        </div>
+        <div class="categoria-checkbox">
+            <input type="checkbox" id="cat-agropecuarias" value="14,74">
+            <label for="cat-agropecuarias">Receitas Agropecuárias</label>
+        </div>
+        <div class="categoria-checkbox">
+            <input type="checkbox" id="cat-industriais" value="15,75">
+            <label for="cat-industriais">Receitas Industriais</label>
+        </div>
+        <div class="categoria-checkbox">
+            <input type="checkbox" id="cat-servicos" value="16,76">
+            <label for="cat-servicos">Receitas de Serviços</label>
+        </div>
+        <div class="categoria-checkbox">
+            <input type="checkbox" id="cat-transferencias" value="17,77">
+            <label for="cat-transferencias">Receitas de Transferências Correntes</label>
+        </div>
+        <div class="categoria-checkbox">
+            <input type="checkbox" id="cat-outras" value="19,79">
+            <label for="cat-outras">Outras Receitas Correntes</label>
+        </div>
+        <div class="categoria-checkbox">
+            <input type="checkbox" id="cat-operacao-credito" value="21">
+            <label for="cat-operacao-credito">Receitas de Operação de Crédito</label>
+        </div>
+        <div class="categoria-checkbox">
+            <input type="checkbox" id="cat-alienacao" value="22">
+            <label for="cat-alienacao">Receitas de Alienação de Bens</label>
+        </div>
+        <div class="categoria-checkbox">
+            <input type="checkbox" id="cat-amortizacao" value="23">
+            <label for="cat-amortizacao">Receitas de Amortização de Empréstimos</label>
+        </div>
+        <div class="categoria-checkbox">
+            <input type="checkbox" id="cat-transferencias-capital" value="24">
+            <label for="cat-transferencias-capital">Receitas de Transferências de Capital</label>
+        </div>
+    </div>
+    <div>
+        <button class="btn-limpar-filtro" onclick="desmarcarTodos()">Desmarcar Todos</button>
+        <span class="contador-categorias" id="contador-categorias">Mostrando todas as receitas</span>
+    </div>
+</div>
+
 <div class="info-container">
     <h4>ℹ️ Informações do Relatório</h4>
     <ul>
@@ -250,23 +404,23 @@ window.addEventListener('load', function() {
     <tbody>
         {% for linha in dados_relatorio %}
             {% if linha.tipo == 'receita' %}
-                <tr class="receita" id="receita-{{ linha.receita_codigo }}">
+                <tr class="receita" id="receita-{{ linha.receita_codigo }}" data-codigo-receita="{{ linha.receita_codigo }}">
                     <td style="text-align: center; font-family: monospace; font-weight: bold;">
-    <div class="codigo-receita-container">
-        <div class="codigo-receita-linha1">
-            {% if linha.tem_fontes %}
-                <button class="expand-btn" onclick="toggleFontes('{{ linha.receita_codigo }}')" 
-                        id="btn-{{ linha.receita_codigo }}" title="Clique para expandir/recolher fontes">
-                    +
-                </button>
-            {% endif %}
-            <span class="receita-icon">📊</span>{{ linha.receita_codigo_fmt }}
-        </div>
-        {% if linha.tem_fontes %}
-            <span class="fonte-counter">({{ linha.qtd_fontes }} fontes)</span>
-        {% endif %}
-    </div>
-</td>
+                        <div class="codigo-receita-container">
+                            <div class="codigo-receita-linha1">
+                                {% if linha.tem_fontes %}
+                                    <button class="expand-btn" onclick="toggleFontes('{{ linha.receita_codigo }}')" 
+                                            id="btn-{{ linha.receita_codigo }}" title="Clique para expandir/recolher fontes">
+                                        +
+                                    </button>
+                                {% endif %}
+                                <span class="receita-icon">📊</span>{{ linha.receita_codigo_fmt }}
+                            </div>
+                            {% if linha.tem_fontes %}
+                                <span class="fonte-counter">({{ linha.qtd_fontes }} fontes)</span>
+                            {% endif %}
+                        </div>
+                    </td>
                     <td style="text-align: left;">
                         {{ linha.nome_receita_fmt }}
                     </td>
@@ -280,7 +434,7 @@ window.addEventListener('load', function() {
                     </td>
                 </tr>
             {% elif linha.tipo == 'fonte' %}
-                <tr class="fonte fonte-{{ linha.receita_pai }}" style="display: none;">
+                <tr class="fonte fonte-{{ linha.receita_pai }}" style="display: none;" data-receita-pai="{{ linha.receita_pai }}">
                     <td style="text-align: center; font-family: monospace; font-weight: normal; color: #555;">
                         <span class="fonte-icon">├─</span>{{ linha.receita_codigo_fmt }}
                     </td>
@@ -297,7 +451,7 @@ window.addEventListener('load', function() {
                     </td>
                 </tr>
             {% elif linha.tipo == 'total' %}
-                <tr class="total">
+                <tr class="total" id="linha-total">
                     <td style="text-align: center; font-weight: bold;">{{ linha.receita_codigo_fmt }}</td>
                     <td style="text-align: left; font-weight: bold;">{{ linha.nome_receita_fmt }}</td>
                     <td>{{ linha.receita_2024_fmt }}</td>
@@ -326,7 +480,13 @@ window.addEventListener('load', function() {
     <div>
         <div>
             <strong>Total de Receitas:</strong><br>
-            <span style="color: #0066cc; font-size: 18px;">
+            <span style="color: #0066cc; font-size: 18px;" id="total-receitas">
+                {{ dados_relatorio | selectattr("tipo", "equalto", "receita") | list | length }}
+            </span>
+        </div>
+        <div>
+            <strong>Receitas Visíveis:</strong><br>
+            <span style="color: #28a745; font-size: 18px;" id="receitas-visiveis">
                 {{ dados_relatorio | selectattr("tipo", "equalto", "receita") | list | length }}
             </span>
         </div>
@@ -407,9 +567,120 @@ window.addEventListener('load', function() {
 
 {% block scripts %}
 <script>
+// === SISTEMA DE FILTRO DE CATEGORIAS ===
+
+// Mapeia prefixos de código para categorias
+const categoriaPrefixos = {
+    'cat-tributarias': ['11', '71'],
+    'cat-contribuicoes': ['12', '72'],
+    'cat-patrimoniais': ['13', '73'],
+    'cat-agropecuarias': ['14', '74'],
+    'cat-industriais': ['15', '75'],
+    'cat-servicos': ['16', '76'],
+    'cat-transferencias': ['17', '77'],
+    'cat-outras': ['19', '79'],
+    'cat-operacao-credito': ['21'],
+    'cat-alienacao': ['22'],
+    'cat-amortizacao': ['23'],
+    'cat-transferencias-capital': ['24']
+};
+
+// Atualiza contador de categorias selecionadas
+function atualizarContadorCategorias() {
+    const checkboxes = document.querySelectorAll('.categoria-checkbox input[type="checkbox"]');
+    const selecionadas = Array.from(checkboxes).filter(cb => cb.checked).length;
+    const total = checkboxes.length;
+    
+    const contador = document.getElementById('contador-categorias');
+    if (selecionadas === 0) {
+        contador.textContent = 'Mostrando todas as receitas';
+    } else if (selecionadas === 1) {
+        contador.textContent = '1 categoria selecionada';
+    } else {
+        contador.textContent = `${selecionadas} categorias selecionadas`;
+    }
+}
+
+// Aplica filtro de categorias automaticamente
+function aplicarFiltroCategorias() {
+    console.log('🔍 Aplicando filtro de categorias...');
+    
+    // Obter categorias selecionadas
+    const categoriasSelecionadas = [];
+    const checkboxes = document.querySelectorAll('.categoria-checkbox input[type="checkbox"]:checked');
+    
+    checkboxes.forEach(cb => {
+        const prefixos = categoriaPrefixos[cb.id];
+        if (prefixos) {
+            categoriasSelecionadas.push(...prefixos);
+        }
+    });
+    
+    console.log('📋 Prefixos selecionados:', categoriasSelecionadas);
+    
+    // Obter todas as linhas de receita
+    const linhasReceita = document.querySelectorAll('tr.receita');
+    let receitasVisiveis = 0;
+    let totalReceitas = linhasReceita.length;
+    
+    // Aplicar filtro
+    linhasReceita.forEach(linha => {
+        const codigoReceita = linha.getAttribute('data-codigo-receita');
+        if (!codigoReceita) return;
+        
+        // Se nenhuma categoria está selecionada, mostra todas
+        // Se alguma categoria está selecionada, mostra apenas as selecionadas
+        const deveExibir = categoriasSelecionadas.length === 0 || 
+                          categoriasSelecionadas.some(prefixo => codigoReceita.startsWith(prefixo));
+        
+        if (deveExibir) {
+            linha.classList.remove('oculta-por-filtro');
+            receitasVisiveis++;
+        } else {
+            linha.classList.add('oculta-por-filtro');
+            // Também oculta as fontes dessa receita
+            const fontes = document.querySelectorAll(`.fonte-${codigoReceita}`);
+            fontes.forEach(fonte => {
+                fonte.style.display = 'none';
+            });
+        }
+    });
+    
+    // Atualizar contadores
+    atualizarContadorCategorias();
+    document.getElementById('receitas-visiveis').textContent = receitasVisiveis;
+    
+    // Recalcular totais (opcional - implementar se necessário)
+    recalcularTotais();
+    
+    console.log(`✅ Filtro aplicado: ${receitasVisiveis} de ${totalReceitas} receitas visíveis`);
+}
+
+// Desmarca todos os filtros
+function desmarcarTodos() {
+    const checkboxes = document.querySelectorAll('.categoria-checkbox input[type="checkbox"]');
+    checkboxes.forEach(cb => cb.checked = false);
+    
+    // Aplicar filtro (que mostrará tudo quando nada estiver marcado)
+    aplicarFiltroCategorias();
+}
+
+// Recalcula totais baseado nas linhas visíveis
+function recalcularTotais() {
+    // Esta função pode ser implementada para recalcular os totais
+    // baseado apenas nas receitas visíveis, se necessário
+    console.log('📊 Recalculando totais...');
+}
+
 // === SISTEMA DE EXPANSÃO DE FONTES ===
 
 function toggleFontes(receitaCodigo) {
+    // Verifica se a receita está oculta pelo filtro
+    const receitaLinha = document.getElementById('receita-' + receitaCodigo);
+    if (receitaLinha && receitaLinha.classList.contains('oculta-por-filtro')) {
+        return; // Não faz nada se a receita estiver oculta
+    }
+    
     const fontes = document.querySelectorAll('.fonte-' + receitaCodigo);
     const btn = document.getElementById('btn-' + receitaCodigo);
     
@@ -436,17 +707,22 @@ function expandirTodas() {
     const todosBotoes = document.querySelectorAll('.expand-btn');
     todosBotoes.forEach(btn => {
         const receitaCodigo = btn.id.replace('btn-', '');
-        const fontes = document.querySelectorAll('.fonte-' + receitaCodigo);
+        const receitaLinha = document.getElementById('receita-' + receitaCodigo);
         
-        fontes.forEach(fonte => {
-            fonte.style.display = 'table-row';
-        });
-        
-        btn.textContent = '−';
-        btn.title = 'Clique para recolher fontes';
+        // Só expande se a receita não estiver oculta
+        if (!receitaLinha.classList.contains('oculta-por-filtro')) {
+            const fontes = document.querySelectorAll('.fonte-' + receitaCodigo);
+            
+            fontes.forEach(fonte => {
+                fonte.style.display = 'table-row';
+            });
+            
+            btn.textContent = '−';
+            btn.title = 'Clique para recolher fontes';
+        }
     });
     
-    console.log('✅ Todas as receitas expandidas');
+    console.log('✅ Todas as receitas visíveis expandidas');
 }
 
 function recolherTodas() {
@@ -466,11 +742,23 @@ function recolherTodas() {
     console.log('✅ Todas as receitas recolhidas');
 }
 
-// === SISTEMA DE GRÁFICOS (IGUAL AO ANTERIOR) ===
+// === SISTEMA DE GRÁFICOS ===
 
 // Aguardar DOM carregar completamente
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔍 Iniciando verificação do gráfico...');
+    
+    // Inicializar contador de categorias
+    atualizarContadorCategorias();
+    
+    // Adicionar listeners aos checkboxes para aplicar filtro automaticamente
+    const checkboxes = document.querySelectorAll('.categoria-checkbox input[type="checkbox"]');
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            atualizarContadorCategorias();
+            aplicarFiltroCategorias(); // Aplica filtro automaticamente ao mudar checkbox
+        });
+    });
     
     // Aguardar um pouco para garantir que tudo carregou
     setTimeout(function() {

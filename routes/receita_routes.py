@@ -393,9 +393,18 @@ def receita_conta_corrente():
         df_completo = carregar_dataframe_receita()
         lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
         noug_selecionada = request.args.get('noug', None)
+        
+        # NOVO: Obter categorias selecionadas do request
+        categorias_param = request.args.get('categorias', None)
+        categorias_selecionadas = None
+        
+        if categorias_param:
+            # Converte string de categorias separadas por vírgula em lista
+            categorias_selecionadas = categorias_param.split(',')
+            print(f"🔍 Categorias selecionadas: {categorias_selecionadas}")
 
         dados_tabela, mes_referencia, dados_para_ia, dados_pdf = gerar_relatorio_receita_conta_corrente(
-            df_completo, HIERARQUIA_RECEITAS, noug_selecionada
+            df_completo, HIERARQUIA_RECEITAS, noug_selecionada, categorias_selecionadas
         )
         
         fim = time.time()
@@ -407,7 +416,8 @@ def receita_conta_corrente():
                                dados_para_ia=dados_para_ia,
                                dados_pdf=dados_pdf,
                                lista_nougs=lista_nougs,
-                               noug_selecionada=noug_selecionada)
+                               noug_selecionada=noug_selecionada,
+                               categorias_selecionadas=categorias_selecionadas)
                                
     except Exception as e:
         traceback.print_exc()
