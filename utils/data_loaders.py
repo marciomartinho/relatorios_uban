@@ -91,14 +91,16 @@ def carregar_dataframe_despesa():
     print("🔄 Carregando dados de despesa do Excel...")
     inicio = time.time()
 
-    # Colunas necessárias
+    # Colunas necessárias - ATUALIZADO COM TODAS AS COLUNAS
     colunas_necessarias = [
-        'CATEGORIA', 'NOCATEGORIA', 'GRUPO', 'NOGRUPO',
-        'MODALIDADE', 'NOMODALIDADE', 'ELEMENTO', 'NOELEMENTO',
-        'COEXERCICIO', 'INMES', 'INTIPOADM', 'NOUG',
+        'COCONTACORRENTE', 'CONATUREZA', 'CATEGORIA', 'NOCATEGORIA', 
+        'GRUPO', 'NOGRUPO', 'MODALIDADE', 'NOMODALIDADE', 
+        'ELEMENTO', 'NOELEMENTO', 'COEXERCICIO', 'INMES',
         'DOTACAO INICIAL', 'DOTACAO ADICIONAL', 'CANCELAMENTO DE DOTACAO',
         'CANCEL-REMANEJA DOTACAO', 'DESPESA EMPENHADA', 'DESPESA LIQUIDADA',
-        'DESPESA PAGA', 'SALDO DOTACAO'
+        'DESPESA PAGA', 'SALDO DOTACAO', 'COFUNCAO', 'COSUBFUNCAO',
+        'COPROGRAMA', 'COPROJETO', 'COSUBTITULO', 'NOPT', 'INESFERA',
+        'COFONTE', 'COUG', 'COGESTAO', 'INTIPOADM', 'NOUG'
     ]
 
     try:

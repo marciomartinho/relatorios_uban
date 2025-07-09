@@ -1,6 +1,7 @@
 """
 Blueprint para rotas de relatórios de despesa
 """
+import os
 import time
 from flask import Blueprint, render_template, request
 import traceback
@@ -10,6 +11,12 @@ from utils.data_loaders import carregar_dataframe_despesa
 
 # Importações dos módulos de despesa
 from relatorios.despesa import gerar_balanco_despesa
+try:
+    from relatorios.despesa.despesa_funcao import gerar_relatorio_despesa_funcao
+    print("✅ Import de despesa_funcao bem sucedido")
+except ImportError as e:
+    print(f"❌ Erro ao importar despesa_funcao: {e}")
+    gerar_relatorio_despesa_funcao = None
 
 # Cria o blueprint
 despesa_bp = Blueprint('despesa', __name__)
@@ -58,14 +65,98 @@ def balanco_despesa():
                              titulo="Erro no Relatório de Despesa",
                              mensagem=f"Erro ao gerar relatório: {str(e)}")
 
-# ===================== ROTAS EM DESENVOLVIMENTO =====================
-
 @despesa_bp.route('/despesa-por-funcao')
 def despesa_por_funcao():
-    """Relatório de despesa por função (em desenvolvimento)"""
-    return render_template('erro.html',
-                         titulo="Relatório em Desenvolvimento",
-                         mensagem="O relatório de despesa por função está sendo desenvolvido. Aguardando colunas de função governamental na planilha.")
+    """Relatório de despesa por função de governo com detalhamento por subfunção"""
+    try:
+        print("\n🎯 [ROTA] Iniciando despesa-por-funcao")
+        print(f"🎯 [ROTA] Diretório atual: {os.getcwd()}")
+        print(f"🎯 [ROTA] Pasta dados existe? {os.path.exists('dados')}")
+        
+        inicio = time.time()
+        df_completo = carregar_dataframe_despesa()
+
+        if df_completo.empty:
+            print("🎯 [ROTA] DataFrame vazio!")
+            return render_template('erro.html', 
+                                 titulo="Dados de Despesa Não Encontrados",
+                                 mensagem="O arquivo DESPESA.xlsx não foi encontrado ou está vazio.")
+        
+        print(f"🎯 [ROTA] DataFrame carregado: {len(df_completo)} registros")
+        print(f"🎯 [ROTA] Colunas disponíveis: {list(df_completo.columns)[:10]}...")
+        
+        # DEBUG: Listar TODAS as colunas
+        print("\n📋 TODAS AS COLUNAS DA DESPESA:")
+        for i, col in enumerate(df_completo.columns, 1):
+            print(f"   {i:3d}. {col}")
+        
+        # Procurar colunas com FUNC
+        print("\n🔍 Colunas com 'FUNC':")
+        func_cols = [col for col in df_completo.columns if 'FUNC' in col.upper()]
+        print(f"   {func_cols}")
+        
+        print("\n")
+        
+        # Verifica colunas específicas para este relatório
+        colunas_necessarias = ['COFUNCAO', 'COSUBFUNCAO', 'DOTACAO INICIAL', 'DESPESA EMPENHADA']
+        colunas_faltantes = [col for col in colunas_necessarias if col not in df_completo.columns]
+        
+        if colunas_faltantes:
+            print(f"🎯 [ROTA] Colunas faltantes: {colunas_faltantes}")
+            return render_template('erro.html',
+                                 titulo="Estrutura de Dados Incorreta",
+                                 mensagem=f"Colunas faltantes para relatório por função: {', '.join(colunas_faltantes)}")
+        
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+        
+        if gerar_relatorio_despesa_funcao is None:
+            print("🎯 [ROTA] Função gerar_relatorio_despesa_funcao não está disponível!")
+            return render_template('erro.html',
+                                 titulo="Erro de Importação",
+                                 mensagem="Módulo despesa_funcao não pôde ser importado.")
+        
+        print("🎯 [ROTA] Chamando gerar_relatorio_despesa_funcao...")
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf = gerar_relatorio_despesa_funcao(
+            df_completo, None, noug_selecionada
+        )
+        
+        print(f"🎯 [ROTA] Retorno: {len(dados_tabela)} linhas de dados")
+        
+        fim = time.time()
+        print(f"⏱️ Relatório de despesa por função gerado em {fim - inicio:.2f} segundos")
+        
+        print("🎯 [ROTA] Tentando renderizar template...")
+        try:
+            return render_template('despesas/despesa_por_funcao.html',
+                                   dados_relatorio=dados_tabela,
+                                   mes_ref=mes_referencia,
+                                   lista_nougs=lista_nougs,
+                                   noug_selecionada=noug_selecionada,
+                                   dados_pdf=dados_pdf)
+        except Exception as template_error:
+            print(f"🎯 [ROTA] Erro ao renderizar template: {str(template_error)}")
+            traceback.print_exc()
+            # Tenta um template mínimo para debug
+            return f"""
+            <html>
+            <body>
+                <h1>Debug - Despesa por Função</h1>
+                <p>Dados carregados: {len(dados_tabela)} linhas</p>
+                <p>Mês referência: {mes_referencia}</p>
+                <p>NOUGs: {len(lista_nougs)}</p>
+                <pre>{str(dados_tabela[:2]) if dados_tabela else 'Sem dados'}</pre>
+            </body>
+            </html>
+            """
+    except Exception as e:
+        print(f"🎯 [ROTA] ERRO: {str(e)}")
+        traceback.print_exc()
+        return render_template('erro.html',
+                             titulo="Erro no Relatório de Despesa por Função",
+                             mensagem=f"Erro ao gerar relatório: {str(e)}")
+
+# ===================== ROTAS EM DESENVOLVIMENTO =====================
 
 @despesa_bp.route('/despesa-por-natureza')
 def despesa_por_natureza():
