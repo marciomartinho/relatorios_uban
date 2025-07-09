@@ -18,6 +18,9 @@ def gerar_relatorio_analise_inconsistencias(df_completo, estrutura_hierarquica=N
     2. Receitas em UGs Inválidas: INTIPOADM = 1 não pode ter RECEITA LIQUIDA (exceto 130101)
        - Agrupa por COCONTACORRENTE e verifica se existe em UG com INTIPOADM = 1
     
+    3. Receitas com Fontes de Superávit: Identifica receitas com fontes começando com 3, 4 ou 8
+       - Essas fontes indicam superávit e não deveriam ter arrecadação
+    
     Args:
         df_completo: DataFrame com dados de receita
         estrutura_hierarquica: Não utilizado (mantido para compatibilidade)
@@ -25,7 +28,8 @@ def gerar_relatorio_analise_inconsistencias(df_completo, estrutura_hierarquica=N
         
     Returns:
         Tuple: (dados_receitas_negativas, dados_ugs_invalidas, mes_referencia, 
-                analise_mensal_negativas, analise_mensal_ugs, resumo_geral)
+                analise_mensal_negativas, analise_mensal_ugs, resumo_geral, 
+                dados_fontes_superavit, analise_mensal_superavit)
     """
     try:
         motor = MotorRelatorios(df_completo, tipo_dados='receita')
@@ -38,7 +42,7 @@ def gerar_relatorio_analise_inconsistencias(df_completo, estrutura_hierarquica=N
         for coluna in colunas_necessarias:
             if coluna not in df_processar.columns:
                 print(f"⚠️ Coluna '{coluna}' não encontrada")
-                return [], [], "05/2025", [], [], {}
+                return [], [], "05/2025", [], [], {}, [], []
         
         # Calcula mês de referência de forma mais robusta
         try:
@@ -79,7 +83,13 @@ def gerar_relatorio_analise_inconsistencias(df_completo, estrutura_hierarquica=N
             df_processar, classificacao_orcamentaria, fontes, motor
         )
         
-        # 3. ANÁLISE MENSAL - BASEADA NOS DADOS CORRIGIDOS
+        # 3. ANÁLISE DE FONTES DE SUPERÁVIT - NOVA
+        print("\n3️⃣ Analisando receitas com fontes de superávit (3xx, 4xx, 8xx)...")
+        dados_fontes_superavit = _analisar_fontes_superavit(
+            df_processar, classificacao_orcamentaria, fontes, motor
+        )
+        
+        # 4. ANÁLISE MENSAL - BASEADA NOS DADOS CORRIGIDOS
         print("\n📅 Gerando análise mensal...")
         analise_mensal_negativas = _gerar_analise_mensal_corrigida(
             df_processar, 'receitas_negativas', dados_receitas_negativas
@@ -87,8 +97,11 @@ def gerar_relatorio_analise_inconsistencias(df_completo, estrutura_hierarquica=N
         analise_mensal_ugs = _gerar_analise_mensal_corrigida(
             df_processar, 'ugs_invalidas', dados_ugs_invalidas
         )
+        analise_mensal_superavit = _gerar_analise_mensal_corrigida(
+            df_processar, 'fontes_superavit', dados_fontes_superavit
+        )
         
-        # 4. RESUMO GERAL - VERSÃO MAIS ROBUSTA
+        # 5. RESUMO GERAL - VERSÃO MAIS ROBUSTA
         print("\n📊 Calculando resumo geral...")
         
         # Calcula valores sem formatação primeiro
@@ -96,10 +109,15 @@ def gerar_relatorio_analise_inconsistencias(df_completo, estrutura_hierarquica=N
         total_receitas_negativas_2025 = len([r for r in dados_receitas_negativas if 2025 in r.get('exercicios', [])])
         total_ugs_invalidas_2024 = len([r for r in dados_ugs_invalidas if 2024 in r.get('exercicios', [])])
         total_ugs_invalidas_2025 = len([r for r in dados_ugs_invalidas if 2025 in r.get('exercicios', [])])
+        total_fontes_superavit_2024 = len([r for r in dados_fontes_superavit if 2024 in r.get('exercicios', [])])
+        total_fontes_superavit_2025 = len([r for r in dados_fontes_superavit if 2025 in r.get('exercicios', [])])
+        
         valor_total_negativo_2024 = sum([r.get('valor_2024', 0) for r in dados_receitas_negativas])
         valor_total_negativo_2025 = sum([r.get('valor_2025', 0) for r in dados_receitas_negativas])
         valor_total_ug_invalida_2024 = sum([r.get('valor_2024', 0) for r in dados_ugs_invalidas])
         valor_total_ug_invalida_2025 = sum([r.get('valor_2025', 0) for r in dados_ugs_invalidas])
+        valor_total_superavit_2024 = sum([r.get('valor_2024', 0) for r in dados_fontes_superavit])
+        valor_total_superavit_2025 = sum([r.get('valor_2025', 0) for r in dados_fontes_superavit])
         
         # Monta o dicionário completo de uma vez
         resumo_geral = {
@@ -108,32 +126,145 @@ def gerar_relatorio_analise_inconsistencias(df_completo, estrutura_hierarquica=N
             'total_receitas_negativas_2025': total_receitas_negativas_2025,
             'total_ugs_invalidas_2024': total_ugs_invalidas_2024,
             'total_ugs_invalidas_2025': total_ugs_invalidas_2025,
+            'total_fontes_superavit_2024': total_fontes_superavit_2024,
+            'total_fontes_superavit_2025': total_fontes_superavit_2025,
             
             # Valores numéricos
             'valor_total_negativo_2024': valor_total_negativo_2024,
             'valor_total_negativo_2025': valor_total_negativo_2025,
             'valor_total_ug_invalida_2024': valor_total_ug_invalida_2024,
             'valor_total_ug_invalida_2025': valor_total_ug_invalida_2025,
+            'valor_total_superavit_2024': valor_total_superavit_2024,
+            'valor_total_superavit_2025': valor_total_superavit_2025,
             
             # Valores formatados (adicionados diretamente)
             'valor_total_negativo_2024_fmt': motor.formatar_numero(valor_total_negativo_2024),
             'valor_total_negativo_2025_fmt': motor.formatar_numero(valor_total_negativo_2025),
             'valor_total_ug_invalida_2024_fmt': motor.formatar_numero(valor_total_ug_invalida_2024),
-            'valor_total_ug_invalida_2025_fmt': motor.formatar_numero(valor_total_ug_invalida_2025)
+            'valor_total_ug_invalida_2025_fmt': motor.formatar_numero(valor_total_ug_invalida_2025),
+            'valor_total_superavit_2024_fmt': motor.formatar_numero(valor_total_superavit_2024),
+            'valor_total_superavit_2025_fmt': motor.formatar_numero(valor_total_superavit_2025)
         }
         
         print(f"✅ Análise concluída:")
         print(f"   📍 Receitas negativas: {len(dados_receitas_negativas)} contas correntes")
         print(f"   📍 UGs inválidas: {len(dados_ugs_invalidas)} contas correntes")
+        print(f"   📍 Fontes de superávit: {len(dados_fontes_superavit)} contas correntes")
         
         return (dados_receitas_negativas, dados_ugs_invalidas, mes_referencia_str, 
-                analise_mensal_negativas, analise_mensal_ugs, resumo_geral)
+                analise_mensal_negativas, analise_mensal_ugs, resumo_geral,
+                dados_fontes_superavit, analise_mensal_superavit)
     
     except Exception as e:
         print(f"❌ Erro na análise de inconsistências: {e}")
         import traceback
         traceback.print_exc()
-        return [], [], "05/2025", [], [], {}
+        return [], [], "05/2025", [], [], {}, [], []
+
+def _analisar_fontes_superavit(df_processar, classificacao_orcamentaria, fontes, motor):
+    """
+    Analisa receitas com fontes de superávit (começando com 3, 4 ou 8)
+    Essas fontes não deveriam ter arrecadação
+    """
+    dados = []
+    
+    # Cria uma cópia para processar
+    df_fontes = df_processar.copy()
+    
+    # Extrai o código da fonte (parte depois dos 8 primeiros dígitos)
+    df_fontes['codigo_fonte'] = df_fontes['COCONTACORRENTE'].astype(str).str[8:]
+    
+    # Identifica se a fonte começa com 3, 4 ou 8
+    df_fontes['eh_fonte_superavit'] = df_fontes['codigo_fonte'].str.match(r'^[348]', na=False)
+    
+    # Filtra apenas registros com fontes de superávit
+    df_superavit = df_fontes[df_fontes['eh_fonte_superavit']].copy()
+    
+    if len(df_superavit) == 0:
+        print("   ✅ Nenhuma receita com fonte de superávit (3xx, 4xx, 8xx) encontrada")
+        return dados
+    
+    # Agrupa por COCONTACORRENTE e COEXERCICIO
+    df_agrupado = df_superavit.groupby(['COCONTACORRENTE', 'COEXERCICIO']).agg({
+        'RECEITA LIQUIDA': 'sum',
+        'NOUG': 'first',
+        'INMES': 'max',
+        'codigo_fonte': 'first'
+    }).reset_index()
+    
+    print(f"   📊 {len(df_agrupado)} combinações COCONTACORRENTE x EXERCICIO com fontes de superávit analisadas")
+    
+    # Identifica contas correntes com receita em fontes de superávit
+    contas_superavit = {}
+    
+    for _, linha in df_agrupado.iterrows():
+        conta_corrente = str(linha['COCONTACORRENTE']).strip()
+        exercicio = int(linha['COEXERCICIO'])
+        valor_total = float(linha['RECEITA LIQUIDA'])
+        
+        # Só considera se tem valor de receita (positivo ou negativo)
+        if valor_total != 0:
+            if conta_corrente not in contas_superavit:
+                contas_superavit[conta_corrente] = {
+                    'conta_corrente': conta_corrente,
+                    'exercicios': [],
+                    'valores': {},
+                    'nougs': set(),
+                    'meses': set(),
+                    'codigo_fonte': str(linha['codigo_fonte'])
+                }
+            
+            contas_superavit[conta_corrente]['exercicios'].append(exercicio)
+            contas_superavit[conta_corrente]['valores'][f'valor_{exercicio}'] = valor_total
+            contas_superavit[conta_corrente]['nougs'].add(str(linha['NOUG']))
+            contas_superavit[conta_corrente]['meses'].add(int(linha['INMES']))
+    
+    print(f"   💰 {len(contas_superavit)} contas correntes com arrecadação em fontes de superávit encontradas")
+    
+    # Processa cada conta corrente com fonte de superávit
+    for conta_corrente, info in contas_superavit.items():
+        # Quebra COCONTACORRENTE
+        if len(conta_corrente) >= 8:
+            codigo_receita = conta_corrente[:8]
+            codigo_fonte = info['codigo_fonte']
+            
+            # Busca nomes
+            nome_receita = _buscar_nome_receita(codigo_receita, classificacao_orcamentaria)
+            nome_fonte = _buscar_nome_fonte(codigo_fonte, fontes) if codigo_fonte else 'Sem Fonte'
+            
+            # Calcula valores para cada exercício
+            valor_2024 = info['valores'].get('valor_2024', 0)
+            valor_2025 = info['valores'].get('valor_2025', 0)
+            
+            # Identifica o tipo de fonte de superávit
+            if codigo_fonte.startswith('3'):
+                tipo_superavit = 'Recursos Próprios'
+            elif codigo_fonte.startswith('4'):
+                tipo_superavit = 'Recursos Destinados'
+            elif codigo_fonte.startswith('8'):
+                tipo_superavit = 'Recursos de Exercícios Anteriores'
+            else:
+                tipo_superavit = 'Superávit'
+            
+            dados.append({
+                'conta_corrente': conta_corrente,
+                'codigo_receita': codigo_receita,
+                'nome_receita': nome_receita,
+                'codigo_fonte': codigo_fonte,
+                'nome_fonte': nome_fonte,
+                'tipo_superavit': tipo_superavit,
+                'exercicios': info['exercicios'],
+                'valor_2024': valor_2024,
+                'valor_2025': valor_2025,
+                'valor_2024_fmt': motor.formatar_numero(valor_2024),
+                'valor_2025_fmt': motor.formatar_numero(valor_2025),
+                'nougs': ', '.join(sorted(info['nougs'])),
+                'meses': ', '.join([f"{m:02d}" for m in sorted(info['meses'])]),
+                'tipo': 'fonte_superavit'
+            })
+    
+    # Ordena por código da fonte e depois por valor
+    return sorted(dados, key=lambda x: (x['codigo_fonte'], -abs(max(x['valor_2024'], x['valor_2025']))))
 
 def _analisar_receitas_negativas_corrigido(df_processar, classificacao_orcamentaria, fontes, motor):
     """
@@ -339,6 +470,10 @@ def _gerar_analise_mensal_corrigida(df_processar, tipo_analise, dados_inconsiste
             (df_filtrado['INTIPOADM'].astype(str).str.strip() == '1') &
             (df_filtrado['COUG'] != 130101)  # CORREÇÃO: Exclui COUG 130101
         ]
+    elif tipo_analise == 'fontes_superavit':
+        # Para fontes de superávit, filtra apenas as que começam com 3, 4 ou 8
+        df_filtrado['codigo_fonte'] = df_filtrado['COCONTACORRENTE'].astype(str).str[8:]
+        df_filtrado = df_filtrado[df_filtrado['codigo_fonte'].str.match(r'^[348]', na=False)]
     
     # Agrupa por mês e exercício
     df_mensal = df_filtrado.groupby(['COEXERCICIO', 'INMES']).agg({

@@ -4,7 +4,7 @@
 
 {% block titulo_relatorio %}ANÁLISE DE INCONSISTÊNCIAS{% endblock %}
 
-{% block subtitulo %}Receitas Negativas e UGs Inválidas - Comparativo 2024 vs 2025{% endblock %}
+{% block subtitulo %}Receitas Negativas, UGs Inválidas e Fontes de Superávit - Comparativo 2024 vs 2025{% endblock %}
 
 {% block referencia %}Valores Acumulados por COCONTACORRENTE - Dados de Referência: {{ mes_ref }}{% endblock %}
 
@@ -23,6 +23,11 @@
         border-left-color: #ffc107;
     }
     
+    .inconsistencia-container.info {
+        background: #fff3cd;
+        border-left-color: #856404;
+    }
+    
     .inconsistencia-container h4 {
         margin: 0 0 15px 0;
         color: #dc3545;
@@ -33,6 +38,10 @@
     }
     
     .inconsistencia-container.warning h4 {
+        color: #856404;
+    }
+    
+    .inconsistencia-container.info h4 {
         color: #856404;
     }
     
@@ -52,6 +61,11 @@
     .inconsistencia-table.warning th {
         background-color: #ffc107;
         color: #212529;
+    }
+    
+    .inconsistencia-table.info th {
+        background-color: #856404;
+        color: white;
     }
     
     .inconsistencia-table td {
@@ -78,6 +92,21 @@
         font-weight: bold !important;
     }
     
+    .valor-superavit-destaque {
+        background-color: #fff3cd !important;
+        color: #856404 !important;
+        font-weight: bold !important;
+    }
+    
+    .fonte-superavit {
+        background: #ffc107;
+        color: #212529;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: monospace;
+        font-weight: bold;
+    }
+    
     .resumo-inconsistencias {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -97,6 +126,10 @@
         border-left-color: #ffc107;
     }
     
+    .resumo-item.info {
+        border-left-color: #856404;
+    }
+    
     .resumo-item h5 {
         margin: 0 0 10px 0;
         color: #dc3545;
@@ -105,6 +138,10 @@
     }
     
     .resumo-item.warning h5 {
+        color: #856404;
+    }
+    
+    .resumo-item.info h5 {
         color: #856404;
     }
     
@@ -210,6 +247,7 @@
     <ul>
         <li><strong>Receitas Negativas:</strong> Agrupa por COCONTACORRENTE e soma RECEITA LÍQUIDA de todos os meses por exercício. Se soma < 0, identifica inconsistência.</li>
         <li><strong>UGs Inválidas:</strong> Identifica COCONTACORRENTE com receita em unidades INTIPOADM = 1 (exceto COUG 130101 que é permitido)</li>
+        <li><strong>Fontes de Superávit:</strong> Identifica receitas com fontes começando com 3 (Recursos Próprios), 4 (Recursos Destinados) ou 8 (Recursos de Exercícios Anteriores) - estas fontes não deveriam ter arrecadação</li>
         <li><strong>Quebra de Conta:</strong> COCONTACORRENTE → 8 primeiros dígitos (receita) + restante (fonte)</li>
         <li><strong>Nomes:</strong> Busca em classificacao_orcamentaria (COCLASSEORC → NOCLASSIFICACAO) e fonte (COFONTE → NOFONTE)</li>
         <li><strong>Período:</strong> Análise comparativa entre exercícios 2024 e 2025</li>
@@ -256,6 +294,26 @@
         <div class="resumo-valores">
             <span>Valor Total 2025:</span>
             <span class="valor-positivo">{{ resumo_geral.valor_total_ug_invalida_2025_fmt }}</span>
+        </div>
+    </div>
+    
+    <div class="resumo-item info">
+        <h5>💰 Fontes de Superávit (3xx, 4xx, 8xx)</h5>
+        <div class="resumo-valores">
+            <span>Contas 2024:</span>
+            <span>{{ resumo_geral.total_fontes_superavit_2024 }}</span>
+        </div>
+        <div class="resumo-valores">
+            <span>Contas 2025:</span>
+            <span>{{ resumo_geral.total_fontes_superavit_2025 }}</span>
+        </div>
+        <div class="resumo-valores">
+            <span>Valor Total 2024:</span>
+            <span class="valor-superavit">{{ resumo_geral.valor_total_superavit_2024_fmt }}</span>
+        </div>
+        <div class="resumo-valores">
+            <span>Valor Total 2025:</span>
+            <span class="valor-superavit">{{ resumo_geral.valor_total_superavit_2025_fmt }}</span>
         </div>
     </div>
 </div>
@@ -373,7 +431,73 @@
     {% endif %}
 </div>
 
-<!-- 3. ANÁLISE MENSAL - RECEITAS NEGATIVAS -->
+<!-- 3. ARRECADAÇÃO COM FONTES DE SUPERÁVIT -->
+<div class="inconsistencia-container info">
+    <h4>
+        <span>💰</span>
+        <span>Análise de Arrecadação com Fonte de Superávit (3xx, 4xx, 8xx)</span>
+        <span style="font-size: 14px; color: #666; font-weight: normal;">({{ dados_fontes_superavit|length }} contas)</span>
+    </h4>
+    
+    {% if dados_fontes_superavit %}
+    <div class="info-importante" style="margin-bottom: 20px; background: #fff3cd; border-left-color: #856404;">
+        <p style="margin: 0; color: #856404;">
+            <strong>⚠️ Atenção:</strong> Fontes que começam com 3, 4 ou 8 indicam recursos de superávit e não deveriam ter arrecadação:
+            <br>• <strong>3xx:</strong> Recursos Próprios
+            <br>• <strong>4xx:</strong> Recursos Destinados  
+            <br>• <strong>8xx:</strong> Recursos de Exercícios Anteriores
+        </p>
+    </div>
+    
+    <table class="inconsistencia-table info">
+        <thead>
+            <tr>
+                <th>CONTA CORRENTE</th>
+                <th>RECEITA</th>
+                <th>NOME DA RECEITA</th>
+                <th>FONTE</th>
+                <th>NOME DA FONTE</th>
+                <th>TIPO SUPERÁVIT</th>
+                <th>EXERCÍCIOS</th>
+                <th>VALOR 2024</th>
+                <th>VALOR 2025</th>
+                <th>NOUGs</th>
+                <th>MESES</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in dados_fontes_superavit %}
+            <tr>
+                <td><span class="conta-corrente">{{ item.conta_corrente }}</span></td>
+                <td><span class="receita-codigo">{{ item.codigo_receita }}</span></td>
+                <td style="text-align: left;">{{ item.nome_receita }}</td>
+                <td><span class="fonte-codigo fonte-superavit">{{ item.codigo_fonte }}</span></td>
+                <td style="text-align: left;">{{ item.nome_fonte }}</td>
+                <td style="text-align: center; font-weight: bold; color: #856404;">{{ item.tipo_superavit }}</td>
+                <td>
+                    <div class="exercicios-badge">
+                        {% for exercicio in item.exercicios %}
+                        <span class="exercicio-tag">{{ exercicio }}</span>
+                        {% endfor %}
+                    </div>
+                </td>
+                <td class="valor-superavit-destaque" style="text-align: right;">{{ item.valor_2024_fmt }}</td>
+                <td class="valor-superavit-destaque" style="text-align: right;">{{ item.valor_2025_fmt }}</td>
+                <td style="text-align: center; font-size: 11px;">{{ item.nougs }}</td>
+                <td style="text-align: center; font-size: 11px;">{{ item.meses }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align: center; padding: 30px; color: #28a745;">
+        ✅ <strong>Nenhuma arrecadação com fonte de superávit encontrada!</strong><br>
+        <small>Não foram identificadas receitas arrecadadas com fontes que começam com 3, 4 ou 8.</small>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 4. ANÁLISE MENSAL - RECEITAS NEGATIVAS -->
 {% if analise_mensal_negativas %}
 <div class="inconsistencia-container">
     <h4>📅 Evolução Mensal - Receitas Negativas</h4>
@@ -405,7 +529,7 @@
 </div>
 {% endif %}
 
-<!-- 4. ANÁLISE MENSAL - UGS INVÁLIDAS -->
+<!-- 5. ANÁLISE MENSAL - UGS INVÁLIDAS -->
 {% if analise_mensal_ugs %}
 <div class="inconsistencia-container warning">
     <h4>📅 Evolução Mensal - UGs Inválidas</h4>
@@ -429,6 +553,38 @@
                 <td>{{ mes.count_2025 }}</td>
                 <td class="{% if mes.valor_2024 < 0 %}valor-negativo{% else %}valor-positivo{% endif %}">{{ mes.valor_2024_fmt }}</td>
                 <td class="{% if mes.valor_2025 < 0 %}valor-negativo{% else %}valor-positivo{% endif %}">{{ mes.valor_2025_fmt }}</td>
+                <td class="{% if mes.variacao_valor < 0 %}valor-negativo{% else %}valor-positivo{% endif %}">{{ mes.variacao_valor_fmt }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- 6. ANÁLISE MENSAL - FONTES DE SUPERÁVIT -->
+{% if analise_mensal_superavit %}
+<div class="inconsistencia-container info">
+    <h4>📅 Evolução Mensal - Fontes de Superávit</h4>
+    
+    <table class="inconsistencia-table info">
+        <thead>
+            <tr>
+                <th>MÊS</th>
+                <th>REGISTROS 2024</th>
+                <th>REGISTROS 2025</th>
+                <th>VALOR 2024</th>
+                <th>VALOR 2025</th>
+                <th>VARIAÇÃO VALOR</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for mes in analise_mensal_superavit %}
+            <tr>
+                <td>{{ mes.mes_fmt }}</td>
+                <td>{{ mes.count_2024 }}</td>
+                <td>{{ mes.count_2025 }}</td>
+                <td class="valor-superavit">{{ mes.valor_2024_fmt }}</td>
+                <td class="valor-superavit">{{ mes.valor_2025_fmt }}</td>
                 <td class="{% if mes.variacao_valor < 0 %}valor-negativo{% else %}valor-positivo{% endif %}">{{ mes.variacao_valor_fmt }}</td>
             </tr>
             {% endfor %}

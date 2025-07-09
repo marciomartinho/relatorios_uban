@@ -1,0 +1,629 @@
+{% extends "base_relatorio.html" %}
+
+{% block titulo %}Receita por Fonte de Recursos - Comparativo{% endblock %}
+
+{% block titulo_relatorio %}RECEITA POR FONTE DE RECURSOS - COMPARATIVO{% endblock %}
+
+{% block subtitulo %}Análise baseada no COCONTACORRENTE agrupada por FONTE com comparativo 2024 vs 2025{% endblock %}
+
+{% block head_extra %}
+<!-- CSS padrão dos relatórios -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/relatorios.css') }}">
+
+<!-- Chart.js para gráficos - VERSÃO MAIS COMPATÍVEL -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<!-- JS padrão dos relatórios -->
+<script src="{{ url_for('static', filename='js/relatorios.js') }}"></script>
+
+<script>
+// Aguardar Chart.js carregar
+window.addEventListener('load', function() {
+    if (typeof Chart === 'undefined') {
+        console.warn('⚠️ Carregando Chart.js alternativo...');
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/Chart.min.js';
+        script.onload = function() {
+            console.log('✅ Chart.js carregado');
+        };
+        document.head.appendChild(script);
+    }
+});
+</script>
+
+<style>
+    /* Garantir que o gráfico apareça */
+    .chart-container {
+        position: relative;
+        height: 500px !important;
+        width: 100% !important;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 30px;
+        border: 2px solid #dee2e6;
+    }
+    
+    .chart-wrapper {
+        position: relative;
+        height: 400px !important;
+        width: 100% !important;
+    }
+    
+    #chartComparativo {
+        max-height: 400px !important;
+        max-width: 100% !important;
+    }
+    
+    .chart-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 400px;
+        color: #6c757d;
+        font-size: 18px;
+    }
+    
+    .chart-error {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 400px;
+        color: #dc3545;
+        font-size: 16px;
+        text-align: center;
+        flex-direction: column;
+    }
+    
+    .info-container {
+        background: #e7f3ff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #0066cc;
+    }
+    
+    .info-container h4 {
+        margin: 0 0 10px 0;
+        color: #0066cc;
+        font-weight: 600;
+    }
+    
+    .info-container ul {
+        margin: 0;
+        padding-left: 20px;
+        color: #555;
+    }
+    
+    .resumo-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #003366;
+    }
+    
+    .resumo-container h4 {
+        margin: 0 0 15px 0;
+        color: #003366;
+        font-weight: 600;
+    }
+    
+    .resumo-container > div {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .resumo-container > div > div {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 3px solid #0066cc;
+    }
+    
+    /* ESTILOS PARA EXPANSÃO DE RECEITAS */
+    .expand-btn {
+        background: none;
+        border: none;
+        color: #0066cc;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        margin-right: 8px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        transition: all 0.2s ease;
+    }
+    
+    .expand-btn:hover {
+        background-color: rgba(0, 102, 204, 0.1);
+    }
+    
+    .expand-btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.3);
+    }
+    
+    /* Linhas de fonte principais */
+    .fonte {
+        background-color: #cce5ff;
+        font-weight: bold;
+    }
+    
+    /* Linhas de receitas (filhas) */
+    .receita {
+        background-color: #e7f2ff;
+        display: none; /* Inicialmente ocultas */
+    }
+    
+    .receita.show {
+        display: table-row; /* Mostrar quando expandida */
+    }
+    
+    .receita td:first-child {
+        padding-left: 50px !important;
+        font-weight: normal;
+        color: #555;
+    }
+    
+    .receita td:nth-child(2) {
+        font-style: italic;
+        color: #666;
+        font-size: 13px;
+    }
+    
+    /* Ícones para indicar tipo */
+    .fonte-icon {
+        color: #0066cc;
+        margin-right: 5px;
+    }
+    
+    .receita-icon {
+        color: #6c757d;
+        margin-right: 5px;
+    }
+    
+    /* Contador de receitas */
+    .receita-counter {
+        font-size: 11px;
+        color: #666;
+        font-weight: normal;
+        margin-left: 10px;
+        display: block;
+        margin-top: 2px;
+    }
+
+    /* Ajustar layout da primeira coluna para evitar desalinhamento */
+    .fonte td:first-child {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        padding: 8px !important;
+    }
+
+    .codigo-fonte-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .codigo-fonte-linha1 {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Hover específico para receitas */
+    tbody tr.receita:hover {
+        background-color: rgba(231, 242, 255, 0.8) !important;
+    }
+</style>
+{% endblock %}
+
+{% block conteudo %}
+<div class="info-container">
+    <h4>ℹ️ Informações do Relatório</h4>
+    <ul>
+        <li><strong>Código da Fonte:</strong> Caracteres 9-17 do COCONTACORRENTE</li>
+        <li><strong>Nome da Fonte:</strong> Obtido da planilha FONTE.xlsx</li>
+        <li><strong>Receitas:</strong> Primeiros 8 caracteres do COCONTACORRENTE (obtidos da planilha CLASSIFICACAO_ORCAMENTARIA)</li>
+        <li><strong>Comparativo:</strong> Receita realizada em {{ mes_ref }}/2024 vs {{ mes_ref }}/2025</li>
+        <li><strong>Variação:</strong> Diferença absoluta e percentual entre os períodos</li>
+        <li><strong>Ordenação:</strong> Por valor 2025 (maior para menor)</li>
+        <li><strong>💡 Dica:</strong> Clique nos botões <strong>[+]</strong> para expandir e ver as receitas de cada fonte</li>
+    </ul>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th rowspan="2">CÓDIGO FONTE</th>
+            <th rowspan="2">NOME DA FONTE</th>
+            <th colspan="2">RECEITA REALIZADA</th>
+            <th colspan="2">VARIAÇÃO</th>
+        </tr>
+        <tr>
+            <th>{{ mes_ref }}/2024</th>
+            <th>{{ mes_ref }}/2025</th>
+            <th>ABSOLUTA</th>
+            <th>PERCENTUAL</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for linha in dados_relatorio %}
+            {% if linha.tipo == 'fonte' %}
+                <tr class="fonte" id="fonte-{{ linha.fonte_codigo }}">
+                    <td style="text-align: center; font-family: monospace; font-weight: bold;">
+                        <div class="codigo-fonte-container">
+                            <div class="codigo-fonte-linha1">
+                                {% if linha.tem_receitas %}
+                                    <button class="expand-btn" onclick="toggleReceitas('{{ linha.fonte_codigo }}')" 
+                                            id="btn-{{ linha.fonte_codigo }}" title="Clique para expandir/recolher receitas">
+                                        +
+                                    </button>
+                                {% endif %}
+                                <span class="fonte-icon">📊</span>{{ linha.fonte_codigo_fmt }}
+                            </div>
+                            {% if linha.tem_receitas %}
+                                <span class="receita-counter">({{ linha.qtd_receitas }} receitas)</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td style="text-align: left;">
+                        {{ linha.nome_fonte_fmt }}
+                    </td>
+                    <td>{{ linha.receita_2024_fmt }}</td>
+                    <td>{{ linha.receita_2025_fmt }}</td>
+                    <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_abs_fmt }}
+                    </td>
+                    <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_perc_fmt }}
+                    </td>
+                </tr>
+            {% elif linha.tipo == 'receita' %}
+                <tr class="receita receita-{{ linha.fonte_pai }}" style="display: none;">
+                    <td style="text-align: center; font-family: monospace; font-weight: normal; color: #555;">
+                        <span class="receita-icon">├─</span>{{ linha.receita_codigo_fmt }}
+                    </td>
+                    <td style="text-align: left; font-style: italic; color: #666; font-size: 13px;">
+                        {{ linha.nome_receita_fmt }}
+                    </td>
+                    <td>{{ linha.receita_2024_fmt }}</td>
+                    <td>{{ linha.receita_2025_fmt }}</td>
+                    <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_abs_fmt }}
+                    </td>
+                    <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_perc_fmt }}
+                    </td>
+                </tr>
+            {% elif linha.tipo == 'total' %}
+                <tr class="total">
+                    <td style="text-align: center; font-weight: bold;">{{ linha.fonte_codigo_fmt }}</td>
+                    <td style="text-align: left; font-weight: bold;">{{ linha.nome_fonte_fmt }}</td>
+                    <td>{{ linha.receita_2024_fmt }}</td>
+                    <td>{{ linha.receita_2025_fmt }}</td>
+                    <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_abs_fmt }}
+                    </td>
+                    <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                        {{ linha.variacao_perc_fmt }}
+                    </td>
+                </tr>
+            {% endif %}
+        {% else %}
+            <tr>
+                <td colspan="6" class="text-center" style="color: #666; font-style: italic; padding: 30px;">
+                    Nenhum dado encontrado para os filtros selecionados ou coluna COCONTACORRENTE não disponível.
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if dados_relatorio %}
+<div class="resumo-container">
+    <h4>📊 Resumo do Relatório</h4>
+    <div>
+        <div>
+            <strong>Total de Fontes:</strong><br>
+            <span style="color: #0066cc; font-size: 18px;">
+                {{ dados_relatorio | selectattr("tipo", "equalto", "fonte") | list | length }}
+            </span>
+        </div>
+        <div>
+            <strong>Total de Receitas:</strong><br>
+            <span style="color: #6c757d; font-size: 18px;">
+                {{ dados_relatorio | selectattr("tipo", "equalto", "receita") | list | length }}
+            </span>
+        </div>
+        <div>
+            <strong>Receita Total 2024:</strong><br>
+            <span style="color: #6c757d; font-size: 18px;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        {{ linha.receita_2024_fmt }}
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+        <div>
+            <strong>Receita Total 2025:</strong><br>
+            <span style="color: #0066cc; font-size: 18px;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        {{ linha.receita_2025_fmt }}
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+        <div>
+            <strong>Variação Total:</strong><br>
+            <span style="font-size: 18px; font-weight: bold;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        <span class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_perc_fmt }}
+                        </span>
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Botões de Controle Global -->
+<div style="margin: 20px 0; text-align: center;">
+    <button onclick="expandirTodas()" class="btn" style="background: #0d6efd; margin-right: 10px;">
+        ➕ Expandir Todas as Fontes
+    </button>
+    <button onclick="recolherTodas()" class="btn" style="background: #dc3545;">
+        ➖ Recolher Todas as Fontes
+    </button>
+</div>
+
+<!-- Gráfico de Barras com as Top 10 Fontes -->
+<div class="chart-container">
+    <h4>📈 Top 10 Fontes - Comparativo 2024 vs 2025</h4>
+    <div class="chart-wrapper">
+        <div id="chart-loading" class="chart-loading">
+            <div>
+                <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+                <div>Carregando gráfico...</div>
+            </div>
+        </div>
+        <div id="chart-error" class="chart-error" style="display: none;">
+            <div>
+                <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
+                <div>Erro ao carregar gráfico</div>
+                <div style="font-size: 14px; margin-top: 5px;">Os dados estão disponíveis na tabela acima</div>
+            </div>
+        </div>
+        <canvas id="chartComparativo" style="display: none;"></canvas>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// === SISTEMA DE EXPANSÃO DE RECEITAS ===
+
+function toggleReceitas(fonteCodigo) {
+    const receitas = document.querySelectorAll('.receita-' + fonteCodigo);
+    const btn = document.getElementById('btn-' + fonteCodigo);
+    
+    if (receitas.length === 0) return;
+    
+    const isVisible = receitas[0].style.display === 'table-row';
+    
+    receitas.forEach(receita => {
+        if (isVisible) {
+            receita.style.display = 'none';
+        } else {
+            receita.style.display = 'table-row';
+        }
+    });
+    
+    // Atualiza o botão
+    btn.textContent = isVisible ? '+' : '−';
+    btn.title = isVisible ? 'Clique para expandir receitas' : 'Clique para recolher receitas';
+    
+    console.log(`${isVisible ? 'Recolheu' : 'Expandiu'} receitas da fonte ${fonteCodigo}`);
+}
+
+function expandirTodas() {
+    const todosBotoes = document.querySelectorAll('.expand-btn');
+    todosBotoes.forEach(btn => {
+        const fonteCodigo = btn.id.replace('btn-', '');
+        const receitas = document.querySelectorAll('.receita-' + fonteCodigo);
+        
+        receitas.forEach(receita => {
+            receita.style.display = 'table-row';
+        });
+        
+        btn.textContent = '−';
+        btn.title = 'Clique para recolher receitas';
+    });
+    
+    console.log('✅ Todas as fontes expandidas');
+}
+
+function recolherTodas() {
+    const todosBotoes = document.querySelectorAll('.expand-btn');
+    todosBotoes.forEach(btn => {
+        const fonteCodigo = btn.id.replace('btn-', '');
+        const receitas = document.querySelectorAll('.receita-' + fonteCodigo);
+        
+        receitas.forEach(receita => {
+            receita.style.display = 'none';
+        });
+        
+        btn.textContent = '+';
+        btn.title = 'Clique para expandir receitas';
+    });
+    
+    console.log('✅ Todas as fontes recolhidas');
+}
+
+// === SISTEMA DE GRÁFICOS ===
+
+// Aguardar DOM carregar completamente
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 Iniciando verificação do gráfico...');
+    
+    // Aguardar um pouco para garantir que tudo carregou
+    setTimeout(function() {
+        verificarECriarGrafico();
+    }, 1000);
+});
+
+function verificarECriarGrafico() {
+    console.log('🔍 Verificando Chart.js...');
+    
+    // Verificar se Chart.js carregou
+    if (typeof Chart === 'undefined') {
+        console.error('❌ Chart.js não carregou');
+        mostrarErro('Biblioteca de gráficos não carregada');
+        return;
+    }
+    
+    console.log('✅ Chart.js carregado, versão:', Chart.version);
+    
+    // Dados do relatório - apenas fontes principais para o gráfico
+    const dadosRelatorio = {{ dados_relatorio | tojson | safe }};
+    const fontesPrincipais = dadosRelatorio.filter(item => item.tipo === 'fonte');
+    
+    console.log('💰 Total de fontes principais:', fontesPrincipais.length);
+    
+    if (!fontesPrincipais || fontesPrincipais.length === 0) {
+        console.warn('⚠️ Sem fontes principais para gráfico');
+        mostrarErro('Sem dados suficientes para gerar o gráfico');
+        return;
+    }
+    
+    // Pegar top 10
+    const top10 = fontesPrincipais.slice(0, 10);
+    console.log('🔟 Top 10 fontes:', top10.length);
+    
+    // Preparar dados
+    const labels = top10.map(item => item.fonte_codigo || 'N/A');
+    const dados2024 = top10.map(item => parseFloat(item.receita_2024) || 0);
+    const dados2025 = top10.map(item => parseFloat(item.receita_2025) || 0);
+    
+    console.log('🏷️ Labels:', labels);
+    console.log('💰 Dados 2024:', dados2024);
+    console.log('💰 Dados 2025:', dados2025);
+    
+    // Criar o gráfico
+    criarGrafico(labels, dados2024, dados2025);
+}
+
+function criarGrafico(labels, dados2024, dados2025) {
+    try {
+        console.log('🎨 Criando gráfico...');
+        
+        const canvas = document.getElementById('chartComparativo');
+        if (!canvas) {
+            throw new Error('Canvas não encontrado');
+        }
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Contexto 2D não disponível');
+        }
+        
+        // Esconder loading e mostrar canvas
+        document.getElementById('chart-loading').style.display = 'none';
+        document.getElementById('chart-error').style.display = 'none';
+        canvas.style.display = 'block';
+        
+        // Criar gráfico
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '2024',
+                    data: dados2024,
+                    backgroundColor: 'rgba(108, 117, 125, 0.6)',
+                    borderColor: 'rgba(108, 117, 125, 1)',
+                    borderWidth: 1
+                }, {
+                    label: '2025',
+                    data: dados2025,
+                    backgroundColor: 'rgba(0, 102, 204, 0.8)',
+                    borderColor: 'rgba(0, 102, 204, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Comparativo das Principais Fontes de Recursos'
+                    },
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y;
+                                const formatted = new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL'
+                                }).format(value);
+                                return context.dataset.label + ': ' + formatted;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL',
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                }).format(value);
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+        
+        console.log('🎉 Gráfico criado com sucesso!');
+        
+    } catch (error) {
+        console.error('❌ Erro ao criar gráfico:', error);
+        mostrarErro('Erro ao criar o gráfico: ' + error.message);
+    }
+}
+
+function mostrarErro(mensagem) {
+    console.error('🚨 Erro do gráfico:', mensagem);
+    document.getElementById('chart-loading').style.display = 'none';
+    document.getElementById('chart-error').style.display = 'flex';
+    document.getElementById('chartComparativo').style.display = 'none';
+}
+</script>
+{% endblock %}

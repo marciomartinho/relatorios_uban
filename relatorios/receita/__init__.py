@@ -10,9 +10,12 @@ from .receita_atualizada import gerar_relatorio_receita_atualizada_vs_inicial
 from .grafico_pizza import gerar_grafico_receita_liquida
 from .grafico_receita_capital import gerar_grafico_receita_capital
 from .receita_conta_corrente import gerar_relatorio_receita_conta_corrente
+from .receita_fonte_recursos import gerar_relatorio_receita_fonte_recursos
 from .receitas_tributarias import gerar_relatorio_receitas_tributarias
 from .receitas_contribuicoes import gerar_relatorio_receitas_contribuicoes
 from .receitas_patrimoniais import gerar_relatorio_receitas_patrimoniais
+from .receitas_agropecuarias import gerar_relatorio_receitas_agropecuarias
+from .receitas_industriais import gerar_relatorio_receitas_industriais
 from .receitas_servicos import gerar_relatorio_receitas_servicos
 from .receitas_transferencias import gerar_relatorio_receitas_transferencias
 from .receitas_outras_correntes import gerar_relatorio_outras_receitas_correntes
@@ -31,9 +34,12 @@ __all__ = [
     'gerar_grafico_receita_liquida',
     'gerar_grafico_receita_capital',
     'gerar_relatorio_receita_conta_corrente',
+    'gerar_relatorio_receita_fonte_recursos',
     'gerar_relatorio_receitas_tributarias',
     'gerar_relatorio_receitas_contribuicoes',
     'gerar_relatorio_receitas_patrimoniais',
+    'gerar_relatorio_receitas_agropecuarias',
+    'gerar_relatorio_receitas_industriais',
     'gerar_relatorio_receitas_servicos',
     'gerar_relatorio_receitas_transferencias',
     'gerar_relatorio_outras_receitas_correntes',

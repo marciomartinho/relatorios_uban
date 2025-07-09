@@ -1,0 +1,820 @@
+{% extends "base_relatorio.html" %}
+
+{% block titulo %}Receitas Agropecuárias Líquidas Realizada - Comparativo{% endblock %}
+
+{% block titulo_relatorio %}RECEITAS AGROPECUÁRIAS LÍQUIDAS REALIZADA{% endblock %}
+
+{% block subtitulo %}Origens 14 e 74 com desdobramentos por alínea - Comparativo 2024 vs 2025{% endblock %}
+
+{% block head_extra %}
+<!-- Chart.js para gráficos - VERSÃO MAIS COMPATÍVEL -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<!-- Bibliotecas para sistema de download -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<!-- ✅ SISTEMA DE DOWNLOADS - SÓ ISSO QUE FOI ADICIONADO -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sistema-downloads.css') }}">
+
+<script>
+// Aguardar Chart.js carregar
+window.addEventListener('load', function() {
+    if (typeof Chart === 'undefined') {
+        console.warn('⚠️ Carregando Chart.js alternativo...');
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/Chart.min.js';
+        script.onload = function() {
+            console.log('✅ Chart.js carregado');
+        };
+        document.head.appendChild(script);
+    }
+});
+</script>
+
+<style>
+    /* Garantir que o gráfico apareça */
+    .chart-container {
+        position: relative;
+        height: 500px !important;
+        width: 100% !important;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 30px;
+        border: 2px solid #dee2e6;
+    }
+    
+    .chart-wrapper {
+        position: relative;
+        height: 400px !important;
+        width: 100% !important;
+    }
+    
+    #chartComparativo {
+        max-height: 400px !important;
+        max-width: 100% !important;
+    }
+    
+    .chart-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 400px;
+        color: #6c757d;
+        font-size: 18px;
+    }
+    
+    .chart-error {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 400px;
+        color: #dc3545;
+        font-size: 16px;
+        text-align: center;
+        flex-direction: column;
+    }
+    
+    .info-container {
+        background: #e7f3ff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #0066cc;
+    }
+    
+    .info-container h4 {
+        margin: 0 0 10px 0;
+        color: #0066cc;
+        font-weight: 600;
+    }
+    
+    .info-container ul {
+        margin: 0;
+        padding-left: 20px;
+        color: #555;
+    }
+    
+    .resumo-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #003366;
+    }
+    
+    .resumo-container h4 {
+        margin: 0 0 15px 0;
+        color: #003366;
+        font-weight: 600;
+    }
+    
+    .resumo-container > div {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .resumo-container > div > div {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 3px solid #0066cc;
+    }
+    
+    /* ESTILOS SIMPLIFICADOS SEM EXPANSÃO */
+    
+    /* Linhas de espécie principais */
+    .especie {
+        background-color: #cce5ff;
+        font-weight: bold;
+    }
+    
+    /* Linhas de alíneas (sempre visíveis) */
+    .alinea {
+        background-color: #f0f8ff;
+        display: table-row; /* Sempre visível */
+    }
+    
+    .alinea td:first-child {
+        padding-left: 50px !important;
+        font-weight: normal;
+        color: #555;
+    }
+    
+    .alinea td:nth-child(2) {
+        font-style: italic;
+        color: #666;
+        font-size: 13px;
+    }
+    
+    /* Ícones para indicar tipo */
+    .especie-icon {
+        color: #0066cc;
+        margin-right: 5px;
+    }
+    
+    .alinea-icon {
+        color: #6c757d;
+        margin-right: 5px;
+    }
+    
+    /* Ajustar layout da primeira coluna */
+    .especie td:first-child {
+        text-align: center;
+        font-family: monospace;
+        font-weight: bold;
+        padding: 8px !important;
+    }
+    
+    /* Hover específico para alíneas */
+    tbody tr.alinea:hover {
+        background-color: rgba(240, 248, 255, 0.8) !important;
+    }
+    
+    /* ESTILOS PARA RESUMO DE NOUGS */
+    .nougs-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #28a745;
+    }
+    
+    .nougs-container h4 {
+        margin: 0 0 15px 0;
+        color: #28a745;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .nougs-lista {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 10px;
+    }
+    
+    .noug-item {
+        background: white;
+        padding: 12px 15px;
+        border-radius: 6px;
+        border-left: 3px solid #28a745;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    
+    .noug-item:hover {
+        background: #e8f5e8;
+        transform: translateX(2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .noug-nome {
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+    }
+    
+    .noug-saldo {
+        font-weight: bold;
+        color: #28a745;
+        font-size: 14px;
+    }
+    
+    .nougs-total {
+        margin-top: 15px;
+        padding: 15px;
+        background: white;
+        border-radius: 6px;
+        text-align: center;
+        border: 2px solid #28a745;
+    }
+    
+    .nougs-total strong {
+        color: #28a745;
+        font-size: 16px;
+    }
+    
+    .nougs-total span {
+        color: #333;
+        font-size: 18px;
+        font-weight: bold;
+    }
+    
+    /* Responsividade para NOUGs */
+    @media (max-width: 768px) {
+        .nougs-lista {
+            grid-template-columns: 1fr;
+        }
+        
+        .noug-item {
+            padding: 10px 12px;
+        }
+        
+        .noug-nome, .noug-saldo {
+            font-size: 13px;
+        }
+    }
+</style>
+
+<script>
+// Função para converter número do mês para nome
+function obterNomeMes(numeroMes) {
+    const meses = {
+        '01': 'Janeiro',
+        '02': 'Fevereiro', 
+        '03': 'Março',
+        '04': 'Abril',
+        '05': 'Maio',
+        '06': 'Junho',
+        '07': 'Julho',
+        '08': 'Agosto',
+        '09': 'Setembro',
+        '10': 'Outubro',
+        '11': 'Novembro',
+        '12': 'Dezembro'
+    };
+    
+    return meses[numeroMes] || `Mês ${numeroMes}`;
+}
+</script>
+{% endblock %}
+
+{% block filtros %}
+{% if lista_nougs %}
+<div class="filtro-container">
+    <label for="filtro-noug">Filtrar por Unidade Gestora:</label>
+    <select id="filtro-noug" onchange="aplicarFiltro()">
+        <option value="todos">-- Mostrar Todas as Unidades (Consolidado) --</option>
+        {% for noug in lista_nougs %}
+            <option value="{{ noug }}" {% if noug == noug_selecionada %}selected{% endif %}>
+                {{ noug }}
+            </option>
+        {% endfor %}
+    </select>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block conteudo %}
+<div class="info-container">
+    <h4>ℹ️ Informações do Relatório - Receitas Agropecuárias</h4>
+    <ul>
+        <li><strong>Origens Agropecuárias:</strong> Apenas ORIGEM = 14 (Receita Agropecuária) e ORIGEM = 74 (Receita Agropecuária Intraorçamentária)</li>
+        <li><strong>Desdobramento:</strong> Por ESPÉCIE e suas respectivas ALÍNEAS</li>
+        <li><strong>Detalhamento:</strong> Todas as espécies mostram suas alíneas (ALINEA + NOALINEA)</li>
+        <li><strong>Valores:</strong> RECEITA LÍQUIDA realizada (Conta Contábil 621200000 - 621300000)</li>
+        <li><strong>Comparativo:</strong> Receita realizada em {{ mes_ref }}/2024 vs {{ mes_ref }}/2025</li>
+        <li><strong>Variação:</strong> Diferença absoluta e percentual entre os períodos</li>
+        <li><strong>💡 Estrutura:</strong> Todas as alíneas são exibidas automaticamente</li>
+    </ul>
+</div>
+
+<!-- ✅ SÓ ISSO FOI ADICIONADO: SISTEMA DE DOWNLOADS -->
+<div id="sistema-downloads-container"></div>
+
+<!-- ✅ SÓ ISSO FOI ADICIONADO: ID NA SEÇÃO DA TABELA -->
+<div id="secao-tabela-principal">
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2">CÓDIGO ESPÉCIE</th>
+                <th rowspan="2">NOME DA ESPÉCIE/ALÍNEA</th>
+                <th colspan="2">RECEITA LÍQUIDA REALIZADA</th>
+                <th colspan="2">VARIAÇÃO</th>
+            </tr>
+            <tr>
+                <th>{{ mes_ref }}/2024</th>
+                <th>{{ mes_ref }}/2025</th>
+                <th>ABSOLUTA</th>
+                <th>PERCENTUAL</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for linha in dados_relatorio %}
+                {% if linha.tipo == 'especie' %}
+                    <tr class="especie" id="especie-{{ linha.especie_codigo }}">
+                        <td style="text-align: center; font-family: monospace; font-weight: bold;">
+                            <span class="especie-icon">🌾</span>{{ linha.especie_codigo_fmt }}
+                            {% if linha.tem_alineas %}
+                                <span style="font-size: 11px; color: #666; font-weight: normal; margin-left: 10px; display: block; margin-top: 2px;">({{ linha.qtd_alineas }} alíneas)</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: left;">
+                            {{ linha.nome_especie_fmt }}
+                        </td>
+                        <td>{{ linha.receita_2024_fmt }}</td>
+                        <td>{{ linha.receita_2025_fmt }}</td>
+                        <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_abs_fmt }}
+                        </td>
+                        <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_perc_fmt }}
+                        </td>
+                    </tr>
+                {% elif linha.tipo == 'alinea' %}
+                    <tr class="alinea">
+                        <td style="text-align: center; font-family: monospace; font-weight: normal; color: #555;">
+                            <span class="alinea-icon">├─</span>{{ linha.especie_codigo_fmt }}
+                        </td>
+                        <td style="text-align: left; font-style: italic; color: #666; font-size: 13px;">
+                            {{ linha.nome_especie_fmt }}
+                        </td>
+                        <td>{{ linha.receita_2024_fmt }}</td>
+                        <td>{{ linha.receita_2025_fmt }}</td>
+                        <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_abs_fmt }}
+                        </td>
+                        <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_perc_fmt }}
+                        </td>
+                    </tr>
+                {% elif linha.tipo == 'total' %}
+                    <tr class="total">
+                        <td style="text-align: center; font-weight: bold;">{{ linha.especie_codigo_fmt }}</td>
+                        <td style="text-align: left; font-weight: bold;">{{ linha.nome_especie_fmt }}</td>
+                        <td>{{ linha.receita_2024_fmt }}</td>
+                        <td>{{ linha.receita_2025_fmt }}</td>
+                        <td class="{% if linha.variacao_abs < 0 %}valor-negativo{% elif linha.variacao_abs > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_abs_fmt }}
+                        </td>
+                        <td class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                            {{ linha.variacao_perc_fmt }}
+                        </td>
+                    </tr>
+                {% endif %}
+            {% else %}
+                <tr>
+                    <td colspan="6" class="text-center" style="color: #666; font-style: italic; padding: 30px;">
+                        Nenhum dado de receita agropecuária encontrado para os filtros selecionados ou colunas necessárias não disponíveis.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if dados_relatorio %}
+<!-- ✅ SÓ ISSO FOI ADICIONADO: ID NA SEÇÃO DE RESUMO -->
+<div id="secao-resumo">
+    <div class="resumo-container">
+        <h4>📊 Resumo das Receitas Agropecuárias</h4>
+        <div>
+            <div>
+                <strong>Total de Espécies:</strong><br>
+                <span style="color: #0066cc; font-size: 18px;">
+                    {{ dados_relatorio | selectattr("tipo", "equalto", "especie") | list | length }}
+                </span>
+            </div>
+            <div>
+                <strong>Total de Alíneas:</strong><br>
+                <span style="color: #6c757d; font-size: 18px;">
+                    {{ dados_relatorio | selectattr("tipo", "equalto", "alinea") | list | length }}
+                </span>
+            </div>
+            <div>
+                <strong>Receita Total {{ mes_ref }}/2024:</strong><br>
+                <span style="color: #6c757d; font-size: 18px;">
+                    {% for linha in dados_relatorio %}
+                        {% if linha.tipo == 'total' %}
+                            {{ linha.receita_2024_fmt }}
+                        {% endif %}
+                    {% endfor %}
+                </span>
+            </div>
+            <div>
+                <strong>Receita Total {{ mes_ref }}/2025:</strong><br>
+                <span style="color: #28a745; font-size: 18px;">
+                    {% for linha in dados_relatorio %}
+                        {% if linha.tipo == 'total' %}
+                            {{ linha.receita_2025_fmt }}
+                        {% endif %}
+                    {% endfor %}
+                </span>
+            </div>
+            <div>
+                <strong>Variação Total:</strong><br>
+                <span style="font-size: 18px; font-weight: bold;">
+                    {% for linha in dados_relatorio %}
+                        {% if linha.tipo == 'total' %}
+                            <span class="{% if linha.variacao_perc < 0 %}valor-negativo{% elif linha.variacao_perc > 0 %}valor-positivo{% endif %}">
+                                {{ linha.variacao_perc_fmt }}
+                            </span>
+                        {% endif %}
+                    {% endfor %}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ✅ SÓ ISSO FOI ADICIONADO: ID NA SEÇÃO DE COMPARATIVO -->
+<div id="secao-comparativo">
+    {% if comparativo_mensal %}
+    <div class="resumo-container" style="border-left-color: #FFA500;">
+        <h4>📅 Comparativo Mensal Acumulado - Receitas Agropecuárias</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
+            {% for mes in comparativo_mensal %}
+            <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #FFA500;">
+                <div style="font-weight: 600; color: #333; font-size: 14px; margin-bottom: 8px;">
+                    📈 Total até <span id="titulo-mes-{{ mes.mes }}"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span style="color: #6c757d; font-size: 12px;">2024:</span>
+                    <span style="color: #6c757d; font-size: 13px; font-weight: 500;">{{ mes.saldo_2024_fmt }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span style="color: #28a745; font-size: 12px;">2025:</span>
+                    <span style="color: #28a745; font-size: 13px; font-weight: 500;">{{ mes.saldo_2025_fmt }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 4px;">
+                    <span style="color: #333; font-size: 12px; font-weight: 600;">Variação:</span>
+                    <span class="{% if mes.variacao_perc < 0 %}valor-negativo{% elif mes.variacao_perc > 0 %}valor-positivo{% endif %}" style="font-size: 13px; font-weight: bold;">
+                        {{ mes.variacao_perc_fmt }}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ✅ SÓ ISSO FOI ADICIONADO: ID NA SEÇÃO DO GRÁFICO -->
+<div id="secao-grafico">
+    <div class="chart-container">
+        <h4>🥧 Distribuição das Espécies Agropecuárias - Receita 2025</h4>
+        <div class="chart-wrapper">
+            <div id="chart-loading" class="chart-loading">
+                <div>
+                    <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+                    <div>Carregando gráfico...</div>
+                </div>
+            </div>
+            <div id="chart-error" class="chart-error" style="display: none;">
+                <div>
+                    <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
+                    <div>Erro ao carregar gráfico</div>
+                    <div style="font-size: 14px; margin-top: 5px;">Os dados estão disponíveis na tabela acima</div>
+                </div>
+            </div>
+            <canvas id="chartComparativo" style="display: none;"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- ✅ SÓ ISSO FOI ADICIONADO: ID NA SEÇÃO DAS NOUGS -->
+<div id="secao-nougs">
+    {% if resumo_nougs %}
+    <div class="nougs-container">
+        <h4>
+            <span>🌾</span>
+            <span>Unidades Gestoras com Receita Agropecuária em 2025</span>
+            <span style="font-size: 14px; color: #666; font-weight: normal;">({{ resumo_nougs|length }} unidades)</span>
+        </h4>
+        
+        <div class="nougs-lista">
+            {% for noug in resumo_nougs %}
+            <div class="noug-item" onclick="filtrarPorNoug('{{ noug.noug }}')" title="Clique para filtrar por esta UG">
+                <span class="noug-nome">{{ noug.noug }}</span>
+                <span class="noug-saldo">{{ noug.saldo_fmt }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="nougs-total">
+            <strong>Total Geral das NOUGs:</strong> 
+            <span>
+                {% set total_nougs = resumo_nougs | sum(attribute='saldo') %}
+                {{ "R$ {:,.2f}".format(total_nougs).replace(",", "X").replace(".", ",").replace("X", ".") }}
+            </span>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// === SISTEMA DE GRÁFICO DE PIZZA ===
+
+// Aguardar DOM carregar completamente
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 Iniciando verificação do gráfico de pizza...');
+    
+    // Converter títulos dos meses após DOM carregar
+    converterTitulosMeses();
+    
+    // Aguardar um pouco para garantir que tudo carregou
+    setTimeout(function() {
+        verificarECriarGrafico();
+    }, 1000);
+});
+
+// NOVA FUNÇÃO: Converter números dos meses para nomes
+function converterTitulosMeses() {
+    {% if comparativo_mensal %}
+    const comparativoMensal = {{ comparativo_mensal | tojson | safe }};
+    
+    comparativoMensal.forEach(function(mes) {
+        const elemento = document.getElementById('titulo-mes-' + mes.mes);
+        if (elemento) {
+            const nomeMes = obterNomeMes(mes.mes_fmt);
+            elemento.textContent = nomeMes;
+        }
+    });
+    {% endif %}
+}
+
+function verificarECriarGrafico() {
+    console.log('🔍 Verificando Chart.js...');
+    
+    // Verificar se Chart.js carregou
+    if (typeof Chart === 'undefined') {
+        console.error('❌ Chart.js não carregou');
+        mostrarErro('Biblioteca de gráficos não carregada');
+        return;
+    }
+    
+    console.log('✅ Chart.js carregado, versão:', Chart.version);
+    
+    // Dados do relatório - apenas espécies principais para o gráfico
+    const dadosRelatorio = {{ dados_relatorio | tojson | safe }};
+    const especiesPrincipais = dadosRelatorio.filter(item => item.tipo === 'especie');
+    
+    console.log('📊 Total de espécies principais:', especiesPrincipais.length);
+    
+    if (!especiesPrincipais || especiesPrincipais.length === 0) {
+        console.warn('⚠️ Sem espécies principais para gráfico');
+        mostrarErro('Sem dados suficientes para gerar o gráfico');
+        return;
+    }
+    
+    // Preparar dados para gráfico de pizza (usar receita 2025)
+    const labels = especiesPrincipais.map(item => item.nome_especie || 'N/A');
+    const dados2025 = especiesPrincipais.map(item => parseFloat(item.receita_2025) || 0);
+    
+    // Cores personalizadas para cada espécie (tons de laranja/amarelo para agropecuárias)
+    const cores = [
+        '#FFA500',  // Laranja
+        '#FFB84D',  // Laranja claro
+        '#FFCC66',  // Laranja mais claro
+        '#FFD700',  // Dourado
+        '#FFA000',  // Laranja escuro
+        '#FFB300',  // Laranja médio
+        '#FFC107',  // Âmbar
+        '#F9A825',  // Amarelo escuro
+        '#FDD835',  // Amarelo
+        '#FFEB3B'   // Amarelo claro
+    ];
+    
+    console.log('🏷️ Labels:', labels);
+    console.log('💰 Dados 2025:', dados2025);
+    
+    // Criar o gráfico de pizza
+    criarGraficoPizza(labels, dados2025, cores);
+}
+
+function criarGraficoPizza(labels, dados, cores) {
+    try {
+        console.log('🥧 Criando gráfico de pizza...');
+        
+        const canvas = document.getElementById('chartComparativo');
+        if (!canvas) {
+            throw new Error('Canvas não encontrado');
+        }
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Contexto 2D não disponível');
+        }
+        
+        // Esconder loading e mostrar canvas
+        document.getElementById('chart-loading').style.display = 'none';
+        document.getElementById('chart-error').style.display = 'none';
+        canvas.style.display = 'block';
+        
+        // Criar gráfico de pizza
+        const chart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: dados,
+                    backgroundColor: cores.slice(0, dados.length),
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                    hoverBorderWidth: 3,
+                    hoverBorderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Distribuição das Receitas Agropecuárias por Espécie (2025)',
+                        font: {
+                            size: 16,
+                            weight: 'bold'
+                        },
+                        color: '#003366'
+                    },
+                    legend: {
+                        display: true,
+                        position: 'right',
+                        labels: {
+                            boxWidth: 15,
+                            padding: 10,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 51, 102, 0.9)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: '#ffffff',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: true,
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed;
+                                const total = dados.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                
+                                // Formatar valor em reais
+                                const valueFormatted = new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL',
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                }).format(value);
+                                
+                                return `${context.label}: ${valueFormatted} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateScale: true,
+                    animateRotate: true,
+                    duration: 1500,
+                    easing: 'easeOutQuart'
+                },
+                layout: {
+                    padding: 20
+                }
+            }
+        });
+        
+        console.log('🎉 Gráfico de pizza criado com sucesso!');
+        
+        // Adicionar interatividade - destacar fatia ao passar mouse na tabela
+        document.querySelectorAll('.especie').forEach((row, index) => {
+            row.addEventListener('mouseenter', function() {
+                // Destaca a fatia correspondente no gráfico
+                chart.setActiveElements([{datasetIndex: 0, index: index}]);
+                chart.update('none');
+                this.style.backgroundColor = '#b3d9ff';
+            });
+            
+            row.addEventListener('mouseleave', function() {
+                // Remove o destaque
+                chart.setActiveElements([]);
+                chart.update('none');
+                this.style.backgroundColor = '#cce5ff';
+            });
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao criar gráfico de pizza:', error);
+        mostrarErro('Erro ao criar o gráfico: ' + error.message);
+    }
+}
+
+function mostrarErro(mensagem) {
+    console.error('🚨 Erro do gráfico:', mensagem);
+    document.getElementById('chart-loading').style.display = 'none';
+    document.getElementById('chart-error').style.display = 'flex';
+    document.getElementById('chartComparativo').style.display = 'none';
+}
+
+// === SISTEMA DE FILTRAGEM POR NOUG ===
+
+function filtrarPorNoug(nougSelecionada) {
+    console.log('🔍 Filtrando por NOUG:', nougSelecionada);
+    
+    // Atualiza o select de filtro
+    const selectNoug = document.getElementById('filtro-noug');
+    if (selectNoug) {
+        selectNoug.value = nougSelecionada;
+    }
+    
+    // Redireciona com o filtro aplicado
+    const urlAtual = window.location.pathname;
+    window.location.href = `${urlAtual}?noug=${encodeURIComponent(nougSelecionada)}`;
+}
+
+// Adicionar indicador visual na NOUG selecionada
+document.addEventListener('DOMContentLoaded', function() {
+    // Obter NOUG selecionada da URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const nougSelecionada = urlParams.get('noug');
+    
+    if (nougSelecionada) {
+        // Destacar a NOUG selecionada na lista
+        document.querySelectorAll('.noug-item').forEach(item => {
+            const nougItem = item.querySelector('.noug-nome').textContent.trim();
+            if (nougItem === nougSelecionada) {
+                item.style.background = '#d4edda';
+                item.style.borderLeft = '4px solid #155724';
+                item.style.fontWeight = 'bold';
+                
+                // Adicionar indicador visual
+                const indicador = document.createElement('span');
+                indicador.innerHTML = ' ✓';
+                indicador.style.color = '#155724';
+                indicador.style.fontWeight = 'bold';
+                item.querySelector('.noug-nome').appendChild(indicador);
+            }
+        });
+    }
+});
+</script>
+
+<!-- ✅ SÓ ISSO FOI ADICIONADO: SISTEMA DE DOWNLOADS -->
+<script src="{{ url_for('static', filename='js/sistema-downloads.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ✅ Configuração específica para Receitas Agropecuárias
+    const configAgropecuarias = {
+        nomeRelatorio: 'Receitas Agropecuárias',
+        secoesPrincipais: [
+            { id: 'secao-tabela-principal', nome: 'Tabela de Receitas' },
+            { id: 'secao-resumo', nome: 'Resumo das Receitas' },
+            { id: 'secao-comparativo', nome: 'Comparativo Mensal' },
+            { id: 'secao-grafico', nome: 'Gráfico de Distribuição' },
+            { id: 'secao-nougs', nome: 'Unidades Gestoras' }
+        ],
+        tabelaPrincipal: 'secao-tabela-principal'
+    };
+    
+    // ✅ Inicializar sistema de downloads
+    SistemaDownloads.inicializar(configAgropecuarias);
+});
+</script>
+{% endblock %}

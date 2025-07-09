@@ -19,9 +19,12 @@ from relatorios.receita import (
     gerar_grafico_receita_liquida,
     gerar_grafico_receita_capital,
     gerar_relatorio_receita_conta_corrente,
+    gerar_relatorio_receita_fonte_recursos,
     gerar_relatorio_receitas_tributarias,
     gerar_relatorio_receitas_contribuicoes,
     gerar_relatorio_receitas_patrimoniais,
+    gerar_relatorio_receitas_agropecuarias,
+    gerar_relatorio_receitas_industriais,
     gerar_relatorio_receitas_servicos,
     gerar_relatorio_receitas_transferencias,
     gerar_relatorio_outras_receitas_correntes,
@@ -412,6 +415,36 @@ def receita_conta_corrente():
                              titulo="Erro no Relatório por Conta Corrente",
                              mensagem=f"Erro ao gerar relatório: {str(e)}")
 
+@receita_bp.route('/receita-fonte-recursos')
+def receita_fonte_recursos():
+    """Relatório de receita por fonte de recursos - hierarquia invertida"""
+    try:
+        inicio = time.time()
+        df_completo = carregar_dataframe_receita()
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf = gerar_relatorio_receita_fonte_recursos(
+            df_completo, None, noug_selecionada
+        )
+        
+        fim = time.time()
+        print(f"⏱️ Relatório por Fonte de Recursos gerado em {fim - inicio:.2f} segundos")
+
+        return render_template('relatorio_receita_fonte_recursos.html',
+                               dados_relatorio=dados_tabela,
+                               mes_ref=mes_referencia,
+                               dados_para_ia=dados_para_ia,
+                               dados_pdf=dados_pdf,
+                               lista_nougs=lista_nougs,
+                               noug_selecionada=noug_selecionada)
+                               
+    except Exception as e:
+        traceback.print_exc()
+        return render_template('erro.html',
+                             titulo="Erro no Relatório por Fonte de Recursos",
+                             mensagem=f"Erro ao gerar relatório: {str(e)}")
+
 @receita_bp.route('/receitas-tributarias')
 def receitas_tributarias():
     """Relatório de receitas tributárias líquidas"""
@@ -592,7 +625,8 @@ def analise_inconsistencias():
 
         # Gera o relatório de inconsistências
         (dados_receitas_negativas, dados_ugs_invalidas, mes_referencia, 
-         analise_mensal_negativas, analise_mensal_ugs, resumo_geral) = gerar_relatorio_analise_inconsistencias(
+         analise_mensal_negativas, analise_mensal_ugs, resumo_geral,
+         dados_fontes_superavit, analise_mensal_superavit) = gerar_relatorio_analise_inconsistencias(
             df_completo, None, noug_selecionada
         )
         
@@ -602,8 +636,10 @@ def analise_inconsistencias():
         return render_template('analise_inconsistencias.html',
                                dados_receitas_negativas=dados_receitas_negativas,
                                dados_ugs_invalidas=dados_ugs_invalidas,
+                               dados_fontes_superavit=dados_fontes_superavit,
                                analise_mensal_negativas=analise_mensal_negativas,
                                analise_mensal_ugs=analise_mensal_ugs,
+                               analise_mensal_superavit=analise_mensal_superavit,
                                resumo_geral=resumo_geral,
                                mes_ref=mes_referencia,
                                lista_nougs=lista_nougs,
@@ -613,4 +649,70 @@ def analise_inconsistencias():
         traceback.print_exc()
         return render_template('erro.html',
                              titulo="Erro no Relatório de Análise de Inconsistências",
+                             mensagem=f"Erro ao gerar relatório: {str(e)}")
+
+@receita_bp.route('/receitas-agropecuarias')
+def receitas_agropecuarias():
+    """Relatório de receitas agropecuárias líquidas"""
+    try:
+        inicio = time.time()
+        df_completo = carregar_dataframe_receita()
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+
+        # ATUALIZAÇÃO: Agora retorna 6 valores incluindo comparativo_mensal
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs, comparativo_mensal = gerar_relatorio_receitas_agropecuarias(
+            df_completo, HIERARQUIA_RECEITAS, noug_selecionada
+        )
+        
+        fim = time.time()
+        print(f"⏱️ Relatório de Receitas Agropecuárias gerado em {fim - inicio:.2f} segundos")
+
+        return render_template('relatorio_receitas_agropecuarias.html',
+                               dados_relatorio=dados_tabela,
+                               mes_ref=mes_referencia,
+                               dados_para_ia=dados_para_ia,
+                               dados_pdf=dados_pdf,
+                               resumo_nougs=resumo_nougs,
+                               comparativo_mensal=comparativo_mensal,  # NOVO
+                               lista_nougs=lista_nougs,
+                               noug_selecionada=noug_selecionada)
+                               
+    except Exception as e:
+        traceback.print_exc()
+        return render_template('erro.html',
+                             titulo="Erro no Relatório de Receitas Agropecuárias",
+                             mensagem=f"Erro ao gerar relatório: {str(e)}")
+    
+@receita_bp.route('/receitas-industriais')
+def receitas_industriais():
+    """Relatório de receitas industriais líquidas"""
+    try:
+        inicio = time.time()
+        df_completo = carregar_dataframe_receita()
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+
+        # ATUALIZAÇÃO: Agora retorna 6 valores incluindo comparativo_mensal
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf, resumo_nougs, comparativo_mensal = gerar_relatorio_receitas_industriais(
+            df_completo, HIERARQUIA_RECEITAS, noug_selecionada
+        )
+        
+        fim = time.time()
+        print(f"⏱️ Relatório de Receitas Industriais gerado em {fim - inicio:.2f} segundos")
+
+        return render_template('relatorio_receitas_industriais.html',
+                               dados_relatorio=dados_tabela,
+                               mes_ref=mes_referencia,
+                               dados_para_ia=dados_para_ia,
+                               dados_pdf=dados_pdf,
+                               resumo_nougs=resumo_nougs,
+                               comparativo_mensal=comparativo_mensal,  # NOVO
+                               lista_nougs=lista_nougs,
+                               noug_selecionada=noug_selecionada)
+                               
+    except Exception as e:
+        traceback.print_exc()
+        return render_template('erro.html',
+                             titulo="Erro no Relatório de Receitas Industriais",
                              mensagem=f"Erro ao gerar relatório: {str(e)}")

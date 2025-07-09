@@ -284,30 +284,126 @@
 
     <div class="main-container">
         <div class="categories-grid">
-            <!-- Receita -->
-            <div class="category-card category-receita">
-                <div class="category-header">
-                    <div class="category-icon">💰</div>
-                    <div>
-                        <h2 class="category-title">Receita</h2>
-                    </div>
-                    <div class="category-count">2</div>
-                </div>
-                <ul class="reports-list">
-                    <li class="report-item">
-                        <a href="/relatorio/balanco-orcamentario" class="report-link active">
-                            Balanço Orçamentário da Receita
-                        </a>
-                    </li>
-                    <li class="report-item">
-                        <a href="/relatorio/receita-conta-corrente" class="report-link active">
-                            Receita por Conta Corrente
-                        </a>
-                    </li>
-                </ul>
-            </div>
+            <!-- PRIMEIRA COLUNA: Gestão Orçamentária - Análise da Receita -->
+<div class="category-card category-gestao">
+    <div class="category-header">
+        <div class="category-icon">📈</div>
+        <div>
+            <h2 class="category-title">Gestão Orçamentária</h2>
+            <div class="category-subtitle">Análise da Receita</div>
+        </div>
+        <div class="category-count">15</div>  <!-- Atualizado de 14 para 15 -->
+    </div>
+    <ul class="reports-list">
+        <li class="report-item">
+            <a href="/relatorio/grafico-receita-liquida" class="report-link active">
+                Total da Receita Corrente
+            </a>
+        </li>
+        <li class="report-item">
+            <a href="/relatorio/receitas-tributarias" class="report-link active">
+                Receitas Tributárias
+            </a>
+        </li>
+        <li class="report-item">
+            <a href="/relatorio/receitas-contribuicoes" class="report-link active">
+                Receitas de Contribuições
+            </a>
+        </li>
+        <li class="report-item">
+            <a href="/relatorio/receitas-patrimoniais" class="report-link active">
+                Receitas Patrimoniais
+            </a>
+        </li>
+        <li class="report-item">
+            <a href="/relatorio/receitas-agropecuarias" class="report-link active">
+                Receitas Agropecuárias
+            </a>
+        </li>
+        <li class="report-item">
+            <a href="/relatorio/receitas-industriais" class="report-link active">
+                Receitas Industriais
+            </a>
+        </li>
+        <li class="report-item">
+            <a href="/relatorio/receitas-servicos" class="report-link active">
+                Receitas de Serviços
+            </a>
+        </li>
+        <li class="report-item">
+            <a href="/relatorio/receitas-transferencias" class="report-link active">
+                Receitas de Transferências Correntes
+            </a>
+        </li>
+        <li class="report-item">
+            <a href="/relatorio/outras-receitas-correntes" class="report-link active">
+                Outras Receitas Correntes
+            </a>
+        </li>
+        <!-- Espaçamento visual -->
+        <li class="report-item" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e9ecef;">
+            <a href="/relatorio/grafico-receita-capital" class="report-link active">
+                Total da Receita de Capital
+            </a>
+        </li>
+        <li class="report-item">
+            <a href="/relatorio/receitas-operacoes-credito" class="report-link active">
+                Receitas de Operações de Crédito
+            </a>
+        </li>
+        <li class="report-item">
+            <a href="/relatorio/receitas-alienacao-bens" class="report-link active">
+                Receitas de Alienação de Bens
+            </a>
+        </li>
+        <li class="report-item">
+            <a href="/relatorio/receitas-amortizacao-emprestimo" class="report-link active">
+                Receitas de Amortização de Empréstimos
+            </a>
+        </li>
+        <li class="report-item">
+            <a href="/relatorio/receitas-transferencia-capital" class="report-link active">
+                Receitas de Transferências de Capital
+            </a>
+        </li>
+        <!-- Espaçamento visual -->
+        <li class="report-item" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e9ecef;">
+            <a href="/relatorio/analise-inconsistencias" class="report-link active">
+                Análise de Inconsistências
+            </a>
+        </li>
+    </ul>
+</div>
 
-            <!-- Despesa -->
+            <!-- SEGUNDA COLUNA: Receita -->
+<div class="category-card category-receita">
+    <div class="category-header">
+        <div class="category-icon">💰</div>
+        <div>
+            <h2 class="category-title">Receita</h2>
+        </div>
+        <div class="category-count">3</div>  <!-- Atualizado de 2 para 3 -->
+    </div>
+    <ul class="reports-list">
+        <li class="report-item">
+            <a href="/relatorio/balanco-orcamentario" class="report-link active">
+                Balanço Orçamentário da Receita
+            </a>
+        </li>
+        <li class="report-item">
+            <a href="/relatorio/receita-conta-corrente" class="report-link active">
+                Receita por Conta Corrente
+            </a>
+        </li>
+        <li class="report-item">
+            <a href="/relatorio/receita-fonte-recursos" class="report-link active">
+                Receita por Fonte de Recursos
+            </a>
+        </li>
+    </ul>
+</div>
+
+            <!-- TERCEIRA COLUNA: Despesa -->
             <div class="category-card category-despesa">
                 <div class="category-header">
                     <div class="category-icon">📊</div>
@@ -350,7 +446,7 @@
                 </ul>
             </div>
 
-            <!-- Balanço Geral (apenas os 3 primeiros relatórios) -->
+            <!-- QUARTA COLUNA: Balanço Geral -->
             <div class="category-card category-balanco">
                 <div class="category-header">
                     <div class="category-icon">⚖️</div>
@@ -378,88 +474,7 @@
                 </ul>
             </div>
 
-            <!-- NOVA COLUNA: Gestão Orçamentária - Análise da Receita -->
-            <div class="category-card category-gestao">
-                <div class="category-header">
-                    <div class="category-icon">📈</div>
-                    <div>
-                        <h2 class="category-title">Gestão Orçamentária</h2>
-                        <div class="category-subtitle">Análise da Receita</div>
-                    </div>
-                    <div class="category-count">12</div>
-                </div>
-                <ul class="reports-list">
-                    <li class="report-item">
-                        <a href="/relatorio/grafico-receita-liquida" class="report-link active">
-                            Total da Receita Corrente
-                        </a>
-                    </li>
-                    <li class="report-item">
-                        <a href="/relatorio/receitas-tributarias" class="report-link active">
-                            Receitas Tributárias
-                        </a>
-                    </li>
-                    <li class="report-item">
-                        <a href="/relatorio/receitas-contribuicoes" class="report-link active">
-                            Receitas de Contribuições
-                        </a>
-                    </li>
-                    <li class="report-item">
-                        <a href="/relatorio/receitas-patrimoniais" class="report-link active">
-                            Receitas Patrimoniais
-                        </a>
-                    </li>
-                    <li class="report-item">
-                        <a href="/relatorio/receitas-servicos" class="report-link active">
-                            Receitas de Serviços
-                        </a>
-                    </li>
-                    <li class="report-item">
-                        <a href="/relatorio/receitas-transferencias" class="report-link active">
-                            Receitas de Transferências Correntes
-                        </a>
-                    </li>
-                    <li class="report-item">
-                        <a href="/relatorio/outras-receitas-correntes" class="report-link active">
-                            Outras Receitas Correntes
-                        </a>
-                    </li>
-                    <!-- Espaçamento visual -->
-                    <li class="report-item" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e9ecef;">
-                        <a href="/relatorio/grafico-receita-capital" class="report-link active">
-                            Total da Receita de Capital
-                        </a>
-                    </li>
-                    <li class="report-item">
-                        <a href="/relatorio/receitas-operacoes-credito" class="report-link active">
-                            Receitas de Operações de Crédito
-                        </a>
-                    </li>
-                    <li class="report-item">
-                        <a href="/relatorio/receitas-alienacao-bens" class="report-link active">
-                            Receitas de Alienação de Bens
-                        </a>
-                    </li>
-                    <li class="report-item">
-                        <a href="/relatorio/receitas-amortizacao-emprestimo" class="report-link active">
-                            Receitas de Amortização de Empréstimos
-                        </a>
-                    </li>
-                    <li class="report-item">
-                        <a href="/relatorio/receitas-transferencia-capital" class="report-link active">
-                            Receitas de Transferências de Capital
-                        </a>
-                    </li>
-                    <!-- Espaçamento visual -->
-                    <li class="report-item" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e9ecef;">
-                        <a href="/relatorio/analise-inconsistencias" class="report-link active">
-                            Análise de Inconsistências
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Outros Relatórios (mantém como estava) -->
+            <!-- Outros Relatórios (removido da grid principal) -->
             <div class="category-card category-outros">
                 <div class="category-header">
                     <div class="category-icon">🔧</div>
