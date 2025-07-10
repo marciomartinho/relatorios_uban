@@ -142,12 +142,13 @@ def processar_pdf_sisgepat(caminho_pdf, df_depara):
         print(f"❌ Erro ao processar PDF SISGEPAT: {str(e)}")
         return {}
 
-def processar_saldos_contabeis(df_saldos):
+def processar_saldos_contabeis(df_saldos, dict_contas=None):
     """
     Processa os saldos contábeis da planilha 19-SaldoBensMoveis.xlsx
     
     Args:
         df_saldos: DataFrame carregado da planilha 19-SaldoBensMoveis.xlsx
+        dict_contas: Dicionário com mapeamento COCONTACONTABIL -> NOCONTACONTABIL (opcional)
         
     Returns:
         dict: Dados dos saldos contábeis formatados ou None se não houver dados
@@ -205,6 +206,11 @@ def processar_saldos_contabeis(df_saldos):
                 # Adiciona '00' ao final do código
                 codigo_formatado = codigo + '00'
                 
+                # Busca o nome da conta se o dicionário foi fornecido
+                nome_conta = ""
+                if dict_contas and codigo_formatado in dict_contas:
+                    nome_conta = dict_contas[codigo_formatado]
+                
                 # Pega o saldo da última coluna
                 saldo = row[ultima_coluna]
                 
@@ -218,6 +224,7 @@ def processar_saldos_contabeis(df_saldos):
                 if saldo > 0:
                     dados_saldos.append({
                         'codigo': codigo_formatado,
+                        'nome': nome_conta,
                         'saldo': saldo,
                         'saldo_fmt': formatar_numero(saldo)
                     })
@@ -262,7 +269,15 @@ def gerar_relatorio_bens_moveis(df_completo, dados_sisgepat=None, df_depara=None
     # Processar saldos contábeis apenas se não houver filtro de NOUG
     dados_saldos_contabeis = None
     if (not noug_selecionada or noug_selecionada == 'todos') and df_saldos_contabeis is not None:
-        dados_saldos_contabeis = processar_saldos_contabeis(df_saldos_contabeis)
+        # Carrega dicionário de contas contábeis se disponível
+        try:
+            from utils.data_loaders import carregar_conta_contabil
+            dict_contas = carregar_conta_contabil()
+        except:
+            dict_contas = None
+            print("⚠️ Não foi possível carregar nomes das contas contábeis")
+            
+        dados_saldos_contabeis = processar_saldos_contabeis(df_saldos_contabeis, dict_contas)
     
     # O resto do código permanece EXATAMENTE igual
     # Inicializa estruturas de dados

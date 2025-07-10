@@ -140,6 +140,7 @@
         <thead>
             <tr>
                 <th>Código</th>
+                <th style="width: 50%;">Nome</th>
                 <th>Saldo (R$)<br><span style="font-size: 11px; font-weight: normal;">{{ dados_saldos_contabeis.mes_referencia }}<br>Todas as UGs</span></th>
             </tr>
         </thead>
@@ -147,11 +148,13 @@
             {% for item in dados_saldos_contabeis.itens %}
             <tr>
                 <td>{{ item.codigo }}</td>
+                <td style="text-align: left; padding-left: 10px;">{{ item.nome }}</td>
                 <td>{{ item.saldo_fmt }}</td>
             </tr>
             {% endfor %}
             <tr class="total">
                 <td style="text-align: right; font-weight: bold;">Total</td>
+                <td></td>
                 <td>{{ dados_saldos_contabeis.total_fmt }}</td>
             </tr>
         </tbody>

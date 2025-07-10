@@ -7,7 +7,7 @@ from flask import Blueprint, render_template, request
 import traceback
 
 # Importações das configurações e utilitários
-from utils.data_loaders import carregar_dataframe_bens_moveis, carregar_dataframe_depara, carregar_saldos_contabeis
+from utils.data_loaders import carregar_dataframe_bens_moveis, carregar_dataframe_depara, carregar_saldos_contabeis, carregar_conta_contabil
 from relatorios.contabeis import gerar_relatorio_bens_moveis, processar_pdf_sisgepat
 
 # Cria o blueprint

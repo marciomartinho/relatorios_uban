@@ -340,7 +340,74 @@ def carregar_unidades_gestoras():
         print(f"❌ Erro ao carregar unidades gestoras: {e}")
         return {}
 
-def listar_arquivos_dados():
+def carregar_conta_contabil():
+    """
+    Carrega dados da planilha CONTACONTABIL.xlsx
+    Mapeia COCONTACONTABIL → NOCONTACONTABIL
+    
+    Returns:
+        dict: Dicionário com código da conta como chave e nome como valor
+    """
+    try:
+        caminho_dados = Path("dados/CONTACONTABIL.xlsx")
+        
+        if not caminho_dados.exists():
+            print(f"⚠️ Arquivo não encontrado: {caminho_dados}")
+            return {}
+        
+        # Tenta carregar do cache primeiro se disponível
+        if CACHE_AVAILABLE and cache_service:
+            try:
+                cache_key = f"conta_contabil_{os.path.getmtime(caminho_dados)}"
+                if hasattr(cache_service, 'get'):
+                    contas_cached = cache_service.get(cache_key)
+                else:
+                    contas_cached = None
+                    
+                if contas_cached is not None:
+                    print(f"✅ Contas contábeis carregadas do cache: {len(contas_cached)} registros")
+                    return contas_cached
+            except Exception as e:
+                print(f"⚠️ Erro no cache, carregando do arquivo: {e}")
+        
+        df = pd.read_excel(caminho_dados)
+        
+        # Remove espaços dos nomes das colunas
+        df.columns = df.columns.str.strip()
+        
+        # Verifica se as colunas existem
+        if 'COCONTACONTABIL' not in df.columns or 'NOCONTACONTABIL' not in df.columns:
+            print("⚠️ Colunas COCONTACONTABIL ou NOCONTACONTABIL não encontradas")
+            print(f"Colunas disponíveis: {df.columns.tolist()}")
+            return {}
+        
+        # Cria dicionário de mapeamento
+        contas_dict = {}
+        for _, row in df.iterrows():
+            codigo = str(row['COCONTACONTABIL']).strip()
+            nome = str(row['NOCONTACONTABIL']).strip()
+            
+            if codigo and nome and codigo != 'nan' and nome != 'nan':
+                # Remove .0 se existir no código
+                if codigo.endswith('.0'):
+                    codigo = codigo[:-2]
+                contas_dict[codigo] = nome
+        
+        # Salva no cache se disponível
+        if CACHE_AVAILABLE and cache_service:
+            try:
+                cache_key = f"conta_contabil_{os.path.getmtime(caminho_dados)}"
+                if hasattr(cache_service, 'set'):
+                    cache_service.set(cache_key, contas_dict, ttl=3600)
+            except:
+                pass
+        
+        print(f"✅ Contas contábeis carregadas: {len(contas_dict)} registros")
+        return contas_dict
+        
+    except Exception as e:
+        print(f"❌ Erro ao carregar contas contábeis: {e}")
+        return {}
     """
     Lista todos os arquivos disponíveis na pasta dados
     Útil para debug e verificação
