@@ -1,0 +1,561 @@
+{% extends "base_relatorio.html" %}
+
+{% block titulo %}Despesa por Função com Programa de Trabalho{% endblock %}
+
+{% block titulo_relatorio %}DESPESA POR FUNÇÃO COM PROGRAMA DE TRABALHO{% endblock %}
+
+{% block subtitulo %}Análise da execução orçamentária agrupada por Função → Subfunção → Programa de Trabalho{% endblock %}
+
+{% block head_extra %}
+<!-- CSS padrão dos relatórios -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/relatorios.css') }}">
+
+<!-- JS padrão dos relatórios -->
+<script src="{{ url_for('static', filename='js/relatorios.js') }}"></script>
+
+<style>
+    /* Informações do relatório */
+    .info-container {
+        background: #e7f3ff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #0066cc;
+    }
+    
+    .info-container h4 {
+        margin: 0 0 10px 0;
+        color: #0066cc;
+        font-weight: 600;
+    }
+    
+    .info-container ul {
+        margin: 0;
+        padding-left: 20px;
+        color: #555;
+    }
+    
+    /* ESTILOS PARA EXPANSÃO DE SUBFUNÇÕES E PROGRAMAS */
+    .expand-btn {
+        background: none;
+        border: none;
+        color: #0066cc;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        margin-right: 8px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        transition: all 0.2s ease;
+    }
+    
+    .expand-btn:hover {
+        background-color: rgba(0, 102, 204, 0.1);
+    }
+    
+    .expand-btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.3);
+    }
+    
+    /* Linhas de função principais */
+    .funcao {
+        background-color: #cce5ff;
+        font-weight: bold;
+    }
+    
+    /* Linhas de subfunções */
+    .subfuncao {
+        background-color: #e7f2ff;
+        display: none;
+    }
+    
+    .subfuncao.show {
+        display: table-row;
+    }
+    
+    /* Linhas de programas de trabalho */
+    .programa {
+        background-color: #f5f9ff;
+        display: none;
+        font-size: 14px;
+    }
+    
+    .programa.show {
+        display: table-row;
+    }
+    
+    /* Indentação hierárquica */
+    .subfuncao td:first-child {
+        padding-left: 50px !important;
+        font-weight: normal;
+        color: #555;
+    }
+    
+    .programa td:first-child {
+        padding-left: 80px !important;
+        font-weight: normal;
+        color: #777;
+        font-size: 13px;
+    }
+    
+    .subfuncao td:nth-child(2) {
+        font-style: italic;
+        color: #666;
+        font-size: 14px;
+    }
+    
+    .programa td:nth-child(2) {
+        color: #777;
+        font-size: 13px;
+    }
+    
+    /* Ícones para indicar tipo */
+    .funcao-icon {
+        color: #0066cc;
+        margin-right: 5px;
+    }
+    
+    .subfuncao-icon {
+        color: #6c757d;
+        margin-right: 5px;
+    }
+    
+    .programa-icon {
+        color: #999;
+        margin-right: 5px;
+        font-size: 12px;
+    }
+    
+    /* Contador de itens filhos */
+    .item-counter {
+        font-size: 11px;
+        color: #666;
+        font-weight: normal;
+        margin-left: 10px;
+        display: block;
+        margin-top: 2px;
+    }
+    
+    /* TD do programa */
+    .td-badge {
+        background-color: #f0f0f0;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+        margin-left: 10px;
+        color: #666;
+        display: inline-block;
+    }
+
+    /* Ajustar layout da primeira coluna */
+    .funcao td:first-child, .subfuncao td:first-child {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        padding: 8px !important;
+    }
+
+    .codigo-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .codigo-linha1 {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Hover específico por nível */
+    tbody tr.subfuncao:hover {
+        background-color: rgba(231, 242, 255, 0.8) !important;
+    }
+    
+    tbody tr.programa:hover {
+        background-color: rgba(245, 249, 255, 0.8) !important;
+    }
+    
+    /* Container de resumo */
+    .resumo-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #003366;
+    }
+    
+    .resumo-container h4 {
+        margin: 0 0 15px 0;
+        color: #003366;
+        font-weight: 600;
+    }
+    
+    .resumo-container > div {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .resumo-container > div > div {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 3px solid #0066cc;
+    }
+    
+    /* Código do programa de trabalho */
+    .codigo-programa {
+        font-family: monospace;
+        font-size: 12px;
+        color: #666;
+    }
+</style>
+{% endblock %}
+
+{% block conteudo %}
+<div class="info-container">
+    <h4>ℹ️ Informações do Relatório</h4>
+    <ul>
+        <li><strong>Hierarquia:</strong> Função → Subfunção → Programa de Trabalho</li>
+        <li><strong>Código do Programa:</strong> COFUNCAO.COSUBFUNCAO.COPROGRAMA.COPROJETO.COSUBTITULO</li>
+        <li><strong>Nome do Programa:</strong> Obtido da planilha "Programa de Trabalho.xlsx"</li>
+        <li><strong>TD:</strong> Número do TD associado ao programa de trabalho</li>
+        <li><strong>Dotação Atualizada:</strong> INICIAL + ADICIONAL + CANCELAMENTO + CANCEL-REMANEJA</li>
+        <li><strong>Saldo da Dotação:</strong> DOTAÇÃO ATUALIZADA - DESPESA EMPENHADA</li>
+        <li><strong>💡 Dica:</strong> Clique nos botões <strong>[+]</strong> para expandir os níveis hierárquicos</li>
+    </ul>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th rowspan="2">CÓDIGO</th>
+            <th rowspan="2">DESCRIÇÃO</th>
+            <th colspan="2">DOTAÇÃO</th>
+            <th colspan="3">DESPESAS</th>
+            <th rowspan="2">SALDO DA<br>DOTAÇÃO</th>
+        </tr>
+        <tr>
+            <th>INICIAL</th>
+            <th>ATUALIZADA</th>
+            <th>EMPENHADA</th>
+            <th>LIQUIDADA</th>
+            <th>PAGA</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for linha in dados_relatorio %}
+            {% if linha.tipo == 'funcao' %}
+                <tr class="funcao" id="funcao-{{ linha.funcao_codigo }}">
+                    <td style="text-align: center; font-family: monospace; font-weight: bold;">
+                        <div class="codigo-container">
+                            <div class="codigo-linha1">
+                                {% if linha.tem_subfuncoes %}
+                                    <button class="expand-btn" onclick="toggleSubfuncoes('{{ linha.funcao_codigo }}')" 
+                                            id="btn-funcao-{{ linha.funcao_codigo }}" title="Expandir/recolher subfunções">
+                                        +
+                                    </button>
+                                {% endif %}
+                                <span class="funcao-icon">📊</span>{{ linha.funcao_codigo_fmt }}
+                            </div>
+                            {% if linha.tem_subfuncoes %}
+                                <span class="item-counter">({{ linha.qtd_subfuncoes }} subfunções)</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td style="text-align: left;">
+                        {{ linha.nome_funcao_fmt }}
+                    </td>
+                    <td>{{ linha.dotacao_inicial_fmt }}</td>
+                    <td>{{ linha.dotacao_atualizada_fmt }}</td>
+                    <td>{{ linha.despesa_empenhada_fmt }}</td>
+                    <td>{{ linha.despesa_liquidada_fmt }}</td>
+                    <td>{{ linha.despesa_paga_fmt }}</td>
+                    <td class="{% if linha.saldo_dotacao < 0 %}valor-negativo{% endif %}">
+                        {{ linha.saldo_dotacao_fmt }}
+                    </td>
+                </tr>
+            {% elif linha.tipo == 'subfuncao' %}
+                <tr class="subfuncao subfuncao-{{ linha.funcao_pai }}" style="display: none;">
+                    <td style="text-align: center; font-family: monospace; font-weight: normal; color: #555;">
+                        <div class="codigo-container">
+                            <div class="codigo-linha1">
+                                {% if linha.tem_programas %}
+                                    <button class="expand-btn" onclick="toggleProgramas('{{ linha.funcao_pai }}', '{{ linha.subfuncao_codigo }}')" 
+                                            id="btn-subfuncao-{{ linha.funcao_pai }}-{{ linha.subfuncao_codigo }}" title="Expandir/recolher programas">
+                                        +
+                                    </button>
+                                {% endif %}
+                                <span class="subfuncao-icon">├─</span>{{ linha.subfuncao_codigo_fmt }}
+                            </div>
+                            {% if linha.tem_programas %}
+                                <span class="item-counter">({{ linha.qtd_programas }} programas)</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td style="text-align: left; font-style: italic; color: #666; font-size: 14px;">
+                        {{ linha.nome_subfuncao_fmt }}
+                    </td>
+                    <td>{{ linha.dotacao_inicial_fmt }}</td>
+                    <td>{{ linha.dotacao_atualizada_fmt }}</td>
+                    <td>{{ linha.despesa_empenhada_fmt }}</td>
+                    <td>{{ linha.despesa_liquidada_fmt }}</td>
+                    <td>{{ linha.despesa_paga_fmt }}</td>
+                    <td class="{% if linha.saldo_dotacao < 0 %}valor-negativo{% endif %}">
+                        {{ linha.saldo_dotacao_fmt }}
+                    </td>
+                </tr>
+            {% elif linha.tipo == 'programa' %}
+                <tr class="programa programa-{{ linha.funcao_pai }}-{{ linha.subfuncao_pai }}" style="display: none;">
+                    <td style="text-align: left; padding-left: 80px !important;">
+                        <span class="programa-icon">└──</span>
+                        <span class="codigo-programa">{{ linha.programa_codigo_fmt }}</span>
+                    </td>
+                    <td style="text-align: left;">
+                        {{ linha.nome_programa_fmt }}
+                        {% if linha.td_programa_fmt %}
+                            <span class="td-badge">{{ linha.td_programa_fmt }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ linha.dotacao_inicial_fmt }}</td>
+                    <td>{{ linha.dotacao_atualizada_fmt }}</td>
+                    <td>{{ linha.despesa_empenhada_fmt }}</td>
+                    <td>{{ linha.despesa_liquidada_fmt }}</td>
+                    <td>{{ linha.despesa_paga_fmt }}</td>
+                    <td class="{% if linha.saldo_dotacao < 0 %}valor-negativo{% endif %}">
+                        {{ linha.saldo_dotacao_fmt }}
+                    </td>
+                </tr>
+            {% elif linha.tipo == 'total' %}
+                <tr class="total">
+                    <td style="text-align: center; font-weight: bold;">{{ linha.funcao_codigo_fmt }}</td>
+                    <td style="text-align: left; font-weight: bold;">{{ linha.nome_funcao_fmt }}</td>
+                    <td>{{ linha.dotacao_inicial_fmt }}</td>
+                    <td>{{ linha.dotacao_atualizada_fmt }}</td>
+                    <td>{{ linha.despesa_empenhada_fmt }}</td>
+                    <td>{{ linha.despesa_liquidada_fmt }}</td>
+                    <td>{{ linha.despesa_paga_fmt }}</td>
+                    <td class="{% if linha.saldo_dotacao < 0 %}valor-negativo{% endif %}">
+                        {{ linha.saldo_dotacao_fmt }}
+                    </td>
+                </tr>
+            {% endif %}
+        {% else %}
+            <tr>
+                <td colspan="8" class="text-center" style="color: #666; font-style: italic; padding: 30px;">
+                    Nenhum dado encontrado para os filtros selecionados.
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if dados_relatorio %}
+<div class="resumo-container">
+    <h4>📊 Resumo do Relatório</h4>
+    <div>
+        <div>
+            <strong>Total de Funções:</strong><br>
+            <span style="color: #0066cc; font-size: 18px;">
+                {{ dados_relatorio | selectattr("tipo", "equalto", "funcao") | list | length }}
+            </span>
+        </div>
+        <div>
+            <strong>Total de Subfunções:</strong><br>
+            <span style="color: #6c757d; font-size: 18px;">
+                {{ dados_relatorio | selectattr("tipo", "equalto", "subfuncao") | list | length }}
+            </span>
+        </div>
+        <div>
+            <strong>Total de Programas:</strong><br>
+            <span style="color: #999; font-size: 18px;">
+                {{ dados_relatorio | selectattr("tipo", "equalto", "programa") | list | length }}
+            </span>
+        </div>
+        <div>
+            <strong>Dotação Inicial Total:</strong><br>
+            <span style="color: #6c757d; font-size: 18px;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        {{ linha.dotacao_inicial_fmt }}
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+        <div>
+            <strong>Despesa Empenhada Total:</strong><br>
+            <span style="color: #28a745; font-size: 18px;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        {{ linha.despesa_empenhada_fmt }}
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+        <div>
+            <strong>Saldo Total:</strong><br>
+            <span style="font-size: 18px; font-weight: bold;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        <span class="{% if linha.saldo_dotacao < 0 %}valor-negativo{% endif %}">
+                            {{ linha.saldo_dotacao_fmt }}
+                        </span>
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Botões de Controle Global -->
+<div style="margin: 20px 0; text-align: center;">
+    <button onclick="expandirTodas()" class="btn" style="background: #0d6efd; margin-right: 10px;">
+        ➕ Expandir Todos os Níveis
+    </button>
+    <button onclick="recolherTodas()" class="btn" style="background: #dc3545;">
+        ➖ Recolher Todos os Níveis
+    </button>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// === SISTEMA DE EXPANSÃO HIERÁRQUICA DE DOIS NÍVEIS ===
+
+// Toggle para subfunções (primeiro nível)
+function toggleSubfuncoes(funcaoCodigo) {
+    const subfuncoes = document.querySelectorAll('.subfuncao-' + funcaoCodigo);
+    const btn = document.getElementById('btn-funcao-' + funcaoCodigo);
+    
+    if (subfuncoes.length === 0) return;
+    
+    const isVisible = subfuncoes[0].style.display === 'table-row';
+    
+    subfuncoes.forEach(subfuncao => {
+        if (isVisible) {
+            subfuncao.style.display = 'none';
+            // Recolhe também os programas desta subfunção
+            const subfuncaoCodigo = subfuncao.querySelector('.codigo-container').textContent.trim().match(/\d{3}/);
+            if (subfuncaoCodigo) {
+                const programas = document.querySelectorAll('.programa-' + funcaoCodigo + '-' + subfuncaoCodigo[0]);
+                programas.forEach(prog => prog.style.display = 'none');
+                // Reseta o botão da subfunção
+                const btnSub = document.getElementById('btn-subfuncao-' + funcaoCodigo + '-' + subfuncaoCodigo[0]);
+                if (btnSub) btnSub.textContent = '+';
+            }
+        } else {
+            subfuncao.style.display = 'table-row';
+        }
+    });
+    
+    // Atualiza o botão
+    btn.textContent = isVisible ? '+' : '−';
+    btn.title = isVisible ? 'Expandir subfunções' : 'Recolher subfunções';
+    
+    console.log(`${isVisible ? 'Recolheu' : 'Expandiu'} subfunções da função ${funcaoCodigo}`);
+}
+
+// Toggle para programas (segundo nível)
+function toggleProgramas(funcaoCodigo, subfuncaoCodigo) {
+    const programas = document.querySelectorAll('.programa-' + funcaoCodigo + '-' + subfuncaoCodigo);
+    const btn = document.getElementById('btn-subfuncao-' + funcaoCodigo + '-' + subfuncaoCodigo);
+    
+    if (programas.length === 0) return;
+    
+    const isVisible = programas[0].style.display === 'table-row';
+    
+    programas.forEach(programa => {
+        programa.style.display = isVisible ? 'none' : 'table-row';
+    });
+    
+    // Atualiza o botão
+    btn.textContent = isVisible ? '+' : '−';
+    btn.title = isVisible ? 'Expandir programas' : 'Recolher programas';
+    
+    console.log(`${isVisible ? 'Recolheu' : 'Expandiu'} programas da subfunção ${subfuncaoCodigo}`);
+}
+
+// Expandir todos os níveis
+function expandirTodas() {
+    // Expande todas as funções
+    document.querySelectorAll('.funcao').forEach(funcao => {
+        const funcaoCodigo = funcao.id.replace('funcao-', '');
+        const subfuncoes = document.querySelectorAll('.subfuncao-' + funcaoCodigo);
+        subfuncoes.forEach(sub => sub.style.display = 'table-row');
+        const btnFuncao = document.getElementById('btn-funcao-' + funcaoCodigo);
+        if (btnFuncao) {
+            btnFuncao.textContent = '−';
+            btnFuncao.title = 'Recolher subfunções';
+        }
+    });
+    
+    // Expande todos os programas
+    document.querySelectorAll('.subfuncao').forEach(subfuncao => {
+        if (subfuncao.style.display === 'table-row') {
+            const btnSub = subfuncao.querySelector('.expand-btn');
+            if (btnSub) {
+                const ids = btnSub.id.match(/btn-subfuncao-(\d+)-(\d+)/);
+                if (ids) {
+                    const programas = document.querySelectorAll('.programa-' + ids[1] + '-' + ids[2]);
+                    programas.forEach(prog => prog.style.display = 'table-row');
+                    btnSub.textContent = '−';
+                    btnSub.title = 'Recolher programas';
+                }
+            }
+        }
+    });
+    
+    console.log('✅ Todos os níveis expandidos');
+}
+
+// Recolher todos os níveis
+function recolherTodas() {
+    // Recolhe todos os programas primeiro
+    document.querySelectorAll('.programa').forEach(prog => prog.style.display = 'none');
+    
+    // Recolhe todas as subfunções
+    document.querySelectorAll('.subfuncao').forEach(sub => sub.style.display = 'none');
+    
+    // Reseta todos os botões
+    document.querySelectorAll('.expand-btn').forEach(btn => {
+        btn.textContent = '+';
+        btn.title = btn.id.includes('funcao') ? 'Expandir subfunções' : 'Expandir programas';
+    });
+    
+    console.log('✅ Todos os níveis recolhidos');
+}
+
+// === CONFIGURAÇÃO DO PDF ===
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btnJPG = document.querySelector('.btn-jpg');
+    
+    if (btnJPG) {
+        btnJPG.addEventListener('click', function() {
+            const dadosPDF = {{ dados_pdf | tojson | safe }};
+            const nougTexto = {% if noug_selecionada %}"NOUG: {{ noug_selecionada }}"{% else %}"Todas as UGs"{% endif %};
+            
+            RelatorioUtils.gerarPDF({
+                titulo: 'DESPESA POR FUNÇÃO COM PROGRAMA DE TRABALHO',
+                subtitulo: `Período: {{ mes_ref }}/2025 - ${nougTexto}`,
+                dados: dadosPDF,
+                nomeArquivo: 'despesa_por_funcao_programa.pdf',
+                orientacao: 'l',
+                colunasTipos: [
+                    {% for linha in dados_relatorio %}
+                        {% if linha.tipo == 'funcao' %}'level-1',{% elif linha.tipo == 'total' %}'total',{% endif %}
+                    {% endfor %}
+                ]
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

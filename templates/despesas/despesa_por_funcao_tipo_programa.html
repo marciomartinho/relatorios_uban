@@ -1,0 +1,696 @@
+{% extends "base_relatorio.html" %}
+
+{% block titulo %}Despesa por Função com Tipo de Despesa e Programa de Trabalho{% endblock %}
+
+{% block titulo_relatorio %}DESPESA POR FUNÇÃO COM TIPO DE DESPESA E PROGRAMA DE TRABALHO{% endblock %}
+
+{% block subtitulo %}Análise da execução orçamentária agrupada por Função → Tipo de Despesa → Programa de Trabalho{% endblock %}
+
+{% block head_extra %}
+<!-- CSS padrão dos relatórios -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/relatorios.css') }}">
+
+<!-- JS padrão dos relatórios -->
+<script src="{{ url_for('static', filename='js/relatorios.js') }}"></script>
+
+<style>
+    /* Informações do relatório */
+    .info-container {
+        background: #e7f3ff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #0066cc;
+    }
+    
+    .info-container h4 {
+        margin: 0 0 10px 0;
+        color: #0066cc;
+        font-weight: 600;
+    }
+    
+    .info-container ul {
+        margin: 0;
+        padding-left: 20px;
+        color: #555;
+    }
+    
+    /* Box de análise percentual */
+    .analise-percentual {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .analise-percentual h4 {
+        margin: 0 0 15px 0;
+        color: #495057;
+        font-weight: 600;
+    }
+    
+    .percentual-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+    
+    .percentual-item {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 4px solid #0066cc;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .percentual-item.discricionaria {
+        border-left-color: #28a745;
+    }
+    
+    .percentual-item.obrigatoria {
+        border-left-color: #dc3545;
+    }
+    
+    .percentual-label {
+        font-size: 14px;
+        color: #6c757d;
+        margin-bottom: 5px;
+    }
+    
+    .percentual-valor {
+        font-size: 24px;
+        font-weight: bold;
+        color: #212529;
+    }
+    
+    .percentual-monetario {
+        font-size: 14px;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+    
+    /* ESTILOS PARA EXPANSÃO HIERÁRQUICA */
+    .expand-btn {
+        background: none;
+        border: none;
+        color: #0066cc;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        margin-right: 8px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        transition: all 0.2s ease;
+    }
+    
+    .expand-btn:hover {
+        background-color: rgba(0, 102, 204, 0.1);
+    }
+    
+    .expand-btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.3);
+    }
+    
+    /* Linhas de função principais */
+    .funcao {
+        background-color: #cce5ff;
+        font-weight: bold;
+    }
+    
+    /* Linhas de tipo de despesa */
+    .tipo-despesa {
+        background-color: #e7f2ff;
+        display: none;
+    }
+    
+    .tipo-despesa.show {
+        display: table-row;
+    }
+    
+    .tipo-despesa.discricionaria {
+        background-color: #d4edda;
+    }
+    
+    .tipo-despesa.obrigatoria {
+        background-color: #f8d7da;
+    }
+    
+    /* Linhas de programas de trabalho */
+    .programa {
+        background-color: #f5f9ff;
+        display: none;
+        font-size: 14px;
+    }
+    
+    .programa.show {
+        display: table-row;
+    }
+    
+    /* Indentação hierárquica */
+    .tipo-despesa td:first-child {
+        padding-left: 50px !important;
+        font-weight: normal;
+        color: #555;
+    }
+    
+    .programa td:first-child {
+        padding-left: 80px !important;
+        font-weight: normal;
+        color: #777;
+        font-size: 13px;
+    }
+    
+    .tipo-despesa td:nth-child(2) {
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .programa td:nth-child(2) {
+        color: #777;
+        font-size: 13px;
+    }
+    
+    /* Ícones para indicar tipo */
+    .funcao-icon {
+        color: #0066cc;
+        margin-right: 5px;
+    }
+    
+    .tipo-icon {
+        margin-right: 5px;
+    }
+    
+    .tipo-icon.discricionaria {
+        color: #28a745;
+    }
+    
+    .tipo-icon.obrigatoria {
+        color: #dc3545;
+    }
+    
+    .programa-icon {
+        color: #999;
+        margin-right: 5px;
+        font-size: 12px;
+    }
+    
+    /* Contador de itens filhos */
+    .item-counter {
+        font-size: 11px;
+        color: #666;
+        font-weight: normal;
+        margin-left: 10px;
+        display: inline-block;
+    }
+    
+    /* TD do programa */
+    .td-badge {
+        background-color: #f0f0f0;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+        margin-left: 10px;
+        color: #666;
+        display: inline-block;
+    }
+
+    /* Ajustar layout da primeira coluna */
+    .funcao td:first-child, .tipo-despesa td:first-child {
+        text-align: center;
+    }
+
+    .codigo-container {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Código do programa de trabalho */
+    .codigo-programa {
+        font-family: monospace;
+        font-size: 12px;
+        color: #666;
+    }
+    
+    /* Percentual empenhado - LÓGICA INVERTIDA */
+    .percentual-empenhado {
+        font-weight: bold;
+    }
+    
+    .percentual-alto {
+        color: #dc3545;  /* Vermelho - execução alta */
+    }
+    
+    .percentual-medio {
+        color: #ffc107;  /* Amarelo - execução média */
+    }
+    
+    .percentual-baixo {
+        color: #28a745;  /* Verde - execução baixa */
+    }
+    
+    /* Container de resumo */
+    .resumo-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #003366;
+    }
+    
+    .resumo-container h4 {
+        margin: 0 0 15px 0;
+        color: #003366;
+        font-weight: 600;
+    }
+    
+    .resumo-container > div {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .resumo-container > div > div {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 3px solid #0066cc;
+    }
+</style>
+{% endblock %}
+
+{% block conteudo %}
+<div class="info-container">
+    <h4>ℹ️ Informações do Relatório</h4>
+    <ul>
+        <li><strong>Hierarquia:</strong> Função → Tipo de Despesa → Programa de Trabalho</li>
+        <li><strong>Despesas Discricionárias:</strong> Programas com TD = 5</li>
+        <li><strong>Despesas Obrigatórias:</strong> Programas com TD ≠ 5 ou sem TD informado</li>
+        <li><strong>% Empenhado:</strong> (Despesa Empenhada ÷ Dotação Atualizada) × 100</li>
+        <li><strong>Dotação Atualizada:</strong> INICIAL + ADICIONAL + CANCELAMENTO + CANCEL-REMANEJA</li>
+        <li><strong>💡 Dica:</strong> Clique nos botões <strong>[+]</strong> para expandir os níveis hierárquicos</li>
+    </ul>
+</div>
+
+<!-- Análise Percentual Geral -->
+{% for item in dados_relatorio %}
+    {% if item.tipo == 'info_percentuais' %}
+    <div class="analise-percentual">
+        <h4>📊 Análise Percentual das Despesas Empenhadas</h4>
+        <div class="percentual-grid">
+            <div class="percentual-item discricionaria">
+                <div class="percentual-label">Despesas Discricionárias</div>
+                <div class="percentual-valor" style="color: #28a745;">{{ item.perc_discr_fmt }}</div>
+                <div class="percentual-monetario">{{ item.total_empenhado_discr_fmt }}</div>
+            </div>
+            <div class="percentual-item obrigatoria">
+                <div class="percentual-label">Despesas Obrigatórias</div>
+                <div class="percentual-valor" style="color: #dc3545;">{{ item.perc_obrig_fmt }}</div>
+                <div class="percentual-monetario">{{ item.total_empenhado_obrig_fmt }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endfor %}
+
+<table>
+    <thead>
+        <tr>
+            <th rowspan="2">CÓDIGO</th>
+            <th rowspan="2">DESCRIÇÃO</th>
+            <th colspan="2">DOTAÇÃO</th>
+            <th colspan="3">DESPESAS</th>
+            <th rowspan="2">% EMPENHADO</th>
+        </tr>
+        <tr>
+            <th>INICIAL</th>
+            <th>ATUALIZADA</th>
+            <th>EMPENHADA</th>
+            <th>LIQUIDADA</th>
+            <th>PAGA</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for linha in dados_relatorio %}
+            {% if linha.tipo == 'funcao' %}
+                <tr class="funcao" id="funcao-{{ linha.funcao_codigo }}">
+                    <td>
+                        <div class="codigo-container">
+                            {% if linha.tem_tipos %}
+                                <button class="expand-btn" onclick="toggleTipos('{{ linha.funcao_codigo }}')" 
+                                        id="btn-funcao-{{ linha.funcao_codigo }}" title="Expandir/recolher tipos de despesa">
+                                    +
+                                </button>
+                            {% endif %}
+                            <span class="funcao-icon">📊</span>
+                            <span style="font-family: monospace;">{{ linha.funcao_codigo_fmt }}</span>
+                        </div>
+                    </td>
+                    <td style="text-align: left;">
+                        {{ linha.nome_funcao_fmt }}
+                    </td>
+                    <td>{{ linha.dotacao_inicial_fmt }}</td>
+                    <td>{{ linha.dotacao_atualizada_fmt }}</td>
+                    <td>{{ linha.despesa_empenhada_fmt }}</td>
+                    <td>{{ linha.despesa_liquidada_fmt }}</td>
+                    <td>{{ linha.despesa_paga_fmt }}</td>
+                    <td class="percentual-empenhado {% if linha.percentual_empenhado > 80 %}percentual-alto{% elif linha.percentual_empenhado > 50 %}percentual-medio{% else %}percentual-baixo{% endif %}">
+                        {{ linha.percentual_empenhado_fmt }}
+                    </td>
+                </tr>
+            {% elif linha.tipo == 'tipo_despesa' %}
+                <tr class="tipo-despesa tipo-{{ linha.funcao_pai }} {% if 'Discricionária' in linha.tipo_despesa %}discricionaria{% else %}obrigatoria{% endif %}" style="display: none;">
+                    <td>
+                        <div class="codigo-container">
+                            {% if linha.tem_programas %}
+                                <button class="expand-btn" onclick="toggleProgramas('{{ linha.funcao_pai }}', '{{ linha.tipo_despesa }}')" 
+                                        id="btn-tipo-{{ linha.funcao_pai }}-{{ linha.tipo_despesa }}" title="Expandir/recolher programas">
+                                    +
+                                </button>
+                            {% endif %}
+                            <span class="tipo-icon {% if 'Discricionária' in linha.tipo_despesa %}discricionaria{% else %}obrigatoria{% endif %}">
+                                {% if 'Discricionária' in linha.tipo_despesa %}💵{% else %}🔒{% endif %}
+                            </span>
+                        </div>
+                    </td>
+                    <td style="text-align: left;">
+                        {{ linha.tipo_despesa_fmt }}
+                        {% if linha.qtd_programas > 0 %}
+                            <span class="item-counter">({{ linha.qtd_programas }} programas)</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ linha.dotacao_inicial_fmt }}</td>
+                    <td>{{ linha.dotacao_atualizada_fmt }}</td>
+                    <td>{{ linha.despesa_empenhada_fmt }}</td>
+                    <td>{{ linha.despesa_liquidada_fmt }}</td>
+                    <td>{{ linha.despesa_paga_fmt }}</td>
+                    <td class="percentual-empenhado {% if linha.percentual_empenhado > 80 %}percentual-alto{% elif linha.percentual_empenhado > 50 %}percentual-medio{% else %}percentual-baixo{% endif %}">
+                        {{ linha.percentual_empenhado_fmt }}
+                    </td>
+                </tr>
+            {% elif linha.tipo == 'programa' %}
+                <tr class="programa programa-{{ linha.funcao_pai }}-{{ linha.tipo_pai }}" style="display: none;">
+                    <td style="text-align: left; padding-left: 80px !important;">
+                        <span class="programa-icon">└──</span>
+                        <span class="codigo-programa">{{ linha.programa_codigo_fmt }}</span>
+                    </td>
+                    <td style="text-align: left;">
+                        {{ linha.nome_programa_fmt }}
+                        {% if linha.td_programa_fmt %}
+                            <span class="td-badge">{{ linha.td_programa_fmt }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ linha.dotacao_inicial_fmt }}</td>
+                    <td>{{ linha.dotacao_atualizada_fmt }}</td>
+                    <td>{{ linha.despesa_empenhada_fmt }}</td>
+                    <td>{{ linha.despesa_liquidada_fmt }}</td>
+                    <td>{{ linha.despesa_paga_fmt }}</td>
+                    <td class="percentual-empenhado {% if linha.percentual_empenhado > 80 %}percentual-alto{% elif linha.percentual_empenhado > 50 %}percentual-medio{% else %}percentual-baixo{% endif %}">
+                        {{ linha.percentual_empenhado_fmt }}
+                    </td>
+                </tr>
+            {% elif linha.tipo == 'total' %}
+                <tr class="total">
+                    <td style="text-align: center; font-weight: bold;">{{ linha.funcao_codigo_fmt }}</td>
+                    <td style="text-align: left; font-weight: bold;">{{ linha.nome_funcao_fmt }}</td>
+                    <td>{{ linha.dotacao_inicial_fmt }}</td>
+                    <td>{{ linha.dotacao_atualizada_fmt }}</td>
+                    <td>{{ linha.despesa_empenhada_fmt }}</td>
+                    <td>{{ linha.despesa_liquidada_fmt }}</td>
+                    <td>{{ linha.despesa_paga_fmt }}</td>
+                    <td class="percentual-empenhado">
+                        {{ linha.percentual_empenhado_fmt }}
+                    </td>
+                </tr>
+            {% endif %}
+        {% else %}
+            <tr>
+                <td colspan="8" class="text-center" style="color: #666; font-style: italic; padding: 30px;">
+                    Nenhum dado encontrado para os filtros selecionados.
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if dados_relatorio %}
+<div class="resumo-container">
+    <h4>📊 Resumo do Relatório</h4>
+    <div>
+        <div>
+            <strong>Total de Funções:</strong><br>
+            <span style="color: #0066cc; font-size: 18px;">
+                {{ dados_relatorio | selectattr("tipo", "equalto", "funcao") | list | length }}
+            </span>
+        </div>
+        <div>
+            <strong>Total de Programas:</strong><br>
+            <span style="color: #999; font-size: 18px;">
+                {{ dados_relatorio | selectattr("tipo", "equalto", "programa") | list | length }}
+            </span>
+        </div>
+        <div>
+            <strong>Dotação Inicial Total:</strong><br>
+            <span style="color: #6c757d; font-size: 18px;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        {{ linha.dotacao_inicial_fmt }}
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+        <div>
+            <strong>Dotação Atualizada Total:</strong><br>
+            <span style="color: #0066cc; font-size: 18px;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        {{ linha.dotacao_atualizada_fmt }}
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+        <div>
+            <strong>Despesa Empenhada Total:</strong><br>
+            <span style="color: #28a745; font-size: 18px;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        {{ linha.despesa_empenhada_fmt }}
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+        <div>
+            <strong>% Total Empenhado:</strong><br>
+            <span style="font-size: 18px; font-weight: bold;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        <span class="{% if linha.percentual_empenhado > 80 %}percentual-alto{% elif linha.percentual_empenhado > 50 %}percentual-medio{% else %}percentual-baixo{% endif %}">
+                            {{ linha.percentual_empenhado_fmt }}
+                        </span>
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Legendas -->
+<div class="legendas-container">
+    <div class="legenda-section">
+        <h5>📊 Cálculo de Percentuais</h5>
+        <div class="legenda-grid">
+            <div class="legenda-item">
+                <strong>Linhas de Função:</strong>
+                <span>% empenhado em relação à dotação atualizada total</span>
+            </div>
+            <div class="legenda-item">
+                <strong>Linhas de Tipo de Despesa:</strong>
+                <span>% do tipo em relação ao total empenhado da função (soma sempre = 100%)</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="legenda-section">
+        <h5>🎨 Cores do % Empenhado</h5>
+        <div class="legenda-grid">
+            <div class="legenda-item">
+                <div class="legenda-color" style="background-color: #28a745;"></div>
+                <span><strong>Verde:</strong> Baixa execução (≤ 50%)</span>
+            </div>
+            <div class="legenda-item">
+                <div class="legenda-color" style="background-color: #ffc107;"></div>
+                <span><strong>Amarelo:</strong> Execução média (> 50% e ≤ 80%)</span>
+            </div>
+            <div class="legenda-item">
+                <div class="legenda-color" style="background-color: #dc3545;"></div>
+                <span><strong>Vermelho:</strong> Alta execução (> 80%)</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="legenda-section">
+        <h5>💰 Tipos de Despesa</h5>
+        <div class="legenda-grid">
+            <div class="legenda-item">
+                <span class="legenda-icon">💵</span>
+                <span><strong>Despesas Discricionárias:</strong> TD = 05</span>
+            </div>
+            <div class="legenda-item">
+                <span class="legenda-icon">🔒</span>
+                <span><strong>Despesas Obrigatórias:</strong> TD ≠ 05 ou sem TD</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Botões de Controle Global -->
+<div style="margin: 20px 0; text-align: center;">
+    <button onclick="expandirTodas()" class="btn" style="background: #0d6efd; margin-right: 10px;">
+        ➕ Expandir Todos os Níveis
+    </button>
+    <button onclick="recolherTodas()" class="btn" style="background: #dc3545;">
+        ➖ Recolher Todos os Níveis
+    </button>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// === SISTEMA DE EXPANSÃO HIERÁRQUICA DE DOIS NÍVEIS ===
+
+// Toggle para tipos de despesa (primeiro nível)
+function toggleTipos(funcaoCodigo) {
+    const tipos = document.querySelectorAll('.tipo-' + funcaoCodigo);
+    const btn = document.getElementById('btn-funcao-' + funcaoCodigo);
+    
+    if (tipos.length === 0) return;
+    
+    const isVisible = tipos[0].style.display === 'table-row';
+    
+    tipos.forEach(tipo => {
+        if (isVisible) {
+            tipo.style.display = 'none';
+            // Recolhe também os programas deste tipo
+            const tipoClasses = tipo.className.split(' ');
+            const tipoEspecifico = tipoClasses.find(c => c.includes('discricionaria') || c.includes('obrigatoria'));
+            if (tipoEspecifico) {
+                const tipoNome = tipoEspecifico === 'discricionaria' ? 'Discricionária' : 'Obrigatória';
+                const programas = document.querySelectorAll('.programa-' + funcaoCodigo + '-' + tipoNome);
+                programas.forEach(prog => prog.style.display = 'none');
+                // Reseta o botão do tipo
+                const btnTipo = document.getElementById('btn-tipo-' + funcaoCodigo + '-' + tipoNome);
+                if (btnTipo) btnTipo.textContent = '+';
+            }
+        } else {
+            tipo.style.display = 'table-row';
+        }
+    });
+    
+    // Atualiza o botão
+    btn.textContent = isVisible ? '+' : '−';
+    btn.title = isVisible ? 'Expandir tipos de despesa' : 'Recolher tipos de despesa';
+    
+    console.log(`${isVisible ? 'Recolheu' : 'Expandiu'} tipos da função ${funcaoCodigo}`);
+}
+
+// Toggle para programas (segundo nível)
+function toggleProgramas(funcaoCodigo, tipoDespesa) {
+    const programas = document.querySelectorAll('.programa-' + funcaoCodigo + '-' + tipoDespesa);
+    const btn = document.getElementById('btn-tipo-' + funcaoCodigo + '-' + tipoDespesa);
+    
+    if (programas.length === 0) return;
+    
+    const isVisible = programas[0].style.display === 'table-row';
+    
+    programas.forEach(programa => {
+        programa.style.display = isVisible ? 'none' : 'table-row';
+    });
+    
+    // Atualiza o botão
+    btn.textContent = isVisible ? '+' : '−';
+    btn.title = isVisible ? 'Expandir programas' : 'Recolher programas';
+    
+    console.log(`${isVisible ? 'Recolheu' : 'Expandiu'} programas do tipo ${tipoDespesa}`);
+}
+
+// Expandir todos os níveis
+function expandirTodas() {
+    // Expande todas as funções
+    document.querySelectorAll('.funcao').forEach(funcao => {
+        const funcaoCodigo = funcao.id.replace('funcao-', '');
+        const tipos = document.querySelectorAll('.tipo-' + funcaoCodigo);
+        tipos.forEach(tipo => tipo.style.display = 'table-row');
+        const btnFuncao = document.getElementById('btn-funcao-' + funcaoCodigo);
+        if (btnFuncao) {
+            btnFuncao.textContent = '−';
+            btnFuncao.title = 'Recolher tipos de despesa';
+        }
+    });
+    
+    // Expande todos os programas
+    document.querySelectorAll('.tipo-despesa').forEach(tipo => {
+        if (tipo.style.display === 'table-row') {
+            const btnTipo = tipo.querySelector('.expand-btn');
+            if (btnTipo) {
+                const ids = btnTipo.id.match(/btn-tipo-(\d+)-(.*)/);
+                if (ids) {
+                    const programas = document.querySelectorAll('.programa-' + ids[1] + '-' + ids[2]);
+                    programas.forEach(prog => prog.style.display = 'table-row');
+                    btnTipo.textContent = '−';
+                    btnTipo.title = 'Recolher programas';
+                }
+            }
+        }
+    });
+    
+    console.log('✅ Todos os níveis expandidos');
+}
+
+// Recolher todos os níveis
+function recolherTodas() {
+    // Recolhe todos os programas primeiro
+    document.querySelectorAll('.programa').forEach(prog => prog.style.display = 'none');
+    
+    // Recolhe todos os tipos
+    document.querySelectorAll('.tipo-despesa').forEach(tipo => tipo.style.display = 'none');
+    
+    // Reseta todos os botões
+    document.querySelectorAll('.expand-btn').forEach(btn => {
+        btn.textContent = '+';
+        btn.title = btn.id.includes('funcao') ? 'Expandir tipos de despesa' : 'Expandir programas';
+    });
+    
+    console.log('✅ Todos os níveis recolhidos');
+}
+
+// === CONFIGURAÇÃO DO PDF ===
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btnJPG = document.querySelector('.btn-jpg');
+    
+    if (btnJPG) {
+        btnJPG.addEventListener('click', function() {
+            const dadosPDF = {{ dados_pdf | tojson | safe }};
+            const nougTexto = {% if noug_selecionada %}"NOUG: {{ noug_selecionada }}"{% else %}"Todas as UGs"{% endif %};
+            
+            RelatorioUtils.gerarPDF({
+                titulo: 'DESPESA POR FUNÇÃO COM TIPO DE DESPESA',
+                subtitulo: `Período: {{ mes_ref }}/2025 - ${nougTexto}`,
+                dados: dadosPDF,
+                nomeArquivo: 'despesa_por_funcao_tipo_programa.pdf',
+                orientacao: 'l',
+                colunasTipos: [
+                    {% for linha in dados_relatorio %}
+                        {% if linha.tipo == 'funcao' %}'level-1',{% elif linha.tipo == 'total' %}'total',{% endif %}
+                    {% endfor %}
+                ]
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

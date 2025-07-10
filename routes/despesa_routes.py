@@ -18,6 +18,21 @@ except ImportError as e:
     print(f"❌ Erro ao importar despesa_funcao: {e}")
     gerar_relatorio_despesa_funcao = None
 
+# Adicionar após os imports existentes:
+try:
+    from relatorios.despesa.despesa_funcao_programa import gerar_relatorio_despesa_funcao_programa
+    print("✅ Import de despesa_funcao_programa bem sucedido")
+except ImportError as e:
+    print(f"❌ Erro ao importar despesa_funcao_programa: {e}")
+    gerar_relatorio_despesa_funcao_programa = None
+
+try:
+    from relatorios.despesa.despesa_funcao_tipo_programa import gerar_relatorio_despesa_funcao_tipo_programa
+    print("✅ Import de despesa_funcao_tipo_programa bem sucedido")
+except ImportError as e:
+    print(f"❌ Erro ao importar despesa_funcao_tipo_programa: {e}")
+    gerar_relatorio_despesa_funcao_tipo_programa = None
+
 # Cria o blueprint
 despesa_bp = Blueprint('despesa', __name__)
 
@@ -154,6 +169,130 @@ def despesa_por_funcao():
         traceback.print_exc()
         return render_template('erro.html',
                              titulo="Erro no Relatório de Despesa por Função",
+                             mensagem=f"Erro ao gerar relatório: {str(e)}")
+
+@despesa_bp.route('/despesa-por-funcao-programa')
+def despesa_por_funcao_programa():
+    """Relatório de despesa por função/subfunção/programa de trabalho"""
+    try:
+        print("\n🎯 [ROTA] Iniciando despesa-por-funcao-programa")
+        print(f"🎯 [ROTA] Diretório atual: {os.getcwd()}")
+        print(f"🎯 [ROTA] Pasta dados existe? {os.path.exists('dados')}")
+        
+        inicio = time.time()
+        df_completo = carregar_dataframe_despesa()
+
+        if df_completo.empty:
+            print("🎯 [ROTA] DataFrame vazio!")
+            return render_template('erro.html', 
+                                 titulo="Dados de Despesa Não Encontrados",
+                                 mensagem="O arquivo DESPESA.xlsx não foi encontrado ou está vazio.")
+        
+        print(f"🎯 [ROTA] DataFrame carregado: {len(df_completo)} registros")
+        
+        # Verifica colunas específicas para este relatório
+        colunas_necessarias = ['COFUNCAO', 'COSUBFUNCAO', 'COPROGRAMA', 'COPROJETO', 'COSUBTITULO',
+                              'DOTACAO INICIAL', 'DESPESA EMPENHADA']
+        colunas_faltantes = [col for col in colunas_necessarias if col not in df_completo.columns]
+        
+        if colunas_faltantes:
+            print(f"🎯 [ROTA] Colunas faltantes: {colunas_faltantes}")
+            return render_template('erro.html',
+                                 titulo="Estrutura de Dados Incorreta",
+                                 mensagem=f"Colunas faltantes para relatório: {', '.join(colunas_faltantes)}")
+        
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+        
+        if gerar_relatorio_despesa_funcao_programa is None:
+            print("🎯 [ROTA] Função gerar_relatorio_despesa_funcao_programa não está disponível!")
+            return render_template('erro.html',
+                                 titulo="Erro de Importação",
+                                 mensagem="Módulo despesa_funcao_programa não pôde ser importado.")
+        
+        print("🎯 [ROTA] Chamando gerar_relatorio_despesa_funcao_programa...")
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf = gerar_relatorio_despesa_funcao_programa(
+            df_completo, None, noug_selecionada
+        )
+        
+        print(f"🎯 [ROTA] Retorno: {len(dados_tabela)} linhas de dados")
+        
+        fim = time.time()
+        print(f"⏱️ Relatório gerado em {fim - inicio:.2f} segundos")
+        
+        return render_template('despesas/despesa_por_funcao_programa.html',
+                               dados_relatorio=dados_tabela,
+                               mes_ref=mes_referencia,
+                               lista_nougs=lista_nougs,
+                               noug_selecionada=noug_selecionada,
+                               dados_pdf=dados_pdf)
+    except Exception as e:
+        print(f"🎯 [ROTA] ERRO: {str(e)}")
+        traceback.print_exc()
+        return render_template('erro.html',
+                             titulo="Erro no Relatório de Despesa por Função/Programa",
+                             mensagem=f"Erro ao gerar relatório: {str(e)}")
+
+@despesa_bp.route('/despesa-por-funcao-tipo-programa')
+def despesa_por_funcao_tipo_programa():
+    """Relatório de despesa por função/tipo de despesa/programa de trabalho"""
+    try:
+        print("\n🎯 [ROTA] Iniciando despesa-por-funcao-tipo-programa")
+        print(f"🎯 [ROTA] Diretório atual: {os.getcwd()}")
+        print(f"🎯 [ROTA] Pasta dados existe? {os.path.exists('dados')}")
+        
+        inicio = time.time()
+        df_completo = carregar_dataframe_despesa()
+
+        if df_completo.empty:
+            print("🎯 [ROTA] DataFrame vazio!")
+            return render_template('erro.html', 
+                                 titulo="Dados de Despesa Não Encontrados",
+                                 mensagem="O arquivo DESPESA.xlsx não foi encontrado ou está vazio.")
+        
+        print(f"🎯 [ROTA] DataFrame carregado: {len(df_completo)} registros")
+        
+        # Verifica colunas específicas para este relatório
+        colunas_necessarias = ['COFUNCAO', 'COSUBFUNCAO', 'COPROGRAMA', 'COPROJETO', 'COSUBTITULO',
+                              'DOTACAO INICIAL', 'DESPESA EMPENHADA']
+        colunas_faltantes = [col for col in colunas_necessarias if col not in df_completo.columns]
+        
+        if colunas_faltantes:
+            print(f"🎯 [ROTA] Colunas faltantes: {colunas_faltantes}")
+            return render_template('erro.html',
+                                 titulo="Estrutura de Dados Incorreta",
+                                 mensagem=f"Colunas faltantes para relatório: {', '.join(colunas_faltantes)}")
+        
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+        
+        if gerar_relatorio_despesa_funcao_tipo_programa is None:
+            print("🎯 [ROTA] Função gerar_relatorio_despesa_funcao_tipo_programa não está disponível!")
+            return render_template('erro.html',
+                                 titulo="Erro de Importação",
+                                 mensagem="Módulo despesa_funcao_tipo_programa não pôde ser importado.")
+        
+        print("🎯 [ROTA] Chamando gerar_relatorio_despesa_funcao_tipo_programa...")
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf = gerar_relatorio_despesa_funcao_tipo_programa(
+            df_completo, None, noug_selecionada
+        )
+        
+        print(f"🎯 [ROTA] Retorno: {len(dados_tabela)} linhas de dados")
+        
+        fim = time.time()
+        print(f"⏱️ Relatório gerado em {fim - inicio:.2f} segundos")
+        
+        return render_template('despesas/despesa_por_funcao_tipo_programa.html',
+                               dados_relatorio=dados_tabela,
+                               mes_ref=mes_referencia,
+                               lista_nougs=lista_nougs,
+                               noug_selecionada=noug_selecionada,
+                               dados_pdf=dados_pdf)
+    except Exception as e:
+        print(f"🎯 [ROTA] ERRO: {str(e)}")
+        traceback.print_exc()
+        return render_template('erro.html',
+                             titulo="Erro no Relatório de Despesa por Função/Tipo/Programa",
                              mensagem=f"Erro ao gerar relatório: {str(e)}")
 
 # ===================== ROTAS EM DESENVOLVIMENTO =====================
