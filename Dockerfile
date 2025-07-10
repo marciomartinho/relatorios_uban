@@ -17,4 +17,4 @@ RUN mkdir -p cache
 EXPOSE 5000
 
 # Primeiro testa os imports, depois roda o app
-CMD ["sh", "-c", "python test_imports.py && python app.py"]
+CMD ["python", "app.py"]
