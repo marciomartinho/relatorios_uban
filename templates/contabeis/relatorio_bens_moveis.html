@@ -4,326 +4,350 @@
 
 {% block titulo_relatorio %}RELATÓRIO DE BENS MÓVEIS{% endblock %}
 
+{% block head_extra %}
+<!-- Bibliotecas para sistema de download -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<!-- Sistema de downloads -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sistema-downloads.css') }}">
+{% endblock %}
+
 {% block styles %}
 <style>
-    /* Estilos específicos para o relatório de bens móveis */
-    th {
-        white-space: normal !important;
-        text-align: center !important;
-        vertical-align: middle !important;
-        padding: 8px 4px !important;
-        line-height: 1.2;
-        font-size: 12px;
-    }
-    
-    /* Ajusta largura das colunas - PROPORÇÕES CORRIGIDAS */
-    th:nth-child(1) { width: 6%; }   /* Código UG (6 dígitos) */
-    th:nth-child(2) { width: 6%; }   /* Subitem (2 dígitos) */
-    th:nth-child(3) { width: 14%; }  /* Saldo Bens */
-    th:nth-child(4) { width: 16%; }  /* Almoxarifado */
-    th:nth-child(5) { width: 16%; }  /* Importação */
-    th:nth-child(6) { width: 16%; }  /* Total SIGGO */
-    th:nth-child(7) { width: 16%; }  /* Total SISGEPAT */
-    th:nth-child(8) { width: 10%; }  /* Diferença */
-    
-    /* Ajusta também as células de dados */
-    td:nth-child(1), td:nth-child(2) {
-        text-align: center !important;
-    }
-    
-    /* Estilo para cabeçalho da NOUG */
-    .header-noug td {
-        font-size: 14px !important;
-        padding: 10px !important;
-    }
-    
-    /* Estilos para cabeçalhos repetidos no tbody */
-    tbody th {
-        background-color: #003366 !important;
-        color: white !important;
-        font-weight: 600 !important;
-        text-transform: uppercase !important;
-        font-size: 11px !important;
-        letter-spacing: 0.5px !important;
-        border: 1px solid #ddd !important;
-    }
-    
-    /* Estilo para o texto explicativo */
-    .texto-explicativo {
-        background-color: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        padding: 20px;
-        margin: 20px 0;
-        font-size: 14px;
-        line-height: 1.6;
-        color: #333;
-    }
-    
-    .texto-explicativo p {
-        margin-bottom: 15px;
-        text-align: justify;
-    }
-    
-    .texto-explicativo h4 {
-        color: #003366;
-        font-size: 16px;
-        font-weight: bold;
-        margin-top: 20px;
-        margin-bottom: 10px;
-    }
-    
-    .texto-explicativo ul {
-        margin-left: 20px;
-        margin-bottom: 15px;
-    }
-    
-    .texto-explicativo li {
-        margin-bottom: 5px;
-        list-style-type: disc;
-    }
-    
-    /* Estilo para valores de diferença não-zero em vermelho */
-    td.diferenca-nao-zero {
-        color: #dc3545 !important;
-        font-weight: bold;
-    }
-    
-    /* Estilo para valores de diferença positiva em verde */
-    td.valor-positivo {
-        color: #28a745 !important;
-        font-weight: bold;
-    }
-    
-    /* Estilos para tabela de saldos contábeis */
-    .tabela-saldos-contabeis {
-        margin-bottom: 30px;
-    }
-    
-    .tabela-saldos-contabeis table {
-        width: auto;
-        margin: 0 auto;
-    }
-    
-    .tabela-saldos-contabeis th {
-        background-color: #003366;
-        color: white;
-        padding: 10px 15px;
-        font-weight: 600;
-    }
-    
-    .tabela-saldos-contabeis td {
-        padding: 8px 15px;
-    }
-    
-    .tabela-saldos-contabeis td:first-child {
-        font-family: monospace;
-        font-weight: bold;
-        text-align: center;
-    }
-    
-    .tabela-saldos-contabeis td:last-child {
-        text-align: right;
-        font-weight: bold;
-    }
+   /* Estilos específicos para o relatório de bens móveis */
+   th {
+       white-space: normal !important;
+       text-align: center !important;
+       vertical-align: middle !important;
+       padding: 8px 4px !important;
+       line-height: 1.2;
+       font-size: 12px;
+   }
+   
+   /* Ajusta largura das colunas - PROPORÇÕES CORRIGIDAS */
+   th:nth-child(1) { width: 6%; }   /* Código UG (6 dígitos) */
+   th:nth-child(2) { width: 6%; }   /* Subitem (2 dígitos) */
+   th:nth-child(3) { width: 14%; }  /* Saldo Bens */
+   th:nth-child(4) { width: 16%; }  /* Almoxarifado */
+   th:nth-child(5) { width: 16%; }  /* Importação */
+   th:nth-child(6) { width: 16%; }  /* Total SIGGO */
+   th:nth-child(7) { width: 16%; }  /* Total SISGEPAT */
+   th:nth-child(8) { width: 10%; }  /* Diferença */
+   
+   /* Ajusta também as células de dados */
+   td:nth-child(1), td:nth-child(2) {
+       text-align: center !important;
+   }
+   
+   /* Estilo para cabeçalho da NOUG */
+   .header-noug td {
+       font-size: 14px !important;
+       padding: 10px !important;
+   }
+   
+   /* Estilos para cabeçalhos repetidos no tbody */
+   tbody th {
+       background-color: #003366 !important;
+       color: white !important;
+       font-weight: 600 !important;
+       text-transform: uppercase !important;
+       font-size: 11px !important;
+       letter-spacing: 0.5px !important;
+       border: 1px solid #ddd !important;
+   }
+   
+   /* Estilo para o texto explicativo */
+   .texto-explicativo {
+       background-color: #f8f9fa;
+       border: 1px solid #dee2e6;
+       border-radius: 8px;
+       padding: 20px;
+       margin: 20px 0;
+       font-size: 14px;
+       line-height: 1.6;
+       color: #333;
+   }
+   
+   .texto-explicativo p {
+       margin-bottom: 15px;
+       text-align: justify;
+   }
+   
+   .texto-explicativo h4 {
+       color: #003366;
+       font-size: 16px;
+       font-weight: bold;
+       margin-top: 20px;
+       margin-bottom: 10px;
+   }
+   
+   .texto-explicativo ul {
+       margin-left: 20px;
+       margin-bottom: 15px;
+   }
+   
+   .texto-explicativo li {
+       margin-bottom: 5px;
+       list-style-type: disc;
+   }
+   
+   /* Estilo para valores de diferença não-zero em vermelho */
+   td.diferenca-nao-zero {
+       color: #dc3545 !important;
+       font-weight: bold;
+   }
+   
+   /* Estilo para valores de diferença positiva em verde */
+   td.valor-positivo {
+       color: #28a745 !important;
+       font-weight: bold;
+   }
+   
+   /* Estilos para tabela de saldos contábeis */
+   .tabela-saldos-contabeis {
+       margin-bottom: 30px;
+   }
+   
+   .tabela-saldos-contabeis table {
+       width: auto;
+       margin: 0 auto;
+   }
+   
+   .tabela-saldos-contabeis th {
+       background-color: #003366;
+       color: white;
+       padding: 10px 15px;
+       font-weight: 600;
+   }
+   
+   .tabela-saldos-contabeis td {
+       padding: 8px 15px;
+   }
+   
+   .tabela-saldos-contabeis td:first-child {
+       font-family: monospace;
+       font-weight: bold;
+       text-align: center;
+   }
+   
+   .tabela-saldos-contabeis td:last-child {
+       text-align: right;
+       font-weight: bold;
+   }
 </style>
 {% endblock %}
 
 {% block conteudo %}
-<!-- Tabela de Saldos Contábeis (aparece apenas no consolidado) -->
-{% if dados_saldos_contabeis and (not noug_selecionada or noug_selecionada == 'todos') %}
-<div class="tabela-saldos-contabeis">
-    <h3 style="color: #003366; font-size: 18px; margin-bottom: 15px; text-align: center;">
-        SALDOS CONTÁBEIS DE BENS MÓVEIS - {{ dados_saldos_contabeis.mes_referencia }}
-    </h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Código</th>
-                <th style="width: 50%;">Nome</th>
-                <th>Saldo (R$)<br><span style="font-size: 11px; font-weight: normal;">{{ dados_saldos_contabeis.mes_referencia }}<br>Todas as UGs</span></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in dados_saldos_contabeis.itens %}
-            <tr>
-                <td>{{ item.codigo }}</td>
-                <td style="text-align: left; padding-left: 10px;">{{ item.nome }}</td>
-                <td>{{ item.saldo_fmt }}</td>
-            </tr>
-            {% endfor %}
-            <tr class="total">
-                <td style="text-align: right; font-weight: bold;">Total</td>
-                <td></td>
-                <td>{{ dados_saldos_contabeis.total_fmt }}</td>
-            </tr>
-        </tbody>
-    </table>
-</div>
-{% endif %}
+<!-- Sistema de downloads -->
+<div id="sistema-downloads-container"></div>
 
-<!-- Texto explicativo sobre exclusões -->
-<div class="texto-explicativo">
-    <p>
-        Para a efetiva conciliação entre os registros do SIGGO e do SisGepat, é necessário excluir do levantamento as unidades gestoras que possuem sistemas próprios de patrimônio, as unidades gestoras extintas que ainda apresentam saldo registrado no SIGGO e os fundos cujos registros de bens móveis precisam ser transpostos para suas respectivas secretarias vinculadas. Essa exclusão é necessária pois essas UGs possuem saldos contábeis de bens móveis porém não estão catalogadas no SisGepat. Segue relação dessas unidades:
-    </p>
-    
-    <h4>Unidades com sistema próprio:</h4>
-    <ul>
-        <li>CÂMARA LEGISLATIVA DO DISTRITO FEDERAL</li>
-        <li>AGÊNCIA REGULADORA DE ÁGUAS E SANEAMENTO BÁSICO DO DF – ADASA</li>
-        <li>FUNDAÇÃO HEMOCENTRO DE BRASÍLIA – FHB</li>
-        <li>COMPANHIA URBANIZADORA DA NOVA CAPITAL DO BRASIL – NOVACAP</li>
-        <li>SOCIEDADE DE TRANSPORTES COLETIVOS DE BRASÍLIA – TCB</li>
-        <li>DEPARTAMENTO DE ESTRADAS DE RODAGEM DO DF – DER/DF</li>
-        <li>COMPANHIA DO METROPOLITANO DO DF – METRÔ-DF</li>
-        <li>EMPRESA DE ASSISTÊNCIA TÉCNICA E EXTENSÃO RURAL DO DF – EMATER</li>
-        <li>DEPARTAMENTO DE TRÂNSITO DO DF – DETRAN-DF</li>
-        <li>INSTITUTO DE MEIO AMBIENTE E RECURSOS HÍDRICOS DO DF</li>
-        <li>COMPANHIA DE DESENVOLVIMENTO DA HABITAÇÃO DO DF – CODHAB</li>
-        <li>SOCIEDADE DE ABASTECIMENTO DE BRASÍLIA – SAB</li>
-    </ul>
-    
-    <h4>Fundos:</h4>
-    <ul>
-        <li>FUNDO DE ASSISTÊNCIA SOCIAL DO DISTRITO FEDERAL</li>
-        <li>FUNDO DE MANUTENÇÃO E DESENVOLVIMENTO DA EDUCAÇÃO BÁSICA</li>
-        <li>FUNDO DE DEFESA DOS DIREITOS DO CONSUMIDOR</li>
-        <li>FUNDO DA RECEITA TRIBUTÁRIA DO DF – PRÓ-RECEITA</li>
-        <li>FUNDO ÚNICO DE MEIO AMBIENTE DO DISTRITO FEDERAL</li>
-        <li>FUNDO DE MODERNIZAÇÃO, MANUTENÇÃO E REEQUIPAMENTO DA PMDF – FUNPM</li>
-        <li>FUNDO PENITENCIÁRIO DO DF – FUNPDF</li>
-        <li>FUNDO DE SEGURANÇA PÚBLICA DO DISTRITO FEDERAL</li>
-        <li>FUNDO DE DESENVOLVIMENTO URBANO DO DISTRITO FEDERAL</li>
-    </ul>
-    
-    <h4>Unidades gestoras extintas:</h4>
-    <ul>
-        <li>INSTITUTO DE ECOLOGIA E MEIO AMBIENTE</li>
-        <li>FUNDAÇÃO CULTURAL DO DF</li>
-        <li>SEC. DE EST. DE MICRO E PEQ. EMP. E ECON. SOL. DF</li>
-        <li>SECRETARIA DE EST. DE REGUL. DE CONDOMÍNIOS DO DF</li>
-    </ul>
+<!-- Seção de Saldos Contábeis -->
+<div id="secao-saldos-contabeis">
+   {% if dados_saldos_contabeis and (not noug_selecionada or noug_selecionada == 'todos') %}
+   <div class="tabela-saldos-contabeis">
+       <h3 style="color: #003366; font-size: 18px; margin-bottom: 15px; text-align: center;">
+           SALDOS CONTÁBEIS DE BENS MÓVEIS - {{ dados_saldos_contabeis.mes_referencia }}
+       </h3>
+       <table>
+           <thead>
+               <tr>
+                   <th>Código</th>
+                   <th style="width: 50%;">Nome</th>
+                   <th>Saldo (R$)<br><span style="font-size: 11px; font-weight: normal;">{{ dados_saldos_contabeis.mes_referencia }}<br>Todas as UGs</span></th>
+               </tr>
+           </thead>
+           <tbody>
+               {% for item in dados_saldos_contabeis.itens %}
+               <tr>
+                   <td>{{ item.codigo }}</td>
+                   <td style="text-align: left; padding-left: 10px;">{{ item.nome }}</td>
+                   <td>{{ item.saldo_fmt }}</td>
+               </tr>
+               {% endfor %}
+               <tr class="total">
+                   <td style="text-align: right; font-weight: bold;">Total</td>
+                   <td></td>
+                   <td>{{ dados_saldos_contabeis.total_fmt }}</td>
+               </tr>
+           </tbody>
+       </table>
+   </div>
+   {% endif %}
 </div>
 
-<table>
-    <thead>
-        <tr>
-            <th rowspan="2">Código<br>da UG</th>
-            <th rowspan="2">Subitem</th>
-            <th rowspan="2">Saldo<br>Bens Móveis</th>
-            <th rowspan="2">Saldo Bens<br>Móveis em<br>Almoxarifado</th>
-            <th rowspan="2">Saldo Bens<br>Móveis em<br>Importação</th>
-            <th rowspan="2">Saldo Total<br>Bens Móveis<br>no SIGGO</th>
-            <th rowspan="2">Saldo Total<br>Bens Móveis<br>no SISGEPAT</th>
-            <th rowspan="2">Diferença</th>
-        </tr>
-        <tr>
-            <!-- Linha vazia para manter o rowspan -->
-        </tr>
-    </thead>
-    <tbody>
-        {% set ns = namespace(is_first_noug=true) %}
-        {% for linha in dados_relatorio %}
-            {% if linha.tipo == 'header_noug' %}
-                <tr class="header-noug">
-                    <td colspan="{{ linha.colspan }}" style="background-color: #1a4b8c; color: white; font-weight: bold; text-align: center;">
-                        {{ linha.noug }}
-                    </td>
-                </tr>
-                {% if not ns.is_first_noug %}
-                <tr style="background-color: #003366; color: white;">
-                    <th rowspan="2">CÓDIGO<br>DA UG</th>
-                    <th rowspan="2">SUBITEM</th>
-                    <th rowspan="2">SALDO<br>BENS MÓVEIS</th>
-                    <th rowspan="2">SALDO BENS<br>MÓVEIS EM<br>ALMOXARIFADO</th>
-                    <th rowspan="2">SALDO BENS<br>MÓVEIS EM<br>IMPORTAÇÃO</th>
-                    <th rowspan="2">SALDO TOTAL<br>BENS MÓVEIS<br>NO SIGGO</th>
-                    <th rowspan="2">SALDO TOTAL<br>BENS MÓVEIS<br>NO SISGEPAT</th>
-                    <th rowspan="2">DIFERENÇA</th>
-                </tr>
-                <tr>
-                    <!-- Linha vazia para manter o rowspan -->
-                </tr>
-                {% endif %}
-                {% set ns.is_first_noug = false %}
-            {% elif linha.tipo == 'dados' %}
-                <tr>
-                    <td>{{ linha.coug }}</td>
-                    <td>{{ linha.subitem }}</td>
-                    <td>{{ linha.bens_moveis_fmt }}</td>
-                    <td>{{ linha.bens_moveis_almox_fmt }}</td>
-                    <td>{{ linha.bens_moveis_import_fmt }}</td>
-                    <td>{{ linha.saldo_total_fmt }}</td>
-                    <td>{{ linha.saldo_sisgepat_fmt }}</td>
-                    <td{% if linha.diferenca < 0 %} class="diferenca-nao-zero"{% elif linha.diferenca > 0 %} class="valor-positivo"{% endif %}>{{ linha.diferenca_fmt }}</td>
-                </tr>
-            {% elif linha.tipo == 'subtotal' %}
-                <tr class="level-2">
-                    <td colspan="2" style="font-weight: bold; text-align: center;">
-                        SUBTOTAL
-                    </td>
-                    <td>{{ linha.bens_moveis_fmt }}</td>
-                    <td>{{ linha.bens_moveis_almox_fmt }}</td>
-                    <td>{{ linha.bens_moveis_import_fmt }}</td>
-                    <td>{{ linha.saldo_total_fmt }}</td>
-                    <td>{{ linha.saldo_sisgepat_fmt }}</td>
-                    <td{% if linha.diferenca < 0 %} class="diferenca-nao-zero"{% elif linha.diferenca > 0 %} class="valor-positivo"{% endif %}>{{ linha.diferenca_fmt }}</td>
-                </tr>
-            {% elif linha.tipo == 'separador' %}
-                <tr class="separador">
-                    <td colspan="8" style="height: 20px; background-color: #f8f9fa;"></td>
-                </tr>
-            {% elif linha.tipo == 'total' %}
-                <tr class="total">
-                    <td colspan="2">TOTAL GERAL</td>
-                    <td>{{ linha.bens_moveis_fmt }}</td>
-                    <td>{{ linha.bens_moveis_almox_fmt }}</td>
-                    <td>{{ linha.bens_moveis_import_fmt }}</td>
-                    <td>{{ linha.saldo_total_fmt }}</td>
-                    <td>{{ linha.saldo_sisgepat_fmt }}</td>
-                    <td{% if linha.diferenca < 0 %} class="diferenca-nao-zero"{% elif linha.diferenca > 0 %} class="valor-positivo"{% endif %}>{{ linha.diferenca_fmt }}</td>
-                </tr>
-            {% endif %}
-        {% endfor %}
-    </tbody>
-</table>
+<!-- Seção do Texto Explicativo -->
+<div id="secao-texto-explicativo">
+   <div class="texto-explicativo">
+       <p>
+           Para a efetiva conciliação entre os registros do SIGGO e do SisGepat, é necessário excluir do levantamento as unidades gestoras que possuem sistemas próprios de patrimônio, as unidades gestoras extintas que ainda apresentam saldo registrado no SIGGO e os fundos cujos registros de bens móveis precisam ser transpostos para suas respectivas secretarias vinculadas. Essa exclusão é necessária pois essas UGs possuem saldos contábeis de bens móveis porém não estão catalogadas no SisGepat. Segue relação dessas unidades:
+       </p>
+       
+       <h4>Unidades com sistema próprio:</h4>
+       <ul>
+           <li>CÂMARA LEGISLATIVA DO DISTRITO FEDERAL</li>
+           <li>AGÊNCIA REGULADORA DE ÁGUAS E SANEAMENTO BÁSICO DO DF – ADASA</li>
+           <li>FUNDAÇÃO HEMOCENTRO DE BRASÍLIA – FHB</li>
+           <li>COMPANHIA URBANIZADORA DA NOVA CAPITAL DO BRASIL – NOVACAP</li>
+           <li>SOCIEDADE DE TRANSPORTES COLETIVOS DE BRASÍLIA – TCB</li>
+           <li>DEPARTAMENTO DE ESTRADAS DE RODAGEM DO DF – DER/DF</li>
+           <li>COMPANHIA DO METROPOLITANO DO DF – METRÔ-DF</li>
+           <li>EMPRESA DE ASSISTÊNCIA TÉCNICA E EXTENSÃO RURAL DO DF – EMATER</li>
+           <li>DEPARTAMENTO DE TRÂNSITO DO DF – DETRAN-DF</li>
+           <li>INSTITUTO DE MEIO AMBIENTE E RECURSOS HÍDRICOS DO DF</li>
+           <li>COMPANHIA DE DESENVOLVIMENTO DA HABITAÇÃO DO DF – CODHAB</li>
+           <li>SOCIEDADE DE ABASTECIMENTO DE BRASÍLIA – SAB</li>
+       </ul>
+       
+       <h4>Fundos:</h4>
+       <ul>
+           <li>FUNDO DE ASSISTÊNCIA SOCIAL DO DISTRITO FEDERAL</li>
+           <li>FUNDO DE MANUTENÇÃO E DESENVOLVIMENTO DA EDUCAÇÃO BÁSICA</li>
+           <li>FUNDO DE DEFESA DOS DIREITOS DO CONSUMIDOR</li>
+           <li>FUNDO DA RECEITA TRIBUTÁRIA DO DF – PRÓ-RECEITA</li>
+           <li>FUNDO ÚNICO DE MEIO AMBIENTE DO DISTRITO FEDERAL</li>
+           <li>FUNDO DE MODERNIZAÇÃO, MANUTENÇÃO E REEQUIPAMENTO DA PMDF – FUNPM</li>
+           <li>FUNDO PENITENCIÁRIO DO DF – FUNPDF</li>
+           <li>FUNDO DE SEGURANÇA PÚBLICA DO DISTRITO FEDERAL</li>
+           <li>FUNDO DE DESENVOLVIMENTO URBANO DO DISTRITO FEDERAL</li>
+       </ul>
+       
+       <h4>Unidades gestoras extintas:</h4>
+       <ul>
+           <li>INSTITUTO DE ECOLOGIA E MEIO AMBIENTE</li>
+           <li>FUNDAÇÃO CULTURAL DO DF</li>
+           <li>SEC. DE EST. DE MICRO E PEQ. EMP. E ECON. SOL. DF</li>
+           <li>SECRETARIA DE EST. DE REGUL. DE CONDOMÍNIOS DO DF</li>
+       </ul>
+   </div>
+</div>
 
-<!-- Resumo Executivo no final -->
-<div class="resumo-container" style="margin-top: 30px; border-left-color: #28a745;">
-    <h4>📊 Resumo Executivo - Conciliação SIGGO x SISGEPAT</h4>
-    <div>
-        <div>
-            <strong>Total de Bens Patrimoniais no SISGEPAT:</strong>
-            <span style="color: #28a745; font-size: 18px;" id="total-sisgepat">
-                Calculando...
-            </span>
-        </div>
-        <div>
-            <strong>Total de Bens Patrimoniais no SIGGO:</strong>
-            <span style="color: #0066cc; font-size: 18px;" id="total-siggo">
-                Calculando...
-            </span>
-        </div>
-        <div>
-            <strong>Diferença Total:</strong>
-            <span style="font-size: 18px;" id="diferenca-total">
-                Calculando...
-            </span>
-        </div>
-        <div>
-            <strong>Materialidade da Diferença:</strong>
-            <span style="font-size: 18px; font-weight: bold;" id="materialidade">
-                Calculando...
-            </span>
-        </div>
-        <div>
-            <strong>Data de Referência:</strong>
-            <span style="color: #666; font-size: 18px;" id="data-referencia">
-                {% if dados_saldos_contabeis %}{{ dados_saldos_contabeis.mes_referencia }}{% else %}Junho/2025{% endif %}
-            </span>
-        </div>
-    </div>
+<!-- Seção da Tabela Principal -->
+<div id="secao-tabela-principal">
+   <table>
+       <thead>
+           <tr>
+               <th rowspan="2">Código<br>da UG</th>
+               <th rowspan="2">Subitem</th>
+               <th rowspan="2">Saldo<br>Bens Móveis</th>
+               <th rowspan="2">Saldo Bens<br>Móveis em<br>Almoxarifado</th>
+               <th rowspan="2">Saldo Bens<br>Móveis em<br>Importação</th>
+               <th rowspan="2">Saldo Total<br>Bens Móveis<br>no SIGGO</th>
+               <th rowspan="2">Saldo Total<br>Bens Móveis<br>no SISGEPAT</th>
+               <th rowspan="2">Diferença</th>
+           </tr>
+           <tr>
+               <!-- Linha vazia para manter o rowspan -->
+           </tr>
+       </thead>
+       <tbody>
+           {% set ns = namespace(is_first_noug=true) %}
+           {% for linha in dados_relatorio %}
+               {% if linha.tipo == 'header_noug' %}
+                   <tr class="header-noug">
+                       <td colspan="{{ linha.colspan }}" style="background-color: #1a4b8c; color: white; font-weight: bold; text-align: center;">
+                           {{ linha.noug }}
+                       </td>
+                   </tr>
+                   {% if not ns.is_first_noug %}
+                   <tr style="background-color: #003366; color: white;">
+                       <th rowspan="2">CÓDIGO<br>DA UG</th>
+                       <th rowspan="2">SUBITEM</th>
+                       <th rowspan="2">SALDO<br>BENS MÓVEIS</th>
+                       <th rowspan="2">SALDO BENS<br>MÓVEIS EM<br>ALMOXARIFADO</th>
+                       <th rowspan="2">SALDO BENS<br>MÓVEIS EM<br>IMPORTAÇÃO</th>
+                       <th rowspan="2">SALDO TOTAL<br>BENS MÓVEIS<br>NO SIGGO</th>
+                       <th rowspan="2">SALDO TOTAL<br>BENS MÓVEIS<br>NO SISGEPAT</th>
+                       <th rowspan="2">DIFERENÇA</th>
+                   </tr>
+                   <tr>
+                       <!-- Linha vazia para manter o rowspan -->
+                   </tr>
+                   {% endif %}
+                   {% set ns.is_first_noug = false %}
+               {% elif linha.tipo == 'dados' %}
+                   <tr>
+                       <td>{{ linha.coug }}</td>
+                       <td>{{ linha.subitem }}</td>
+                       <td>{{ linha.bens_moveis_fmt }}</td>
+                       <td>{{ linha.bens_moveis_almox_fmt }}</td>
+                       <td>{{ linha.bens_moveis_import_fmt }}</td>
+                       <td>{{ linha.saldo_total_fmt }}</td>
+                       <td>{{ linha.saldo_sisgepat_fmt }}</td>
+                       <td{% if linha.diferenca < 0 %} class="diferenca-nao-zero"{% elif linha.diferenca > 0 %} class="valor-positivo"{% endif %}>{{ linha.diferenca_fmt }}</td>
+                   </tr>
+               {% elif linha.tipo == 'subtotal' %}
+                   <tr class="level-2">
+                       <td colspan="2" style="font-weight: bold; text-align: center;">
+                           SUBTOTAL
+                       </td>
+                       <td>{{ linha.bens_moveis_fmt }}</td>
+                       <td>{{ linha.bens_moveis_almox_fmt }}</td>
+                       <td>{{ linha.bens_moveis_import_fmt }}</td>
+                       <td>{{ linha.saldo_total_fmt }}</td>
+                       <td>{{ linha.saldo_sisgepat_fmt }}</td>
+                       <td{% if linha.diferenca < 0 %} class="diferenca-nao-zero"{% elif linha.diferenca > 0 %} class="valor-positivo"{% endif %}>{{ linha.diferenca_fmt }}</td>
+                   </tr>
+               {% elif linha.tipo == 'separador' %}
+                   <tr class="separador">
+                       <td colspan="8" style="height: 20px; background-color: #f8f9fa;"></td>
+                   </tr>
+               {% elif linha.tipo == 'total' %}
+                   <tr class="total">
+                       <td colspan="2">TOTAL GERAL</td>
+                       <td>{{ linha.bens_moveis_fmt }}</td>
+                       <td>{{ linha.bens_moveis_almox_fmt }}</td>
+                       <td>{{ linha.bens_moveis_import_fmt }}</td>
+                       <td>{{ linha.saldo_total_fmt }}</td>
+                       <td>{{ linha.saldo_sisgepat_fmt }}</td>
+                       <td{% if linha.diferenca < 0 %} class="diferenca-nao-zero"{% elif linha.diferenca > 0 %} class="valor-positivo"{% endif %}>{{ linha.diferenca_fmt }}</td>
+                   </tr>
+               {% endif %}
+           {% endfor %}
+       </tbody>
+   </table>
+</div>
+
+<!-- Seção do Resumo Executivo -->
+<div id="secao-resumo-executivo">
+   <div class="resumo-container" style="margin-top: 30px; border-left-color: #28a745;">
+       <h4>📊 Resumo Executivo - Conciliação SIGGO x SISGEPAT</h4>
+       <div>
+           <div>
+               <strong>Total de Bens Patrimoniais no SISGEPAT:</strong>
+               <span style="color: #28a745; font-size: 18px;" id="total-sisgepat">
+                   Calculando...
+               </span>
+           </div>
+           <div>
+               <strong>Total de Bens Patrimoniais no SIGGO:</strong>
+               <span style="color: #0066cc; font-size: 18px;" id="total-siggo">
+                   Calculando...
+               </span>
+           </div>
+           <div>
+               <strong>Diferença Total:</strong>
+               <span style="font-size: 18px;" id="diferenca-total">
+                   Calculando...
+               </span>
+           </div>
+           <div>
+               <strong>Materialidade da Diferença:</strong>
+               <span style="font-size: 18px; font-weight: bold;" id="materialidade">
+                   Calculando...
+               </span>
+           </div>
+           <div>
+               <strong>Data de Referência:</strong>
+               <span style="color: #666; font-size: 18px;" id="data-referencia">
+                   {% if dados_saldos_contabeis %}{{ dados_saldos_contabeis.mes_referencia }}{% else %}Junho/2025{% endif %}
+               </span>
+           </div>
+       </div>
+   </div>
 </div>
 {% endblock %}
 
@@ -400,40 +424,231 @@
     document.addEventListener('DOMContentLoaded', function() {
         calcularResumo();
     });
+</script>
+
+<!-- Sistema de Downloads -->
+<script src="{{ url_for('static', filename='js/sistema-downloads.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configuração específica para Bens Móveis
+    const configBensMoveis = {
+        nomeRelatorio: 'Relatório de Bens Móveis',
+        secoesPrincipais: [
+            { id: 'secao-saldos-contabeis', nome: 'Saldos Contábeis' },
+            { id: 'secao-texto-explicativo', nome: 'Informações sobre Exclusões' },
+            { id: 'secao-tabela-principal', nome: 'Tabela de Bens Móveis' },
+            { id: 'secao-resumo-executivo', nome: 'Resumo Executivo' }
+        ],
+        tabelaPrincipal: 'secao-tabela-principal'
+    };
     
-    // Função para gerar PDF do relatório
-    document.getElementById('btn-jpg').addEventListener('click', function() {
-        // Prepara dados do PDF incluindo saldos contábeis se disponível
-        let dadosCompletos = { ...dadosPDF };
+    // Inicializar sistema de downloads
+    SistemaDownloads.inicializar(configBensMoveis);
+    
+    // CUSTOMIZAÇÃO ESPECÍFICA PARA RELATÓRIO DE BENS MÓVEIS
+    // Interceptar o download HTML para filtrar apenas linhas com diferença não-zero
+    
+    // Aguardar um pouco para garantir que o sistema carregou
+    setTimeout(function() {
+        // Procurar o botão de download HTML
+        const btnDownloadHTML = document.querySelector('button[onclick*="downloadHTML"]');
         
-        // Se tiver saldos contábeis e for consolidado, adiciona ao início do PDF
-        if (dadosSaldosContabeis && {% if not noug_selecionada or noug_selecionada == 'todos' %}true{% else %}false{% endif %}) {
-            // Adiciona cabeçalho e dados de saldos contábeis ao início
-            const novoHead = [['Código', `Saldo (R$)\n${dadosSaldosContabeis.mes_referencia}\nTodas as UGs`]];
-            const novoBody = dadosSaldosContabeis.itens.map(item => [
-                item.codigo,
-                item.saldo_fmt
-            ]);
-            novoBody.push(['Total', dadosSaldosContabeis.total_fmt]);
+        if (btnDownloadHTML) {
+            // Substituir o onclick do botão
+            btnDownloadHTML.onclick = function() {
+                console.log('🔍 Iniciando download HTML customizado (apenas diferenças não-zero)...');
+                
+                // Clonar a tabela principal
+                const tabelaOriginal = document.querySelector('#secao-tabela-principal table');
+                if (!tabelaOriginal) {
+                    alert('Tabela não encontrada!');
+                    return;
+                }
+                
+                // Criar clone da tabela
+                const tabelaClone = tabelaOriginal.cloneNode(true);
+                
+                // Encontrar todas as linhas de dados no clone
+                const linhasDados = tabelaClone.querySelectorAll('tbody tr');
+                let nougAtual = null;
+                let linhasNougAtual = [];
+                let temDiferencaNougAtual = false;
+                let cabecalhosDuplicados = []; // Para rastrear cabeçalhos duplicados
+                
+                // Processar cada linha
+                for (let i = 0; i < linhasDados.length; i++) {
+                    const linha = linhasDados[i];
+                    
+                    // Se é um cabeçalho de NOUG
+                    if (linha.classList.contains('header-noug')) {
+                        // Processar NOUG anterior
+                        if (nougAtual && !temDiferencaNougAtual) {
+                            // Remove todas as linhas da NOUG anterior (incluindo cabeçalho)
+                            linhasNougAtual.forEach(l => {
+                                if (l && l.parentNode) {
+                                    l.remove();
+                                }
+                            });
+                        }
+                        
+                        // Reset para nova NOUG
+                        nougAtual = linha;
+                        linhasNougAtual = [linha];
+                        cabecalhosDuplicados = [];
+                        temDiferencaNougAtual = false;
+                    }
+                    // Se é um cabeçalho duplicado (thead repetido no tbody)
+                    else if (linha.querySelector('th')) {
+                        linhasNougAtual.push(linha);
+                        cabecalhosDuplicados.push(linha);
+                        
+                        // Se tem duas linhas de cabeçalho seguidas (para rowspan)
+                        const proximaLinha = linhasDados[i + 1];
+                        if (proximaLinha && !proximaLinha.querySelector('td') && proximaLinha.innerHTML.trim() === '') {
+                            linhasNougAtual.push(proximaLinha);
+                            cabecalhosDuplicados.push(proximaLinha);
+                            i++; // Pular a próxima linha já processada
+                        }
+                    }
+                    // Se é uma linha de separador
+                    else if (linha.classList.contains('separador')) {
+                        linhasNougAtual.push(linha);
+                    }
+                    // Se é uma linha de total geral - NÃO adicionar à NOUG
+                    else if (linha.classList.contains('total')) {
+                        // Total geral fica fora do controle de NOUG
+                        continue;
+                    }
+                    // Se é uma linha de dados normal ou subtotal
+                    else if (linha.querySelector('td')) {
+                        linhasNougAtual.push(linha);
+                        
+                        // Verifica se é subtotal
+                        const ehSubtotal = linha.classList.contains('level-2') || 
+                                         (linha.querySelector('td') && linha.querySelector('td').textContent.includes('SUBTOTAL'));
+                        
+                        // Pega a coluna de diferença (última coluna)
+                        const colunas = linha.querySelectorAll('td');
+                        if (colunas.length >= 8) {
+                            const diferenca = colunas[7];
+                            
+                            // Verifica se tem classe de diferença não-zero ou valor positivo
+                            if (diferenca.classList.contains('diferenca-nao-zero') || 
+                                diferenca.classList.contains('valor-positivo')) {
+                                temDiferencaNougAtual = true;
+                            } else if (!ehSubtotal) {
+                                // Remove esta linha específica se diferença é zero e não é subtotal
+                                linha.remove();
+                                // Remove da lista de linhas da NOUG
+                                const index = linhasNougAtual.indexOf(linha);
+                                if (index > -1) {
+                                    linhasNougAtual.splice(index, 1);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Processar última NOUG
+                if (nougAtual && !temDiferencaNougAtual) {
+                    linhasNougAtual.forEach(l => {
+                        if (l && l.parentNode) {
+                            l.remove();
+                        }
+                    });
+                }
+                
+                // Remover separadores órfãos (que ficaram sem NOUG antes ou depois)
+                const separadoresRestantes = tabelaClone.querySelectorAll('.separador');
+                separadoresRestantes.forEach(sep => {
+                    const anterior = sep.previousElementSibling;
+                    const proximo = sep.nextElementSibling;
+                    
+                    // Se não tem nada antes ou depois, ou se está entre total e fim, remove
+                    if (!anterior || !proximo || 
+                        anterior.classList.contains('total') || 
+                        proximo.classList.contains('total')) {
+                        sep.remove();
+                    }
+                });
+                
+                // Verificar se sobrou alguma linha de dados (além do total)
+                const linhasRestantes = tabelaClone.querySelectorAll('tbody tr');
+                let temDados = false;
+                linhasRestantes.forEach(linha => {
+                    if (!linha.classList.contains('total') && 
+                        !linha.classList.contains('separador') &&
+                        linha.querySelector('td')) {
+                        temDados = true;
+                    }
+                });
+                
+                // Criar container temporário com o clone filtrado
+                const containerTemp = document.createElement('div');
+                containerTemp.innerHTML = `
+                    <h2>RELATÓRIO DE BENS MÓVEIS - APENAS DIFERENÇAS</h2>
+                    <p style="color: #dc3545; font-weight: bold; margin: 10px 0;">
+                        * Este relatório mostra apenas as linhas com diferenças entre SIGGO e SISGEPAT
+                    </p>
+                `;
+                
+                if (!temDados) {
+                    containerTemp.innerHTML += `
+                        <p style="color: #28a745; font-weight: bold; margin: 20px 0; font-size: 18px; text-align: center;">
+                            ✓ Não foram encontradas diferenças entre SIGGO e SISGEPAT para os itens analisados.
+                        </p>
+                    `;
+                } else {
+                    containerTemp.appendChild(tabelaClone);
+                }
+                
+                // Adicionar resumo se existir
+                const resumo = document.querySelector('#secao-resumo-executivo');
+                if (resumo) {
+                    containerTemp.appendChild(resumo.cloneNode(true));
+                }
+                
+                // Criar o HTML completo
+                const htmlCompleto = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>Relatório de Bens Móveis - Diferenças</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 20px; }
+                            table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+                            th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+                            th { background-color: #003366; color: white; }
+                            .header-noug td { background-color: #1a4b8c; color: white; font-weight: bold; }
+                            .level-2 { background-color: #e7f3ff; font-weight: bold; }
+                            .total { background-color: #cce5ff; font-weight: bold; }
+                            .diferenca-nao-zero { color: #dc3545; font-weight: bold; }
+                            .valor-positivo { color: #28a745; font-weight: bold; }
+                            .resumo-container { margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; }
+                            .separador td { height: 20px; background-color: #f8f9fa; }
+                        </style>
+                    </head>
+                    <body>
+                        ${containerTemp.innerHTML}
+                    </body>
+                    </html>
+                `;
+                
+                // Criar blob e fazer download
+                const blob = new Blob([htmlCompleto], { type: 'text/html;charset=utf-8' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'relatorio_bens_moveis_diferencas.html';
+                link.click();
+                
+                console.log('✅ Download HTML customizado concluído!');
+            };
             
-            // Adiciona quebra de seção
-            novoBody.push(['', '']);
-            novoBody.push(['DETALHAMENTO POR UNIDADE GESTORA', '']);
-            novoBody.push(['', '']);
-            
-            // Combina com dados existentes
-            dadosCompletos.body = [...novoBody, ...dadosPDF.body];
+            // Adicionar tooltip ao botão
+            btnDownloadHTML.title = "Baixar HTML apenas com linhas que possuem diferenças não-zero";
         }
-        
-        const config = {
-            titulo: 'RELATÓRIO DE BENS MÓVEIS',
-            subtitulo: {% if noug_selecionada %}'{{ noug_selecionada }}'{% else %}'Todas as Unidades Gestoras'{% endif %},
-            dados: dadosCompletos,
-            nomeArquivo: 'relatorio_bens_moveis.pdf',
-            orientacao: 'l'  // landscape para caber todas as colunas
-        };
-        
-        window.RelatorioUtils.gerarPDF(config);
-    });
+    }, 1000);
+});
 </script>
 {% endblock %}

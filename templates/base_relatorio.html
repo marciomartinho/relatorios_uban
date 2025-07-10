@@ -5,18 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block titulo %}Relatório{% endblock %}</title>
     
-    <!-- Estilos Unificados UBAN v2.0 -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/relatorios.css') }}">
     
-    <!-- Scripts para exportação PNG otimizada -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="{{ url_for('static', filename='js/export_relatorio.js') }}"></script>
     
-    {% block head_extra %}{% endblock %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    
+    <script src="{{ url_for('static', filename='js/export_relatorio.js') }}"></script> <script src="{{ url_for('static', filename='js/export.js') }}"></script>             {% block head_extra %}{% endblock %}
 </head>
 <body>
     <div class="page-container" id="conteudo-para-exportar">
-        <!-- Cabeçalho Padrão -->
         <div class="header-container">
             <a href="/" class="link-voltar">&larr; Voltar para o Menu</a>
             <div class="report-header">
@@ -28,10 +27,10 @@
                 {% block botoes_extras %}{% endblock %}
                 <button id="btn-atualizar" class="btn btn-atualizar">Atualizar Dados</button>
                 <button id="btn-jpg" class="btn btn-jpg">Baixar PNG</button>
+                <button id="btn-pdf" class="btn btn-pdf">BAIXAR PDF</button> 
             </div>
         </div>
         
-        <!-- Filtros -->
         {% block filtros %}
         {% if lista_nougs %}
         <div class="filtro-container">
@@ -48,51 +47,53 @@
         {% endif %}
         {% endblock %}
         
-        <!-- Conteúdo Principal -->
-        {% block conteudo %}{% endblock %}
+        <div class="conteudo-principal">
+            {% block conteudo %}{% endblock %}
+        </div>
     </div>
     
-    <!-- Scripts Base -->
-    <script src="{{ url_for('static', filename='js/relatorios.js') }}"></script>
-    
-    <!-- Scripts Específicos -->
-    {% block scripts %}{% endblock %}
-    
-    <!-- Script para aplicar cores automáticas -->
     <script>
-        // Aplica cores automáticas baseadas no conteúdo
+        // Função para aplicar filtro de NOUG
+        function aplicarFiltro() {
+            const nougSelecionada = document.getElementById('filtro-noug').value;
+            // Constrói a URL base sem parâmetros de query
+            const baseUrl = window.location.href.split('?')[0];
+            // Redireciona para a nova URL com o filtro
+            window.location.href = `${baseUrl}?noug=${nougSelecionada}`;
+        }
+
+        // Aplica cores automáticas baseadas no conteúdo da tabela
         document.addEventListener('DOMContentLoaded', function() {
-            // Aplica classes de formatação automática
             document.querySelectorAll('td').forEach(td => {
                 const texto = td.textContent.trim();
                 
-                // Detectar valores percentuais positivos/negativos
                 if (texto.includes('%')) {
-                    if (texto.includes('+')) {
+                    if (texto.startsWith('+')) {
                         td.classList.add('valor-positivo');
-                    } else if (texto.includes('-')) {
+                    } else if (texto.startsWith('-')) {
                         td.classList.add('valor-negativo');
                     }
                 }
                 
-                // Detectar valores monetários negativos (com parênteses)
-                if (texto.includes('(') && texto.includes(')') && texto.includes('R$')) {
+                if (texto.startsWith('(') && texto.endsWith(')')) {
                     td.classList.add('valor-negativo');
                 }
                 
-                // Detectar valores zero
                 if (texto === 'R$ 0,00' || texto === '0,00%') {
                     td.classList.add('valor-zero');
                 }
             });
             
-            // Adicionar tooltips em valores truncados
+            // Adicionar tooltips em descrições longas
             document.querySelectorAll('td:first-child').forEach(td => {
                 if (td.scrollWidth > td.clientWidth) {
-                    td.title = td.textContent;
+                    td.title = td.textContent.trim();
                 }
             });
         });
     </script>
+    
+    {% block scripts %}{% endblock %}
+    
 </body>
 </html>
