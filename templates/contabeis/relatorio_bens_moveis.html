@@ -138,6 +138,41 @@
        text-align: right;
        font-weight: bold;
    }
+   
+   /* Estilo para texto de introdução das contas */
+   .texto-contas-contempladas {
+       background-color: #e7f3ff;
+       border-left: 4px solid #003366;
+       padding: 15px 20px;
+       margin: 20px 0;
+       font-size: 14px;
+       line-height: 1.6;
+   }
+   
+   .texto-contas-contempladas ul {
+       margin-left: 20px;
+       margin-top: 10px;
+   }
+   
+   /* Estilo para texto após exclusões */
+   .texto-apos-exclusao {
+       font-size: 15px;
+       font-weight: bold;
+       color: #003366;
+       margin: 20px 0;
+       text-align: center;
+   }
+   
+   /* Estilo para texto antes da tabela comparativa */
+   .texto-intro-comparativo {
+       font-size: 14px;
+       line-height: 1.6;
+       color: #333;
+       margin: 20px 0;
+       padding: 15px;
+       background-color: #f0f4f8;
+       border-radius: 5px;
+   }
 </style>
 {% endblock %}
 
@@ -177,6 +212,16 @@
        </table>
    </div>
    {% endif %}
+</div>
+
+<!-- Texto sobre contas contempladas -->
+<div class="texto-contas-contempladas">
+   <p>No entanto, no Demonstrativo de Almoxarifado por UG do SIGGO, apenas as seguintes contas estão contempladas:</p>
+   <ul>
+       <li>123110100 – BENS MÓVEIS</li>
+       <li>123110800 – BENS MOVEIS EM ALMOXARIFADO</li>
+       <li>123111800 – IMPORTAÇÕES EM ANDAMENTO DE BENS MÓVEIS</li>
+   </ul>
 </div>
 
 <!-- Seção do Texto Explicativo -->
@@ -223,6 +268,62 @@
            <li>SECRETARIA DE EST. DE REGUL. DE CONDOMÍNIOS DO DF</li>
        </ul>
    </div>
+</div>
+
+<!-- Texto após exclusões -->
+<div class="texto-apos-exclusao">
+   <p>Após a exclusão das unidades acima, os saldos restantes para conciliação entre SIGGO e SisGepat são:</p>
+</div>
+
+<!-- Tabela de saldos após exclusões -->
+<div id="secao-saldos-apos-exclusao">
+   <div class="tabela-saldos-contabeis">
+       <table>
+           <thead>
+               <tr>
+                   <th>Código</th>
+                   <th style="width: 50%;">Nome</th>
+                   <th>Saldo (R$)<br><span style="font-size: 11px; font-weight: normal;">{% if dados_saldos_contabeis %}{{ dados_saldos_contabeis.mes_referencia }}{% else %}Período{% endif %}<br>Todas as UGs</span></th>
+               </tr>
+           </thead>
+           <tbody>
+               {% set total_geral = namespace(bens_moveis=0, bens_moveis_almox=0, bens_moveis_import=0) %}
+               {% for linha in dados_relatorio %}
+                   {% if linha.tipo == 'total' %}
+                       {% set total_geral.bens_moveis = linha.bens_moveis %}
+                       {% set total_geral.bens_moveis_almox = linha.bens_moveis_almox %}
+                       {% set total_geral.bens_moveis_import = linha.bens_moveis_import %}
+                   {% endif %}
+               {% endfor %}
+               
+               <tr>
+                   <td>123110100</td>
+                   <td style="text-align: left; padding-left: 10px;">BENS MÓVEIS</td>
+                   <td>{{ "R$ {:,.2f}".format(total_geral.bens_moveis).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+               </tr>
+               <tr>
+                   <td>123110800</td>
+                   <td style="text-align: left; padding-left: 10px;">BENS MOVEIS EM ALMOXARIFADO</td>
+                   <td>{{ "R$ {:,.2f}".format(total_geral.bens_moveis_almox).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+               </tr>
+               <tr>
+                   <td>123111800</td>
+                   <td style="text-align: left; padding-left: 10px;">IMPORTAÇÕES EM ANDAMENTO DE BENS MÓVEIS</td>
+                   <td>{{ "R$ {:,.2f}".format(total_geral.bens_moveis_import).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+               </tr>
+               <tr class="total">
+                   <td style="text-align: right; font-weight: bold;">Total</td>
+                   <td></td>
+                   <td>{{ "R$ {:,.2f}".format(total_geral.bens_moveis + total_geral.bens_moveis_almox + total_geral.bens_moveis_import).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+               </tr>
+           </tbody>
+       </table>
+   </div>
+</div>
+
+<!-- Texto introdutório do demonstrativo comparativo -->
+<div class="texto-intro-comparativo">
+   <p>Segue abaixo o demonstrativo comparativo dos bens patrimoniais registrados no SisGepat em relação ao demonstrativo de almoxarifado do SIGGO (as terceira, quarta, quinta e sexta colunas referem-se a saldos no SIGGO, sendo a sexta o somatório das colunas anteriores, a sétima coluna refere-se ao saldo no SisGepat e a oitava coluna a diferença entre os sistemas):</p>
 </div>
 
 <!-- Seção da Tabela Principal -->
@@ -295,16 +396,6 @@
                    <tr class="separador">
                        <td colspan="8" style="height: 20px; background-color: #f8f9fa;"></td>
                    </tr>
-               {% elif linha.tipo == 'total' %}
-                   <tr class="total">
-                       <td colspan="2">TOTAL GERAL</td>
-                       <td>{{ linha.bens_moveis_fmt }}</td>
-                       <td>{{ linha.bens_moveis_almox_fmt }}</td>
-                       <td>{{ linha.bens_moveis_import_fmt }}</td>
-                       <td>{{ linha.saldo_total_fmt }}</td>
-                       <td>{{ linha.saldo_sisgepat_fmt }}</td>
-                       <td{% if linha.diferenca < 0 %} class="diferenca-nao-zero"{% elif linha.diferenca > 0 %} class="valor-positivo"{% endif %}>{{ linha.diferenca_fmt }}</td>
-                   </tr>
                {% endif %}
            {% endfor %}
        </tbody>
@@ -346,6 +437,29 @@
                    {% if dados_saldos_contabeis %}{{ dados_saldos_contabeis.mes_referencia }}{% else %}Junho/2025{% endif %}
                </span>
            </div>
+       </div>
+   </div>
+</div>
+
+<!-- Seção de Ranking de Diferenças por NOUG -->
+<div id="secao-ranking-diferencas">
+   <div style="margin-top: 30px;">
+       <h4 style="color: #003366; font-size: 18px; margin-bottom: 15px; text-align: center;">
+           📊 Ranking de Diferenças por NOUG
+       </h4>
+       <div class="tabela-saldos-contabeis">
+           <table>
+               <thead>
+                   <tr>
+                       <th style="width: 10%;">Posição</th>
+                       <th style="width: 60%;">NOUG</th>
+                       <th style="width: 30%;">Diferença (R$)</th>
+                   </tr>
+               </thead>
+               <tbody id="tbody-ranking">
+                   <!-- Será preenchido via JavaScript -->
+               </tbody>
+           </table>
        </div>
    </div>
 </div>
@@ -408,16 +522,103 @@
                 elementoDataRef.textContent = dadosSaldosContabeis.mes_referencia;
             }
         }
+        
+        // Gera ranking de diferenças
+        gerarRankingDiferencas();
+    }
+    
+    // Função para gerar ranking de diferenças por NOUG
+    function gerarRankingDiferencas() {
+        const dadosRelatorio = {{ dados_relatorio | tojson }};
+        const rankingData = [];
+        
+        // Coleta os subtotais de cada NOUG
+        dadosRelatorio.forEach(item => {
+            if (item.tipo === 'subtotal' && Math.abs(item.diferenca) > 0) {
+                rankingData.push({
+                    noug: item.noug,
+                    diferenca: item.diferenca,
+                    diferenca_abs: Math.abs(item.diferenca)
+                });
+            }
+        });
+        
+        // Ordena por diferença absoluta (maior para menor)
+        rankingData.sort((a, b) => b.diferenca_abs - a.diferenca_abs);
+        
+        // Preenche a tabela
+        const tbody = document.getElementById('tbody-ranking');
+        tbody.innerHTML = '';
+        
+        rankingData.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            
+            // Coluna de posição
+            const tdPosicao = document.createElement('td');
+            tdPosicao.textContent = (index + 1) + 'º';
+            tdPosicao.style.textAlign = 'center';
+            tdPosicao.style.fontWeight = 'bold';
+            
+            // Coluna de NOUG
+            const tdNoug = document.createElement('td');
+            tdNoug.textContent = item.noug;
+            tdNoug.style.textAlign = 'left';
+            tdNoug.style.paddingLeft = '10px';
+            
+            // Coluna de diferença
+            const tdDiferenca = document.createElement('td');
+            tdDiferenca.textContent = formatar_numero(item.diferenca);
+            tdDiferenca.style.textAlign = 'right';
+            tdDiferenca.style.fontWeight = 'bold';
+            
+            // Aplica cor baseada no valor
+            if (item.diferenca < 0) {
+                tdDiferenca.className = 'diferenca-nao-zero';
+            } else if (item.diferenca > 0) {
+                tdDiferenca.className = 'valor-positivo';
+            }
+            
+            tr.appendChild(tdPosicao);
+            tr.appendChild(tdNoug);
+            tr.appendChild(tdDiferenca);
+            tbody.appendChild(tr);
+        });
+        
+        // Se não houver diferenças
+        if (rankingData.length === 0) {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = 3;
+            td.textContent = 'Nenhuma NOUG apresentou diferença entre SIGGO e SISGEPAT';
+            td.style.textAlign = 'center';
+            td.style.fontStyle = 'italic';
+            td.style.color = '#666';
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+        }
     }
     
     // Função auxiliar para formatar números
     function formatar_numero(valor) {
+        // Arredonda para 2 casas decimais
+        const valorArredondado = Math.round(valor * 100) / 100;
+        
+        // Se o valor arredondado for 0 (incluindo -0), força para 0 positivo
+        if (valorArredondado === 0 || valorArredondado === -0) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(0);
+        }
+        
         return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
             currency: 'BRL',
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
-        }).format(valor);
+        }).format(valorArredondado);
     }
     
     // Executa o cálculo quando a página carrega
@@ -436,8 +637,10 @@ document.addEventListener('DOMContentLoaded', function() {
         secoesPrincipais: [
             { id: 'secao-saldos-contabeis', nome: 'Saldos Contábeis' },
             { id: 'secao-texto-explicativo', nome: 'Informações sobre Exclusões' },
+            { id: 'secao-saldos-apos-exclusao', nome: 'Saldos Após Exclusões' },
             { id: 'secao-tabela-principal', nome: 'Tabela de Bens Móveis' },
-            { id: 'secao-resumo-executivo', nome: 'Resumo Executivo' }
+            { id: 'secao-resumo-executivo', nome: 'Resumo Executivo' },
+            { id: 'secao-ranking-diferencas', nome: 'Ranking de Diferenças' }
         ],
         tabelaPrincipal: 'secao-tabela-principal'
     };
