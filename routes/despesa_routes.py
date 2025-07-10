@@ -18,6 +18,13 @@ except ImportError as e:
     print(f"❌ Erro ao importar despesa_funcao: {e}")
     gerar_relatorio_despesa_funcao = None
 
+try:
+    from relatorios.despesa.despesa_natureza import gerar_relatorio_despesa_natureza
+    print("✅ Import de despesa_natureza bem sucedido")
+except ImportError as e:
+    print(f"❌ Erro ao importar despesa_natureza: {e}")
+    gerar_relatorio_despesa_natureza = None
+
 # Adicionar após os imports existentes:
 try:
     from relatorios.despesa.despesa_funcao_programa import gerar_relatorio_despesa_funcao_programa
@@ -171,6 +178,65 @@ def despesa_por_funcao():
                              titulo="Erro no Relatório de Despesa por Função",
                              mensagem=f"Erro ao gerar relatório: {str(e)}")
 
+@despesa_bp.route('/despesa-por-natureza')
+def despesa_por_natureza():
+    """Relatório de despesa por natureza com detalhamento por elemento"""
+    try:
+        print("\n🎯 [ROTA] Iniciando despesa-por-natureza")
+        
+        inicio = time.time()
+        df_completo = carregar_dataframe_despesa()
+
+        if df_completo.empty:
+            return render_template('erro.html', 
+                                 titulo="Dados de Despesa Não Encontrados",
+                                 mensagem="O arquivo DESPESA.xlsx não foi encontrado ou está vazio.")
+        
+        print(f"🎯 [ROTA] DataFrame carregado: {len(df_completo)} registros")
+        
+        # Verifica colunas necessárias
+        colunas_necessarias = ['CATEGORIA', 'NOCATEGORIA', 'GRUPO', 'NOGRUPO', 'NOUG', 
+                              'CONATUREZA', 'NOELEMENTO', 'DOTACAO INICIAL', 'DESPESA EMPENHADA']
+        colunas_faltantes = [col for col in colunas_necessarias if col not in df_completo.columns]
+        
+        if colunas_faltantes:
+            print(f"🎯 [ROTA] Colunas faltantes: {colunas_faltantes}")
+            return render_template('erro.html',
+                                 titulo="Estrutura de Dados Incorreta",
+                                 mensagem=f"Colunas faltantes: {', '.join(colunas_faltantes)}")
+        
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+        
+        if gerar_relatorio_despesa_natureza is None:
+            print("🎯 [ROTA] Função gerar_relatorio_despesa_natureza não está disponível!")
+            return render_template('erro.html',
+                                 titulo="Erro de Importação",
+                                 mensagem="Módulo despesa_natureza não pôde ser importado.")
+        
+        print("🎯 [ROTA] Chamando gerar_relatorio_despesa_natureza...")
+        dados_tabela, mes_referencia, dados_para_ia, dados_pdf = gerar_relatorio_despesa_natureza(
+            df_completo, None, noug_selecionada
+        )
+        
+        print(f"🎯 [ROTA] Retorno: {len(dados_tabela)} linhas de dados")
+        
+        fim = time.time()
+        print(f"⏱️ Relatório de despesa por natureza gerado em {fim - inicio:.2f} segundos")
+        
+        return render_template('despesas/despesa_natureza.html',
+                               dados_relatorio=dados_tabela,
+                               mes_ref=mes_referencia,
+                               lista_nougs=lista_nougs,
+                               noug_selecionada=noug_selecionada,
+                               dados_pdf=dados_pdf)
+    except Exception as e:
+        print(f"🎯 [ROTA] ERRO: {str(e)}")
+        traceback.print_exc()
+        return render_template('erro.html',
+                             titulo="Erro no Relatório de Despesa por Natureza",
+                             mensagem=f"Erro ao gerar relatório: {str(e)}")
+
 @despesa_bp.route('/despesa-por-funcao-programa')
 def despesa_por_funcao_programa():
     """Relatório de despesa por função/subfunção/programa de trabalho"""
@@ -297,13 +363,6 @@ def despesa_por_funcao_tipo_programa():
 
 # ===================== ROTAS EM DESENVOLVIMENTO =====================
 
-@despesa_bp.route('/despesa-por-natureza')
-def despesa_por_natureza():
-    """Relatório de despesa por natureza (em desenvolvimento)"""
-    return render_template('erro.html',
-                         titulo="Relatório em Desenvolvimento",
-                         mensagem="O relatório de despesa por natureza está sendo desenvolvido. Implementação usando coluna ELEMENTO disponível.")
-
 @despesa_bp.route('/despesa-por-modalidade')
 def despesa_por_modalidade():
     """Relatório de despesa por modalidade (em desenvolvimento)"""
@@ -324,3 +383,63 @@ def execucao_por_programa():
     return render_template('erro.html',
                          titulo="Relatório em Desenvolvimento",
                          mensagem="O relatório de execução por programa está sendo desenvolvido.")
+
+"""
+Blueprint para rotas de relatórios contábeis
+"""
+import time
+from flask import Blueprint, render_template, request
+import traceback
+
+# Importações das configurações e utilitários
+from utils.data_loaders import carregar_dataframe_bens_moveis, carregar_dataframe_sisgepat, carregar_dataframe_depara
+from relatorios.contabeis import gerar_relatorio_bens_moveis
+
+# Cria o blueprint
+contabeis_bp = Blueprint('contabeis', __name__)
+
+# ===================== ROTAS DE RELATÓRIOS CONTÁBEIS =====================
+
+@contabeis_bp.route('/bens-moveis')
+def bens_moveis():
+    """Relatório de Bens Móveis com integração SISGEPAT"""
+    try:
+        inicio = time.time()
+        
+        # Carrega dados principais
+        df_completo = carregar_dataframe_bens_moveis()
+        
+        # Carrega dados SISGEPAT e DE-PARA
+        try:
+            df_sisgepat = carregar_dataframe_sisgepat()
+            df_depara = carregar_dataframe_depara()
+        except Exception as e:
+            print(f"⚠️ Aviso: Não foi possível carregar dados SISGEPAT: {str(e)}")
+            df_sisgepat = None
+            df_depara = None
+        
+        # Lista de NOUGs únicas para o filtro
+        lista_nougs = sorted(df_completo['NOUG'].dropna().unique().tolist())
+        noug_selecionada = request.args.get('noug', None)
+
+        # Gera relatório com dados SISGEPAT se disponíveis
+        dados_relatorio, dados_pdf = gerar_relatorio_bens_moveis(
+            df_completo, 
+            df_sisgepat, 
+            df_depara,
+            noug_selecionada
+        )
+
+        fim = time.time()
+        print(f"⏱️ Relatório de Bens Móveis gerado em {fim - inicio:.2f} segundos")
+
+        return render_template('contabeis/relatorio_bens_moveis.html',
+                               dados_relatorio=dados_relatorio,
+                               lista_nougs=lista_nougs,
+                               noug_selecionada=noug_selecionada,
+                               dados_pdf=dados_pdf)
+    except Exception as e:
+        traceback.print_exc()
+        return render_template('erro.html',
+                             titulo="Erro no Relatório de Bens Móveis",
+                             mensagem=f"Erro ao gerar relatório: {str(e)}")

@@ -1,0 +1,396 @@
+{% extends "base_relatorio.html" %}
+
+{% block titulo %}Despesa por Natureza{% endblock %}
+
+{% block titulo_relatorio %}DESPESA POR NATUREZA{% endblock %}
+
+{% block subtitulo %}Análise da execução orçamentária por categoria e grupo com detalhamento por elemento de despesa{% endblock %}
+
+{% block head_extra %}
+<!-- CSS padrão dos relatórios -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/relatorios.css') }}">
+
+<!-- JS padrão dos relatórios -->
+<script src="{{ url_for('static', filename='js/relatorios.js') }}"></script>
+
+<style>
+    /* Informações do relatório */
+    .info-container {
+        background: #e7f3ff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #0066cc;
+    }
+    
+    .info-container h4 {
+        margin: 0 0 10px 0;
+        color: #0066cc;
+        font-weight: 600;
+    }
+    
+    .info-container ul {
+        margin: 0;
+        padding-left: 20px;
+        color: #555;
+    }
+    
+    /* ESTILOS PARA EXPANSÃO DE ELEMENTOS */
+    .expand-btn {
+        background: none;
+        border: none;
+        color: #0066cc;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        margin-right: 8px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        transition: all 0.2s ease;
+    }
+    
+    .expand-btn:hover {
+        background-color: rgba(0, 102, 204, 0.1);
+    }
+    
+    .expand-btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.3);
+    }
+    
+    /* Linhas de elementos de despesa */
+    .elemento {
+        background-color: #f8f9fa;
+        display: none;
+        font-size: 13px;
+    }
+    
+    .elemento.show {
+        display: table-row;
+    }
+    
+    .elemento td:first-child {
+        padding-left: 60px !important;
+        font-family: monospace;
+        color: #666;
+    }
+    
+    /* Contador de elementos */
+    .elemento-counter {
+        font-size: 11px;
+        color: #666;
+        font-weight: normal;
+        margin-left: 10px;
+    }
+    
+    /* Código da natureza */
+    .codigo-natureza {
+        font-family: monospace;
+        font-weight: bold;
+        color: #0066cc;
+        margin-right: 8px;
+    }
+    
+    /* Container de resumo */
+    .resumo-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #003366;
+    }
+    
+    .resumo-container h4 {
+        margin: 0 0 15px 0;
+        color: #003366;
+        font-weight: 600;
+    }
+    
+    .resumo-container > div {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .resumo-container > div > div {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 3px solid #0066cc;
+    }
+    
+    /* Hover específico para elementos */
+    tbody tr.elemento:hover {
+        background-color: rgba(248, 249, 250, 0.8) !important;
+    }
+</style>
+{% endblock %}
+
+{% block conteudo %}
+<div class="info-container">
+    <h4>ℹ️ Informações do Relatório</h4>
+    <ul>
+        <li><strong>Estrutura:</strong> Categoria → Grupo → Elementos de Despesa (CONATUREZA)</li>
+        <li><strong>Categorias com detalhamento:</strong>
+            <ul>
+                <li>PESSOAL E ENCARGOS SOCIAIS (elementos iniciados com 31)</li>
+                <li>JUROS E ENCARGOS DA DÍVIDA (elementos iniciados com 32)</li>
+                <li>OUTRAS DESPESAS CORRENTES (elementos iniciados com 33)</li>
+                <li>INVESTIMENTO (elementos iniciados com 44)</li>
+                <li>INVERSÕES FINANCEIRAS (elementos iniciados com 45)</li>
+                <li>AMORTIZAÇÃO DA DÍVIDA (elementos iniciados com 46)</li>
+            </ul>
+        </li>
+        <li><strong>Dotação Atualizada:</strong> INICIAL + ADICIONAL + CANCELAMENTO + CANCEL-REMANEJA</li>
+        <li><strong>Saldo da Dotação:</strong> DOTAÇÃO ATUALIZADA - DESPESA EMPENHADA</li>
+        <li><strong>💡 Dica:</strong> Clique no botão <strong>[+]</strong> nas categorias para ver o detalhamento por elemento de despesa</li>
+    </ul>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th rowspan="2">DESPESAS ORÇAMENTÁRIAS</th>
+            <th colspan="2">DOTAÇÃO</th>
+            <th colspan="3">DESPESAS</th>
+            <th rowspan="2">SALDO DA<br>DOTAÇÃO</th>
+        </tr>
+        <tr>
+            <th>INICIAL<br>2025</th>
+            <th>ATUALIZADA<br>2025</th>
+            <th>EMPENHADA<br>{{ mes_ref }}/2025</th>
+            <th>LIQUIDADA<br>{{ mes_ref }}/2025</th>
+            <th>PAGA<br>{{ mes_ref }}/2025</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for linha in dados_relatorio %}
+            {% if linha.tipo == 'principal' %}
+                <tr class="{{ linha.tipo }}">
+                    <td>
+                        {{ linha.especificacao }}
+                    </td>
+                    <td>{{ linha.get('dotacao_inicial_fmt', 'R$ 0,00') }}</td>
+                    <td>{{ linha.get('dotacao_atualizada_fmt', 'R$ 0,00') }}</td>
+                    <td>{{ linha.get('despesa_empenhada_fmt', 'R$ 0,00') }}</td>
+                    <td>{{ linha.get('despesa_liquidada_fmt', 'R$ 0,00') }}</td>
+                    <td>{{ linha.get('despesa_paga_fmt', 'R$ 0,00') }}</td>
+                    <td class="{% if linha.get('saldo_dotacao', 0) < 0 %}valor-negativo{% endif %}">
+                        {{ linha.get('saldo_dotacao_fmt', 'R$ 0,00') }}
+                    </td>
+                </tr>
+            {% elif linha.tipo == 'filha' %}
+                <tr class="{{ linha.tipo }}">
+                    <td>
+                        {% if linha.tem_elementos %}
+                            <button class="expand-btn" onclick="toggleElementos('{{ linha.grupo_id }}')" 
+                                    id="btn-grupo-{{ linha.grupo_id }}" title="Expandir/recolher elementos">
+                                +
+                            </button>
+                        {% endif %}
+                        {{ linha.especificacao }}
+                        {% if linha.tem_elementos and linha.qtd_elementos > 0 %}
+                            <span class="elemento-counter">({{ linha.qtd_elementos }} elementos)</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ linha.get('dotacao_inicial_fmt', 'R$ 0,00') }}</td>
+                    <td>{{ linha.get('dotacao_atualizada_fmt', 'R$ 0,00') }}</td>
+                    <td>{{ linha.get('despesa_empenhada_fmt', 'R$ 0,00') }}</td>
+                    <td>{{ linha.get('despesa_liquidada_fmt', 'R$ 0,00') }}</td>
+                    <td>{{ linha.get('despesa_paga_fmt', 'R$ 0,00') }}</td>
+                    <td class="{% if linha.get('saldo_dotacao', 0) < 0 %}valor-negativo{% endif %}">
+                        {{ linha.get('saldo_dotacao_fmt', 'R$ 0,00') }}
+                    </td>
+                </tr>
+            {% elif linha.tipo == 'elemento' %}
+                <tr class="elemento elemento-{{ linha.grupo_pai }}">
+                    <td>
+                        <span class="codigo-natureza">{{ linha.conatureza }}</span>
+                        {{ linha.especificacao.split(' - ', 1)[1] if ' - ' in linha.especificacao else linha.especificacao }}
+                    </td>
+                    <td>{{ linha.get('dotacao_inicial_fmt', 'R$ 0,00') }}</td>
+                    <td>{{ linha.get('dotacao_atualizada_fmt', 'R$ 0,00') }}</td>
+                    <td>{{ linha.get('despesa_empenhada_fmt', 'R$ 0,00') }}</td>
+                    <td>{{ linha.get('despesa_liquidada_fmt', 'R$ 0,00') }}</td>
+                    <td>{{ linha.get('despesa_paga_fmt', 'R$ 0,00') }}</td>
+                    <td class="{% if linha.get('saldo_dotacao', 0) < 0 %}valor-negativo{% endif %}">
+                        {{ linha.get('saldo_dotacao_fmt', 'R$ 0,00') }}
+                    </td>
+                </tr>
+            {% elif linha.tipo == 'total' %}
+                <tr class="{{ linha.tipo }}">
+                    <td>{{ linha.especificacao }}</td>
+                    <td>{{ linha.get('dotacao_inicial_fmt', 'R$ 0,00') }}</td>
+                    <td>{{ linha.get('dotacao_atualizada_fmt', 'R$ 0,00') }}</td>
+                    <td>{{ linha.get('despesa_empenhada_fmt', 'R$ 0,00') }}</td>
+                    <td>{{ linha.get('despesa_liquidada_fmt', 'R$ 0,00') }}</td>
+                    <td>{{ linha.get('despesa_paga_fmt', 'R$ 0,00') }}</td>
+                    <td class="{% if linha.get('saldo_dotacao', 0) < 0 %}valor-negativo{% endif %}">
+                        {{ linha.get('saldo_dotacao_fmt', 'R$ 0,00') }}
+                    </td>
+                </tr>
+            {% endif %}
+        {% else %}
+            <tr>
+                <td colspan="7" class="text-center" style="color: #666; font-style: italic; padding: 30px;">
+                    Nenhum dado encontrado para os filtros selecionados.
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if dados_relatorio %}
+<div class="resumo-container">
+    <h4>📊 Resumo do Relatório</h4>
+    <div>
+        <div>
+            <strong>Total de Categorias:</strong><br>
+            <span style="color: #0066cc; font-size: 18px;">
+                {{ dados_relatorio | selectattr("tipo", "equalto", "principal") | list | length }}
+            </span>
+        </div>
+        <div>
+            <strong>Total de Elementos:</strong><br>
+            <span style="color: #6c757d; font-size: 18px;">
+                {{ dados_relatorio | selectattr("tipo", "equalto", "elemento") | list | length }}
+            </span>
+        </div>
+        <div>
+            <strong>Dotação Inicial Total:</strong><br>
+            <span style="color: #6c757d; font-size: 18px;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        {{ linha.dotacao_inicial_fmt }}
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+        <div>
+            <strong>Despesa Empenhada Total:</strong><br>
+            <span style="color: #28a745; font-size: 18px;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        {{ linha.despesa_empenhada_fmt }}
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+        <div>
+            <strong>Saldo Total:</strong><br>
+            <span style="font-size: 18px; font-weight: bold;">
+                {% for linha in dados_relatorio %}
+                    {% if linha.tipo == 'total' %}
+                        <span class="{% if linha.get('saldo_dotacao', 0) < 0 %}valor-negativo{% endif %}">
+                            {{ linha.saldo_dotacao_fmt }}
+                        </span>
+                    {% endif %}
+                {% endfor %}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Botões de Controle Global -->
+<div style="margin: 20px 0; text-align: center;">
+    <button onclick="expandirTodos()" class="btn" style="background: #0d6efd; margin-right: 10px;">
+        ➕ Expandir Todos os Elementos
+    </button>
+    <button onclick="recolherTodos()" class="btn" style="background: #dc3545;">
+        ➖ Recolher Todos os Elementos
+    </button>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// === SISTEMA DE EXPANSÃO DE ELEMENTOS ===
+
+// Toggle para elementos de um grupo
+function toggleElementos(grupoId) {
+    const elementos = document.querySelectorAll('.elemento-' + grupoId);
+    const btn = document.getElementById('btn-grupo-' + grupoId);
+    
+    if (elementos.length === 0) return;
+    
+    const isVisible = elementos[0].classList.contains('show');
+    
+    elementos.forEach(elemento => {
+        if (isVisible) {
+            elemento.classList.remove('show');
+        } else {
+            elemento.classList.add('show');
+        }
+    });
+    
+    // Atualiza o botão
+    btn.textContent = isVisible ? '+' : '−';
+    btn.title = isVisible ? 'Expandir elementos' : 'Recolher elementos';
+    
+    console.log(`${isVisible ? 'Recolheu' : 'Expandiu'} elementos do grupo ${grupoId}`);
+}
+
+// Expandir todos os elementos
+function expandirTodos() {
+    // Mostra todos os elementos
+    document.querySelectorAll('.elemento').forEach(elem => {
+        elem.classList.add('show');
+    });
+    
+    // Atualiza todos os botões
+    document.querySelectorAll('.expand-btn').forEach(btn => {
+        btn.textContent = '−';
+        btn.title = 'Recolher elementos';
+    });
+    
+    console.log('✅ Todos os elementos expandidos');
+}
+
+// Recolher todos os elementos
+function recolherTodos() {
+    // Esconde todos os elementos
+    document.querySelectorAll('.elemento').forEach(elem => {
+        elem.classList.remove('show');
+    });
+    
+    // Reseta todos os botões
+    document.querySelectorAll('.expand-btn').forEach(btn => {
+        btn.textContent = '+';
+        btn.title = 'Expandir elementos';
+    });
+    
+    console.log('✅ Todos os elementos recolhidos');
+}
+
+// === CONFIGURAÇÃO DO PDF ===
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btnJPG = document.querySelector('.btn-jpg');
+    
+    if (btnJPG) {
+        btnJPG.addEventListener('click', function() {
+            const dadosPDF = {{ dados_pdf | tojson | safe }};
+            const nougTexto = {% if noug_selecionada %}"NOUG: {{ noug_selecionada }}"{% else %}"Todas as UGs"{% endif %};
+            
+            RelatorioUtils.gerarPDF({
+                titulo: 'DESPESA POR NATUREZA',
+                subtitulo: `Período: {{ mes_ref }}/2025 - ${nougTexto}`,
+                dados: dadosPDF,
+                nomeArquivo: 'despesa_por_natureza.pdf',
+                orientacao: 'p',
+                colunasTipos: [
+                    {% for linha in dados_relatorio %}
+                        {% if linha.tipo == 'principal' %}'principal',
+                        {% elif linha.tipo == 'filha' %}'filha',
+                        {% elif linha.tipo == 'total' %}'total',
+                        {% endif %}
+                    {% endfor %}
+                ]
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -357,3 +357,212 @@ def listar_arquivos_dados():
     except Exception as e:
         print(f"❌ Erro ao listar arquivos: {e}")
         return []
+
+def carregar_dataframe_bens_moveis():
+    """Carrega dados de bens móveis com cache"""
+    # Lista de possíveis nomes e extensões
+    possiveis_arquivos = [
+        os.path.join('dados', 'BENSMOVEIS.xlsx'),
+        os.path.join('dados', 'BENSMOVEIS.xls'),
+        os.path.join('dados', 'BensMoveis.xlsx'),
+        os.path.join('dados', 'BensMoveis.xls')
+    ]
+    
+    caminho_arquivo = None
+    for arquivo in possiveis_arquivos:
+        if os.path.exists(arquivo):
+            caminho_arquivo = arquivo
+            break
+    
+    if not caminho_arquivo:
+        print(f"❌ Arquivo de bens móveis não encontrado. Tentativas:")
+        for arquivo in possiveis_arquivos:
+            print(f"   - {arquivo}")
+        return pd.DataFrame()
+
+    # Tenta carregar do cache primeiro se disponível
+    if CACHE_AVAILABLE and cache_service:
+        try:
+            df_cached = cache_service.get_cached_dataframe(caminho_arquivo, 'bens_moveis')
+            if df_cached is not None:
+                return df_cached
+        except:
+            pass
+
+    print(f"🔄 Carregando dados de bens móveis do arquivo: {caminho_arquivo}")
+    inicio = time.time()
+
+    try:
+        df = pd.read_excel(caminho_arquivo)
+        
+        # Remove espaços dos nomes das colunas
+        df.columns = df.columns.str.strip()
+        
+        print(f"📊 Colunas carregadas: {df.columns.tolist()}")
+        print(f"📊 {len(df):,} registros carregados")
+        
+        # Mapeia os nomes das colunas para os esperados pelo sistema
+        mapeamento_colunas = {
+            'BENS_MOVEIS': 'BENS_MOVEIS',
+            'BENS_MOVEIS_ALMOX': 'BENS_MOVEIS_ALMOX', 
+            'BENS_MOVEIS_IMPORT': 'BENS_MOVEIS_IMPORT',
+            'BENS_MOVEIS_TOTAL': 'BENS_MOVEIS_TOTAL'
+        }
+        
+        # Verifica se as colunas já existem ou precisam ser criadas
+        if 'BENS_MOVEIS' not in df.columns:
+            print("⚠️ Coluna BENS_MOVEIS não encontrada diretamente")
+            # Procura por variações do nome
+            for col in df.columns:
+                if 'BENS' in col and 'MOVEIS' in col and 'ALMOX' not in col and 'IMPORT' not in col and 'TOTAL' not in col:
+                    print(f"✅ Mapeando '{col}' para BENS_MOVEIS")
+                    df['BENS_MOVEIS'] = df[col]
+                    break
+        
+        if 'BENS_MOVEIS_ALMOX' not in df.columns:
+            print("⚠️ Coluna BENS_MOVEIS_ALMOX não encontrada diretamente")
+            # Procura por variações do nome
+            for col in df.columns:
+                if 'ALMOX' in col:
+                    print(f"✅ Mapeando '{col}' para BENS_MOVEIS_ALMOX")
+                    df['BENS_MOVEIS_ALMOX'] = df[col]
+                    break
+        
+        if 'BENS_MOVEIS_IMPORT' not in df.columns:
+            print("⚠️ Coluna BENS_MOVEIS_IMPORT não encontrada diretamente")
+            # Procura por variações do nome
+            for col in df.columns:
+                if 'IMPORT' in col:
+                    print(f"✅ Mapeando '{col}' para BENS_MOVEIS_IMPORT")
+                    df['BENS_MOVEIS_IMPORT'] = df[col]
+                    break
+        
+        # Garante que todas as colunas necessárias existam (cria com zeros se não existirem)
+        colunas_necessarias = ['COUG', 'NOUG', 'SUBITEM', 'BENS_MOVEIS', 'BENS_MOVEIS_ALMOX', 'BENS_MOVEIS_IMPORT']
+        for col in colunas_necessarias:
+            if col not in df.columns:
+                print(f"⚠️ Criando coluna {col} com valores zero")
+                df[col] = 0
+        
+        # Converte valores para numérico e preenche NaN com 0
+        for col in ['BENS_MOVEIS', 'BENS_MOVEIS_ALMOX', 'BENS_MOVEIS_IMPORT']:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+        
+        # Mostra algumas linhas com valores para debug
+        print("\n📊 Amostra de dados carregados (linhas com valores > 0):")
+        df_com_valores = df[(df['BENS_MOVEIS'] > 0) | (df['BENS_MOVEIS_ALMOX'] > 0) | (df['BENS_MOVEIS_IMPORT'] > 0)]
+        if not df_com_valores.empty:
+            print(df_com_valores[['COUG', 'SUBITEM', 'BENS_MOVEIS', 'BENS_MOVEIS_ALMOX', 'BENS_MOVEIS_IMPORT']].head(10))
+        else:
+            print("⚠️ Nenhuma linha com valores > 0 encontrada!")
+        
+        # Garante que SUBITEM seja string com 2 dígitos
+        if 'SUBITEM' in df.columns:
+            df['SUBITEM'] = df['SUBITEM'].apply(lambda x: str(int(x)).zfill(2) if pd.notna(x) else '00')
+        
+        if 'NOUG' in df.columns:
+            print(f"🏛️ NOUGs encontradas: {df['NOUG'].nunique()} unidades")
+
+        # Salva no cache se disponível
+        if CACHE_AVAILABLE and cache_service:
+            try:
+                cache_service.cache_dataframe(df, caminho_arquivo, 'bens_moveis')
+            except:
+                pass
+
+        fim = time.time()
+        print(f"⏱️ Dados de bens móveis carregados em {fim - inicio:.2f} segundos")
+
+        return df
+
+    except Exception as e:
+        print(f"❌ Erro ao carregar dados de bens móveis: {e}")
+        import traceback
+        traceback.print_exc()
+        return pd.DataFrame()
+
+def carregar_saldos_contabeis():
+    """
+    Carrega especificamente a planilha 19-SaldoBensMoveis.xlsx
+    para exibir a tabela de saldos contábeis no início do relatório
+    
+    Returns:
+        DataFrame com códigos e saldos
+    """
+    # Lista de possíveis nomes para o arquivo
+    possiveis_arquivos = [
+        os.path.join('dados', '19-SaldoBensMoveis.xlsx'),
+        os.path.join('dados', '19SaldoBensMoveis.xlsx'),
+        os.path.join('dados', '19-Saldo Bens Móveis.xlsx'),
+        os.path.join('dados', '19 Saldo Bens Móveis.xlsx')
+    ]
+    
+    caminho_arquivo = None
+    for arquivo in possiveis_arquivos:
+        if os.path.exists(arquivo):
+            caminho_arquivo = arquivo
+            break
+    
+    if not caminho_arquivo:
+        print(f"❌ Arquivo de saldos contábeis não encontrado")
+        return None
+    
+    try:
+        print(f"🔄 Carregando saldos contábeis de: {caminho_arquivo}")
+        df = pd.read_excel(caminho_arquivo)
+        
+        # Remove espaços dos nomes das colunas
+        df.columns = df.columns.str.strip()
+        
+        print(f"📊 Colunas encontradas: {df.columns.tolist()}")
+        print(f"📊 Número de linhas: {len(df)}")
+        
+        return df
+        
+    except Exception as e:
+        print(f"❌ Erro ao carregar saldos contábeis: {e}")
+        return None
+
+def carregar_dataframe_sisgepat():
+    """
+    Carrega o DataFrame com dados do relatório SISGEPAT
+    
+    Returns:
+        DataFrame com dados do SISGEPAT
+    """
+    try:
+        # Ajuste o caminho conforme necessário
+        df = pd.read_excel('dados/Relatorio_Demonstrativos_Bem_Moveis.xlsx', 
+                          header=None,  # Sem cabeçalho, pois os dados começam direto
+                          dtype=str)    # Tudo como string para facilitar processamento
+        return df
+    except Exception as e:
+        print(f"❌ Erro ao carregar dados SISGEPAT: {str(e)}")
+        raise
+
+def carregar_dataframe_depara():
+    """
+    Carrega o DataFrame com DE-PARA entre Local e COUG
+    
+    Returns:
+        DataFrame com correspondência Local -> COUG
+    """
+    try:
+        # Ajuste o caminho e nomes das colunas conforme necessário
+        df = pd.read_excel('dados/DEPARAUG.xlsx')
+        
+        # Garante que as colunas estejam no formato esperado
+        # Ajuste os nomes reais das colunas aqui
+        if 'LOCAL' in df.columns:
+            df.rename(columns={'LOCAL': 'Local'}, inplace=True)
+        
+        # Remove zeros à esquerda do Local se necessário
+        df['Local'] = df['Local'].astype(str).str.strip()
+        df['COUG'] = df['COUG'].astype(str).str.strip()
+        
+        print(f"✅ DE-PARA carregado: {len(df)} registros")
+        
+        return df
+    except Exception as e:
+        print(f"❌ Erro ao carregar dados DE-PARA: {str(e)}")
+        raise

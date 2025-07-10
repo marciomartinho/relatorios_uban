@@ -7,10 +7,12 @@ from .receita_routes import receita_bp
 from .despesa_routes import despesa_bp
 from .indicadores_routes import indicadores_bp
 from .admin_routes import admin_bp
+from .contabeis_routes import contabeis_bp
 
 __all__ = [
     'receita_bp',
     'despesa_bp', 
     'indicadores_bp',
-    'admin_bp'
+    'admin_bp',
+    'contabeis_bp'
 ]
