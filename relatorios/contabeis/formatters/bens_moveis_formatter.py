@@ -1,5 +1,5 @@
 """
-Formatador para relatório de bens móveis
+Formatador para relatório de bens móveis - VERSÃO CORRIGIDA
 """
 from typing import List, Dict
 from utils.formatacao import formatar_numero
@@ -41,7 +41,8 @@ class BensMoviesFormatter:
             self._adicionar_subtotal(subtotal, noug, dados_formatados)
             
             # Adiciona separador (exceto após a última NOUG)
-            if noug != list(sorted(resultado.dados_por_noug.keys()))[-1]:
+            nougs_ordenadas = [n for n in sorted(resultado.dados_por_noug.keys()) if n != SisgepatProcessor.NOME_DFTRANS]
+            if noug != nougs_ordenadas[-1]:
                 dados_formatados.append({'tipo': 'separador'})
         
         # Processa DFTRANS por último se existir
@@ -70,12 +71,12 @@ class BensMoviesFormatter:
                 'tipo': 'dados',
                 'coug': item.coug,
                 'subitem': item.subitem,
-                'bens_moveis': item.bens_moveis,
-                'bens_moveis_almox': item.bens_moveis_almox,
-                'bens_moveis_import': item.bens_moveis_import,
-                'saldo_total': item.saldo_siggo,
-                'saldo_sisgepat': item.sisgepat,
-                'diferenca': item.diferenca,
+                'bens_moveis': float(item.bens_moveis),
+                'bens_moveis_almox': float(item.bens_moveis_almox),
+                'bens_moveis_import': float(item.bens_moveis_import),
+                'saldo_total': float(item.saldo_siggo),
+                'saldo_sisgepat': float(item.sisgepat),
+                'diferenca': float(item.diferenca),  # Garantir que é float
                 'bens_moveis_fmt': formatar_numero(item.bens_moveis),
                 'bens_moveis_almox_fmt': formatar_numero(item.bens_moveis_almox),
                 'bens_moveis_import_fmt': formatar_numero(item.bens_moveis_import),
@@ -102,12 +103,12 @@ class BensMoviesFormatter:
         linha_subtotal = {
             'tipo': 'subtotal',
             'noug': noug,
-            'bens_moveis': subtotal['BENS_MOVEIS'],
-            'bens_moveis_almox': subtotal['BENS_MOVEIS_ALMOX'],
-            'bens_moveis_import': subtotal['BENS_MOVEIS_IMPORT'],
-            'saldo_total': total_siggo,
-            'saldo_sisgepat': subtotal['SISGEPAT'],
-            'diferenca': diferenca,
+            'bens_moveis': float(subtotal['BENS_MOVEIS']),
+            'bens_moveis_almox': float(subtotal['BENS_MOVEIS_ALMOX']),
+            'bens_moveis_import': float(subtotal['BENS_MOVEIS_IMPORT']),
+            'saldo_total': float(total_siggo),
+            'saldo_sisgepat': float(subtotal['SISGEPAT']),
+            'diferenca': float(diferenca),  # Garantir que é float
             'bens_moveis_fmt': formatar_numero(subtotal['BENS_MOVEIS']),
             'bens_moveis_almox_fmt': formatar_numero(subtotal['BENS_MOVEIS_ALMOX']),
             'bens_moveis_import_fmt': formatar_numero(subtotal['BENS_MOVEIS_IMPORT']),
@@ -142,22 +143,24 @@ class BensMoviesFormatter:
         
         for item in sorted(dados_dftrans, key=lambda x: (x.coug, x.subitem)):
             # Para DFTRANS, saldo SIGGO é sempre 0
+            diferenca_dftrans = -item.sisgepat  # Negativo porque SIGGO é 0
+            
             linha_dados = {
                 'tipo': 'dados',
                 'coug': item.coug,
                 'subitem': item.subitem,
-                'bens_moveis': 0,
-                'bens_moveis_almox': 0,
-                'bens_moveis_import': 0,
-                'saldo_total': 0,
-                'saldo_sisgepat': item.sisgepat,
-                'diferenca': -item.sisgepat,
+                'bens_moveis': 0.0,
+                'bens_moveis_almox': 0.0,
+                'bens_moveis_import': 0.0,
+                'saldo_total': 0.0,
+                'saldo_sisgepat': float(item.sisgepat),
+                'diferenca': float(diferenca_dftrans),  # Garantir que é float
                 'bens_moveis_fmt': formatar_numero(0),
                 'bens_moveis_almox_fmt': formatar_numero(0),
                 'bens_moveis_import_fmt': formatar_numero(0),
                 'saldo_total_fmt': formatar_numero(0),
                 'saldo_sisgepat_fmt': formatar_numero(item.sisgepat),
-                'diferenca_fmt': formatar_numero(-item.sisgepat)
+                'diferenca_fmt': formatar_numero(diferenca_dftrans)
             }
             dados_formatados.append(linha_dados)
             
@@ -175,12 +178,12 @@ class BensMoviesFormatter:
         
         linha_total = {
             'tipo': 'total',
-            'bens_moveis': resultado.total_geral['BENS_MOVEIS'],
-            'bens_moveis_almox': resultado.total_geral['BENS_MOVEIS_ALMOX'],
-            'bens_moveis_import': resultado.total_geral['BENS_MOVEIS_IMPORT'],
-            'saldo_total': total_siggo,
-            'saldo_sisgepat': total_sisgepat,
-            'diferenca': diferenca,
+            'bens_moveis': float(resultado.total_geral['BENS_MOVEIS']),
+            'bens_moveis_almox': float(resultado.total_geral['BENS_MOVEIS_ALMOX']),
+            'bens_moveis_import': float(resultado.total_geral['BENS_MOVEIS_IMPORT']),
+            'saldo_total': float(total_siggo),
+            'saldo_sisgepat': float(total_sisgepat),
+            'diferenca': float(diferenca),  # Garantir que é float
             'bens_moveis_fmt': formatar_numero(resultado.total_geral['BENS_MOVEIS']),
             'bens_moveis_almox_fmt': formatar_numero(resultado.total_geral['BENS_MOVEIS_ALMOX']),
             'bens_moveis_import_fmt': formatar_numero(resultado.total_geral['BENS_MOVEIS_IMPORT']),

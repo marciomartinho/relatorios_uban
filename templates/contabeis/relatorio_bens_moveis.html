@@ -396,6 +396,18 @@
                    <tr class="separador">
                        <td colspan="8" style="height: 20px; background-color: #f8f9fa;"></td>
                    </tr>
+               {% elif linha.tipo == 'total' %}
+                   <tr class="total">
+                       <td colspan="2" style="font-weight: bold; text-align: center;">
+                           TOTAL GERAL
+                       </td>
+                       <td>{{ linha.bens_moveis_fmt }}</td>
+                       <td>{{ linha.bens_moveis_almox_fmt }}</td>
+                       <td>{{ linha.bens_moveis_import_fmt }}</td>
+                       <td>{{ linha.saldo_total_fmt }}</td>
+                       <td>{{ linha.saldo_sisgepat_fmt }}</td>
+                       <td{% if linha.diferenca < 0 %} class="diferenca-nao-zero"{% elif linha.diferenca > 0 %} class="valor-positivo"{% endif %}>{{ linha.diferenca_fmt }}</td>
+                   </tr>
                {% endif %}
            {% endfor %}
        </tbody>
@@ -470,6 +482,39 @@
     // Configurações específicas para este relatório
     const dadosPDF = {{ dados_pdf | tojson }};
     const dadosSaldosContabeis = {{ dados_saldos_contabeis | tojson if dados_saldos_contabeis else 'null' }};
+    
+    // Corrige cores das diferenças
+    function corrigirCoresDiferencas() {
+        // Seleciona todas as células da coluna de diferença (8ª coluna)
+        const celulas = document.querySelectorAll('td:nth-child(8)');
+        
+        celulas.forEach(function(celula) {
+            // Pega o texto da célula
+            const texto = celula.textContent.trim();
+            
+            // Verifica se é um valor monetário
+            if (texto.startsWith('R$')) {
+                // Remove R$, espaços e converte vírgula para ponto
+                const valorStr = texto.replace('R$', '')
+                                     .replace(/\s/g, '')
+                                     .replace(/\./g, '')
+                                     .replace(',', '.');
+                
+                const valor = parseFloat(valorStr);
+                
+                // Aplica as classes baseado no valor
+                if (valor < 0) {
+                    celula.classList.add('diferenca-nao-zero');
+                    celula.style.color = '#dc3545';
+                    celula.style.fontWeight = 'bold';
+                } else if (valor > 0) {
+                    celula.classList.add('valor-positivo');
+                    celula.style.color = '#28a745';
+                    celula.style.fontWeight = 'bold';
+                }
+            }
+        });
+    }
     
     // Função para calcular e exibir totais do resumo
     function calcularResumo() {
@@ -621,8 +666,9 @@
         }).format(valorArredondado);
     }
     
-    // Executa o cálculo quando a página carrega
+    // Executa quando a página carrega
     document.addEventListener('DOMContentLoaded', function() {
+        corrigirCoresDiferencas();
         calcularResumo();
     });
 </script>
