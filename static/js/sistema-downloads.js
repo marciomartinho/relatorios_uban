@@ -1,7 +1,7 @@
 /**
- * SISTEMA DE DOWNLOADS - VERSÃO 2.1 CORRIGIDA
+ * SISTEMA DE DOWNLOADS - VERSÃO 2.2 CORRIGIDA
  * Sistema unificado e reutilizável para downloads de relatórios
- * Com foco especial em HTML auto-suficiente e completo
+ * Com suporte completo a gráficos e HTML auto-suficiente
  */
 
 // Gerenciador de bibliotecas externas
@@ -83,19 +83,12 @@ const SistemaDownloads = {
             '.info-container',
             '.download-loading',
             'script',
-            'style[data-download-system]',
-            // ADICIONAR SELETORES DE GRÁFICO
-            '[id*="grafico"]',
-            '.chart-container',
-            '.grafico-container',
-            '[class*="grafico"]',
-            '.secao-relatorio:has(canvas)',
-            'section:has(.chart-container)'
+            'style[data-download-system]'
         ],
         estilosCustomizados: '',
         metadados: {
             autor: 'Sistema de Relatórios',
-            versao: '2.1'
+            versao: '2.2'
         }
     },
     
@@ -122,15 +115,15 @@ const SistemaDownloads = {
             }
         },
         grafico: {
-            extrair: function(elemento) {
-                return SistemaDownloads.ExtratorGrafico.extrair(elemento);
+            extrair: async function(elemento) {
+                return await SistemaDownloads.ExtratorGrafico.extrair(elemento);
             }
         }
     },
     
     // Inicialização do sistema
     inicializar: async function(configuracao = {}) {
-        console.log('🚀 Inicializando Sistema de Downloads v2.1...');
+        console.log('🚀 Inicializando Sistema de Downloads v2.2...');
         
         // Mesclar configurações
         this.config = { ...this.config, ...configuracao };
@@ -252,6 +245,12 @@ const SistemaDownloads = {
                 box-shadow: 0 6px 20px rgba(0,0,0,0.3);
             }
             
+            .download-btn:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+                transform: none;
+            }
+            
             .btn-png {
                 background: linear-gradient(135deg, #28a745, #20c997);
                 color: white;
@@ -282,6 +281,10 @@ const SistemaDownloads = {
                 backdrop-filter: blur(10px);
             }
             
+            .download-loading.show {
+                display: block;
+            }
+            
             .download-spinner {
                 border: 3px solid rgba(255,255,255,0.3);
                 border-top: 3px solid white;
@@ -307,21 +310,32 @@ const SistemaDownloads = {
     },
     
     // Mostrar/ocultar loading
-    showDownloadLoading: function(show = true) {
+    showDownloadLoading: function(show = true, texto = 'Processando download...') {
         const loading = document.getElementById('downloadLoading');
+        const loadingText = document.querySelector('.download-loading-text');
+        const buttons = document.querySelectorAll('.download-btn');
+        
         if (loading) {
-            loading.style.display = show ? 'block' : 'none';
+            loading.classList.toggle('show', show);
+            if (loadingText) {
+                loadingText.textContent = texto;
+            }
         }
+        
+        // Desabilitar/habilitar botões
+        buttons.forEach(btn => {
+            btn.disabled = show;
+        });
     },
     
     // ===== DOWNLOAD HTML - MÉTODO PRINCIPAL =====
-    downloadHTML: function() {
-        this.showDownloadLoading(true);
+    downloadHTML: async function() {
+        this.showDownloadLoading(true, 'Gerando HTML completo...');
         try {
             console.log('🌐 Iniciando geração do HTML completo e auto-suficiente...');
             
             // Gerar HTML completo
-            const htmlCompleto = this.gerarHTMLCompletoAutoSuficiente();
+            const htmlCompleto = await this.gerarHTMLCompletoAutoSuficiente();
             
             // Validar HTML gerado
             if (!htmlCompleto || htmlCompleto.length < 1000) {
@@ -352,7 +366,7 @@ const SistemaDownloads = {
     },
     
     // Gerar HTML completo e auto-suficiente
-    gerarHTMLCompletoAutoSuficiente: function() {
+    gerarHTMLCompletoAutoSuficiente: async function() {
         console.log('🔨 Construindo HTML auto-suficiente...');
         
         // Metadados
@@ -362,7 +376,7 @@ const SistemaDownloads = {
         const horaAtual = new Date().toLocaleTimeString('pt-BR');
         
         // Extrair conteúdo principal
-        const conteudoPrincipal = this.extrairConteudoPrincipal();
+        const conteudoPrincipal = await this.extrairConteudoPrincipal();
         
         // Extrair todos os estilos
         const estilosCompletos = this.extrairTodosEstilos();
@@ -549,8 +563,8 @@ const SistemaDownloads = {
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
             margin-top: 20px;
-            max-height: none !important;  /* Sem limite de altura */
-            overflow: visible !important; /* Sem scroll */
+            max-height: none !important;
+            overflow: visible !important;
         }
         
         .card {
@@ -560,7 +574,7 @@ const SistemaDownloads = {
             border-left: 3px solid #0066cc;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
-            min-height: auto;  /* Altura automática */
+            min-height: auto;
         }
         
         .card:hover {
@@ -588,6 +602,7 @@ const SistemaDownloads = {
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             text-align: center;
+            margin: 20px 0;
         }
         
         .grafico-container img,
@@ -595,6 +610,25 @@ const SistemaDownloads = {
             max-width: 100%;
             height: auto;
             border-radius: 4px;
+        }
+        
+        .grafico-placeholder {
+            padding: 40px 20px;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            color: #6c757d;
+            font-style: italic;
+            text-align: center;
+        }
+        
+        .grafico-erro {
+            padding: 20px;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            color: #856404;
+            text-align: center;
         }
         
         /* ===== RODAPÉ ===== */
@@ -737,12 +771,12 @@ const SistemaDownloads = {
     },
     
     // Extrair conteúdo principal preservando estrutura
-    extrairConteudoPrincipal: function() {
+    extrairConteudoPrincipal: async function() {
         console.log('📋 Extraindo conteúdo principal...');
         
         // Primeiro, tentar extrair apenas as seções configuradas
         if (this.config.secoesPrincipais && this.config.secoesPrincipais.length > 0) {
-            return this.extrairSecoesConfiguradas();
+            return await this.extrairSecoesConfiguradas();
         }
         
         // Se não houver seções configuradas, usar o método antigo
@@ -773,13 +807,6 @@ const SistemaDownloads = {
         // Clonar e limpar
         const clone = container.cloneNode(true);
         
-        // IMPORTANTE: Remover seções de gráfico ANTES de processar
-        const graficos = clone.querySelectorAll('[id*="grafico"], .chart-container, .grafico-container, [class*="grafico"]');
-        graficos.forEach(el => {
-            console.log('🗑️ Removendo elemento de gráfico:', el.id || el.className);
-            el.remove();
-        });
-        
         // Remover elementos desnecessários
         this.config.seletoresRemover.forEach(seletor => {
             const elementos = clone.querySelectorAll(seletor);
@@ -787,23 +814,17 @@ const SistemaDownloads = {
         });
         
         // Processar elementos especiais
-        this.processarElementosEspeciais(clone);
+        await this.processarElementosEspeciais(clone);
         
         return clone.innerHTML;
     },
     
-    // Novo método para extrair apenas seções configuradas
-    extrairSecoesConfiguradas: function() {
+    // Extrair seções configuradas
+    extrairSecoesConfiguradas: async function() {
         console.log('📑 Extraindo seções configuradas...');
         let conteudoHTML = '';
         
         for (const secao of this.config.secoesPrincipais) {
-            // PULAR COMPLETAMENTE SEÇÕES DE GRÁFICO NO HTML
-            if (secao.tipo === 'grafico') {
-                console.log(`⏭️ Pulando seção de gráfico: ${secao.nome}`);
-                continue;
-            }
-            
             const elemento = document.getElementById(secao.id);
             
             if (elemento) {
@@ -814,13 +835,18 @@ const SistemaDownloads = {
                 let conteudoExtraido = '';
                 
                 if (this.estrategiasExtracao[estrategia]) {
-                    conteudoExtraido = this.estrategiasExtracao[estrategia].extrair(elemento);
+                    // Para gráficos, usar método assíncrono
+                    if (estrategia === 'grafico') {
+                        conteudoExtraido = await this.estrategiasExtracao[estrategia].extrair(elemento);
+                    } else {
+                        conteudoExtraido = this.estrategiasExtracao[estrategia].extrair(elemento);
+                    }
                 } else {
                     // Extração padrão
-                    conteudoExtraido = this.extrairSecaoPadrao(elemento);
+                    conteudoExtraido = await this.extrairSecaoPadrao(elemento);
                 }
                 
-                // Adicionar seção ao HTML apenas se tiver conteúdo
+                // Adicionar seção ao HTML se tiver conteúdo
                 if (conteudoExtraido && conteudoExtraido.trim() !== '') {
                     conteudoHTML += `
                         <div class="secao" id="${secao.id}-exportado">
@@ -885,7 +911,7 @@ const SistemaDownloads = {
     },
     
     // Extração padrão de seção
-    extrairSecaoPadrao: function(elemento) {
+    extrairSecaoPadrao: async function(elemento) {
         const clone = elemento.cloneNode(true);
         
         // Limpar IDs para evitar duplicatas
@@ -894,13 +920,13 @@ const SistemaDownloads = {
         });
         
         // Processar elementos especiais
-        this.processarElementosEspeciais(clone);
+        await this.processarElementosEspeciais(clone);
         
         return clone.innerHTML;
     },
     
-    // Processar elementos especiais (remover emojis desnecessários, etc)
-    processarElementosEspeciais: function(elemento) {
+    // Processar elementos especiais
+    processarElementosEspeciais: async function(elemento) {
         // Limpar emojis de estrutura (mantendo emojis de conteúdo)
         const textoNodes = this.obterNosDeTexto(elemento);
         textoNodes.forEach(node => {
@@ -924,22 +950,29 @@ const SistemaDownloads = {
         });
         
         // Processar canvas (converter para imagem)
-        elemento.querySelectorAll('canvas').forEach(canvas => {
+        const canvases = elemento.querySelectorAll('canvas');
+        for (const canvas of canvases) {
             try {
                 // Verificar se o canvas está visível e tem conteúdo
                 if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+                    // Aguardar um momento para garantir que o gráfico foi renderizado
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
                     const img = document.createElement('img');
-                    img.src = canvas.toDataURL('image/png');
+                    img.src = canvas.toDataURL('image/png', 0.95);
                     img.className = canvas.className;
                     img.style.cssText = canvas.style.cssText;
                     img.alt = 'Gráfico exportado';
+                    img.style.maxWidth = '100%';
+                    img.style.height = 'auto';
+                    
                     canvas.parentNode.replaceChild(img, canvas);
                     console.log('✅ Canvas convertido para imagem');
                 }
             } catch (e) {
                 console.warn('⚠️ Não foi possível converter canvas:', e);
             }
-        });
+        }
     },
     
     // Obter todos os nós de texto
@@ -1165,13 +1198,115 @@ const SistemaDownloads = {
         }
     },
     
-    // Extrator de Gráficos - SIMPLIFICADO (não inclui no HTML)
+    // Extrator de Gráficos - CORRIGIDO
     ExtratorGrafico: {
         extrair: async function(elemento) {
-            console.log('📊 Gráfico ignorado na exportação HTML');
+            console.log('📊 Iniciando extração de gráfico...');
             
-            // Simplesmente não incluir o gráfico no HTML exportado
-            return '';
+            try {
+                // Aguardar um momento para garantir que o gráfico foi renderizado
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Procurar por canvas (Chart.js, Plotly, etc.)
+                const canvas = elemento.querySelector('canvas');
+                
+                if (canvas && canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+                    console.log('✅ Canvas encontrado, convertendo para imagem...');
+                    
+                    // Converter canvas para imagem base64
+                    const imagemBase64 = canvas.toDataURL('image/png', 0.95);
+                    
+                    // Obter dimensões originais
+                    const largura = canvas.offsetWidth;
+                    const altura = canvas.offsetHeight;
+                    
+                    // Retornar HTML com a imagem
+                    return `
+                        <div class="grafico-container">
+                            <img src="${imagemBase64}" 
+                                 alt="Gráfico de Distribuição" 
+                                 style="max-width: 100%; height: auto; border-radius: 4px; width: ${largura}px; height: ${altura}px;" />
+                        </div>
+                    `;
+                }
+                
+                // Procurar por imagens SVG
+                const svg = elemento.querySelector('svg');
+                if (svg) {
+                    console.log('✅ SVG encontrado, preservando...');
+                    
+                    // Serializar SVG
+                    const serializer = new XMLSerializer();
+                    const svgString = serializer.serializeToString(svg);
+                    const svgBase64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+                    
+                    return `
+                        <div class="grafico-container">
+                            <img src="${svgBase64}" 
+                                 alt="Gráfico de Distribuição" 
+                                 style="max-width: 100%; height: auto; border-radius: 4px;" />
+                        </div>
+                    `;
+                }
+                
+                // Procurar por imagens já convertidas
+                const imagem = elemento.querySelector('img');
+                if (imagem && imagem.src) {
+                    console.log('✅ Imagem encontrada, preservando...');
+                    
+                    return `
+                        <div class="grafico-container">
+                            <img src="${imagem.src}" 
+                                 alt="Gráfico de Distribuição" 
+                                 style="max-width: 100%; height: auto; border-radius: 4px;" />
+                        </div>
+                    `;
+                }
+                
+                // Se não encontrar nenhum elemento gráfico específico, tentar capturar toda a seção
+                console.log('⚠️ Elemento gráfico específico não encontrado, tentando captura completa...');
+                
+                // Verificar se html2canvas está disponível
+                if (window.html2canvas) {
+                    const canvas = await html2canvas(elemento, {
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: '#ffffff',
+                        logging: false,
+                        allowTaint: true,
+                        foreignObjectRendering: false
+                    });
+                    
+                    const imagemBase64 = canvas.toDataURL('image/png', 0.95);
+                    
+                    return `
+                        <div class="grafico-container">
+                            <img src="${imagemBase64}" 
+                                 alt="Gráfico de Distribuição" 
+                                 style="max-width: 100%; height: auto; border-radius: 4px;" />
+                        </div>
+                    `;
+                }
+                
+                // Fallback: retornar mensagem indicativa
+                console.warn('⚠️ Não foi possível extrair o gráfico');
+                return `
+                    <div class="grafico-placeholder">
+                        <p>📊 Gráfico de Distribuição<br>
+                        <small>Consulte a versão online para visualização interativa</small></p>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('❌ Erro ao extrair gráfico:', error);
+                
+                return `
+                    <div class="grafico-erro">
+                        <p>⚠️ Erro ao capturar gráfico<br>
+                        <small>Consulte a versão online</small></p>
+                    </div>
+                `;
+            }
         }
     },
     
@@ -1179,7 +1314,7 @@ const SistemaDownloads = {
     
     // Download PNG da tabela
     downloadTablePNG: async function() {
-        this.showDownloadLoading(true);
+        this.showDownloadLoading(true, 'Gerando imagem da tabela...');
         try {
             const elemento = document.getElementById(this.config.tabelaPrincipal);
             if (!elemento) {
@@ -1209,7 +1344,7 @@ const SistemaDownloads = {
     
     // Download ZIP completo
     downloadAllPNG: async function() {
-        this.showDownloadLoading(true);
+        this.showDownloadLoading(true, 'Gerando arquivo ZIP...');
         try {
             if (!window.JSZip || !window.saveAs) {
                 throw new Error('Bibliotecas JSZip ou FileSaver não carregadas');
@@ -1220,6 +1355,8 @@ const SistemaDownloads = {
             for (const secao of this.config.secoesPrincipais) {
                 const elemento = document.getElementById(secao.id);
                 if (elemento) {
+                    this.showDownloadLoading(true, `Processando ${secao.nome}...`);
+                    
                     const canvas = await html2canvas(elemento, {
                         scale: 2,
                         useCORS: true,
@@ -1236,6 +1373,8 @@ const SistemaDownloads = {
                     console.log(`✅ Seção ${secao.nome} adicionada ao ZIP`);
                 }
             }
+            
+            this.showDownloadLoading(true, 'Finalizando arquivo ZIP...');
             
             const zipBlob = await zip.generateAsync({
                 type: 'blob',
@@ -1257,7 +1396,7 @@ const SistemaDownloads = {
     
     // Download PDF
     downloadPDF: async function() {
-        this.showDownloadLoading(true);
+        this.showDownloadLoading(true, 'Gerando PDF...');
         try {
             if (!window.jspdf) {
                 throw new Error('Biblioteca jsPDF não carregada');
@@ -1336,15 +1475,15 @@ const SistemaDownloads = {
         
         // Configurar colunas
         const colunas = [
-            { header: 'CÓDIGO', dataKey: 'codigo', width: 25 },      // Aumentado de 22 para 25
-            { header: 'NOME', dataKey: 'nome', width: 125 },         // Reduzido de 128 para 125 para compensar
+            { header: 'CODIGO', dataKey: 'codigo', width: 25 },
+            { header: 'NOME', dataKey: 'nome', width: 125 },
             { header: 'RECEITA 2024', dataKey: 'valor2024', width: 35 },
             { header: 'RECEITA 2025', dataKey: 'valor2025', width: 35 },
-            { header: 'VARIAÇÃO ABS', dataKey: 'variacaoAbs', width: 35 },
+            { header: 'VARIACAO ABS', dataKey: 'variacaoAbs', width: 35 },
             { header: 'VAR %', dataKey: 'variacaoPerc', width: 20 }
         ];
         
-        // Adicionar título da seção
+        // Título da seção SEM emojis
         pdf.setFontSize(14);
         pdf.setFont(undefined, 'bold');
         pdf.setTextColor(0, 51, 102);
@@ -1358,35 +1497,35 @@ const SistemaDownloads = {
             startY: posY,
             margin: { left: 10, right: 10 },
             styles: {
-                fontSize: 8,              // Voltando para 8 para caber melhor
-                cellPadding: 3,           // Voltando para 3
+                fontSize: 8,
+                cellPadding: 3,
                 textColor: [30, 30, 30],
                 lineColor: [180, 180, 180],
                 lineWidth: 0.5,
                 overflow: 'linebreak',
                 cellWidth: 'wrap',
-                valign: 'middle'          // Alinhamento vertical ao centro
+                valign: 'middle'
             },
             headStyles: {
                 fillColor: [0, 51, 102],
                 textColor: [255, 255, 255],
                 fontStyle: 'bold',
-                fontSize: 9,              // Reduzido de 10 para 9
+                fontSize: 9,
                 halign: 'center',
-                valign: 'middle',         // Alinhamento vertical ao centro
-                cellPadding: 4            // Reduzido de 5 para 4
+                valign: 'middle',
+                cellPadding: 4
             },
             columnStyles: {
                 codigo: { 
                     halign: 'center', 
                     fontFamily: 'courier',
                     fontSize: 7,
-                    cellWidth: 25         // Atualizado de 22 para 25
+                    cellWidth: 25
                 },
                 nome: { 
                     halign: 'left',
                     cellPadding: { left: 5, right: 3 },
-                    valign: 'middle'      // Alinhamento vertical ao centro
+                    valign: 'middle'
                 },
                 valor2024: { 
                     halign: 'right',
@@ -1414,45 +1553,40 @@ const SistemaDownloads = {
                 if (rowData && rowData.tipo) {
                     switch (rowData.tipo) {
                         case 'especie':
-                            // Azul mais escuro e visível
-                            data.cell.styles.fillColor = [66, 139, 202];  // Azul médio
-                            data.cell.styles.textColor = [255, 255, 255];  // Texto branco
+                            data.cell.styles.fillColor = [66, 139, 202];
+                            data.cell.styles.textColor = [255, 255, 255];
                             data.cell.styles.fontStyle = 'bold';
                             break;
                         case 'alinea':
                         case 'detalhamento':
-                            // Cinza claro
-                            data.cell.styles.fillColor = [245, 245, 245];  // Cinza bem claro
-                            data.cell.styles.textColor = [50, 50, 50];     // Texto escuro
+                            data.cell.styles.fillColor = [245, 245, 245];
+                            data.cell.styles.textColor = [50, 50, 50];
                             if (data.column.dataKey === 'nome') {
                                 data.cell.styles.fontStyle = 'italic';
-                                data.cell.styles.textColor = [100, 100, 100]; // Cinza para itálico
+                                data.cell.styles.textColor = [100, 100, 100];
                             }
                             break;
                         case 'total':
-                            data.cell.styles.fillColor = [0, 51, 102];     // Azul escuro
-                            data.cell.styles.textColor = [255, 255, 255];  // Texto branco
+                            data.cell.styles.fillColor = [0, 51, 102];
+                            data.cell.styles.textColor = [255, 255, 255];
                             data.cell.styles.fontStyle = 'bold';
                             break;
                     }
                     
-                    // Para linhas com fundo azul (especie), manter texto branco nas variações
+                    // Colorir variações
                     if (rowData.tipo === 'especie' && (data.column.dataKey === 'variacaoAbs' || data.column.dataKey === 'variacaoPerc')) {
-                        data.cell.styles.textColor = [255, 255, 255];  // Texto branco
+                        data.cell.styles.textColor = [255, 255, 255];
                         data.cell.styles.fontStyle = 'bold';
-                    }
-                    // Para outras linhas, colorir variações
-                    else if ((data.column.dataKey === 'variacaoAbs' || data.column.dataKey === 'variacaoPerc') && rowData.tipo !== 'total' && rowData.tipo !== 'especie') {
+                    } else if ((data.column.dataKey === 'variacaoAbs' || data.column.dataKey === 'variacaoPerc') && rowData.tipo !== 'total' && rowData.tipo !== 'especie') {
                         if (rowData.variacaoNumero > 0) {
-                            data.cell.styles.textColor = [0, 128, 0];    // Verde mais forte
+                            data.cell.styles.textColor = [0, 128, 0];
                             data.cell.styles.fontStyle = 'bold';
                         } else if (rowData.variacaoNumero < 0) {
-                            data.cell.styles.textColor = [220, 20, 60];  // Vermelho mais forte
+                            data.cell.styles.textColor = [220, 20, 60];
                             data.cell.styles.fontStyle = 'bold';
                         }
                     }
                     
-                    // Garantir alinhamento vertical ao centro para todas as células
                     data.cell.styles.valign = 'middle';
                 }
             }
@@ -1482,8 +1616,16 @@ const SistemaDownloads = {
                 else if (linha.classList.contains('detalhamento')) tipo = 'detalhamento';
                 else if (linha.classList.contains('total')) tipo = 'total';
                 
-                const codigo = celulas[0].textContent.trim().replace(/[🏛️🔧💰🏢🔄🏦├─]/g, '');
-                const nome = celulas[1].textContent.trim();
+                // Remover emojis e símbolos especiais
+                const codigo = celulas[0].textContent.trim()
+                    .replace(/[🏛️🔧💰🏢🔄🏦├─│└]/g, '')
+                    .replace(/[^\w\s]/g, '')
+                    .trim();
+                    
+                const nome = celulas[1].textContent.trim()
+                    .replace(/[🏛️🔧💰🏢🔄🏦├─│└]/g, '')
+                    .trim();
+                    
                 const valor2024 = celulas[2].textContent.trim();
                 const valor2025 = celulas[3].textContent.trim();
                 const variacaoAbs = celulas[4].textContent.trim();
@@ -1525,11 +1667,14 @@ const SistemaDownloads = {
                 pdf.addPage('landscape');
                 let posY = 20;
                 
-                // Título da seção
+                // Título da seção SEM emojis
                 pdf.setFontSize(14);
                 pdf.setFont(undefined, 'bold');
                 pdf.setTextColor(0, 51, 102);
-                pdf.text(`${secao.icone || ''} ${secao.nome}`, 15, posY);
+                
+                // Remover emojis do título para o PDF
+                const tituloLimpo = secao.nome.replace(/[^\w\s\-áéíóúãõç]/gi, '').trim();
+                pdf.text(tituloLimpo, 15, posY);
                 posY += 15;
                 
                 try {

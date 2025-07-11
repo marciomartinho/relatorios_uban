@@ -265,6 +265,17 @@ window.addEventListener('load', function() {
             font-size: 13px;
         }
     }
+    
+    /* ESTILOS PARA VALORES POSITIVOS E NEGATIVOS */
+    .valor-positivo {
+        color: #28a745;
+        font-weight: bold;
+    }
+    
+    .valor-negativo {
+        color: #dc3545;
+        font-weight: bold;
+    }
 </style>
 
 <script>
@@ -715,7 +726,21 @@ function criarGraficoPizza(labels, dados, cores) {
                     animateScale: true,
                     animateRotate: true,
                     duration: 1500,
-                    easing: 'easeOutQuart'
+                    easing: 'easeOutQuart',
+                    onComplete: function() {
+                        // ✅ IMPORTANTE: Marcar como pronto para captura
+                        console.log('✅ Animação do gráfico concluída - pronto para captura');
+                        canvas.setAttribute('data-chart-ready', 'true');
+                        
+                        // Salvar referência global do gráfico
+                        window.chartTransferencias = chart;
+                        
+                        // Disparar evento personalizado
+                        const evento = new CustomEvent('graficoCarregado', {
+                            detail: { chart: chart, canvas: canvas }
+                        });
+                        document.dispatchEvent(evento);
+                    }
                 },
                 layout: {
                     padding: 20
@@ -796,27 +821,110 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// === FUNÇÃO PARA APLICAR FILTRO ===
+function aplicarFiltro() {
+    const select = document.getElementById('filtro-noug');
+    if (!select) return;
+    
+    const nougSelecionada = select.value;
+    const urlAtual = window.location.pathname;
+    
+    if (nougSelecionada === 'todos') {
+        window.location.href = urlAtual;
+    } else {
+        window.location.href = `${urlAtual}?noug=${encodeURIComponent(nougSelecionada)}`;
+    }
+}
 </script>
 
 <!-- ✅ SISTEMA DE DOWNLOADS -->
 <script src="{{ url_for('static', filename='js/sistema-downloads.js') }}"></script>
+
+<!-- VERIFICAÇÃO DE CARREGAMENTO DO SISTEMA -->
+<script>
+// Verificar se o sistema carregou corretamente
+window.addEventListener('load', function() {
+    if (typeof SistemaDownloads === 'undefined') {
+        console.error('❌ Sistema de Downloads não foi carregado!');
+        console.log('🔍 Verificar caminho do arquivo: sistema-downloads.js');
+        
+        // Tentar carregar manualmente
+        const script = document.createElement('script');
+        script.src = '{{ url_for("static", filename="js/sistema-downloads.js") }}';
+        script.onload = () => console.log('✅ Sistema carregado manualmente');
+        script.onerror = () => console.error('❌ Falha ao carregar sistema manualmente');
+        document.head.appendChild(script);
+    } else {
+        console.log('✅ Sistema de Downloads carregado com sucesso!');
+    }
+});
+</script>
+
+<!-- ✅ CONFIGURAÇÃO DO SISTEMA DE DOWNLOADS -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // ✅ Configuração específica para Receitas de Transferências Correntes
+    // ✅ Configuração CORRIGIDA para Receitas de Transferências Correntes
     const configTransferencias = {
         nomeRelatorio: 'Receitas de Transferências Correntes',
+        titulo: 'RECEITAS DE TRANSFERÊNCIAS CORRENTES LÍQUIDAS REALIZADA',
+        subtitulo: 'Origens 17 e 77 com desdobramentos por alínea - Comparativo 2024 vs 2025',
+        tabelaPrincipal: 'secao-tabela-principal',
         secoesPrincipais: [
-            { id: 'secao-tabela-principal', nome: 'Tabela de Receitas' },
-            { id: 'secao-resumo', nome: 'Resumo das Receitas' },
-            { id: 'secao-comparativo', nome: 'Comparativo Mensal' },
-            { id: 'secao-grafico', nome: 'Gráfico de Distribuição' },
-            { id: 'secao-nougs', nome: 'Unidades Gestoras' }
+            {
+                id: 'secao-tabela-principal',
+                nome: 'Tabela de Receitas',
+                tipo: 'tabela',  // Extrator especializado
+                icone: '📋',
+                ordem: 1
+            },
+            {
+                id: 'secao-resumo',
+                nome: 'Resumo das Receitas',
+                tipo: 'resumo',  // Extrator especializado
+                icone: '📊',
+                ordem: 2
+            },
+            {
+                id: 'secao-comparativo',
+                nome: 'Comparativo Mensal',
+                tipo: 'comparativo',  // Extrator especializado
+                icone: '📅',
+                ordem: 3
+            },
+            {
+                id: 'secao-grafico',
+                nome: 'Gráfico de Distribuição',
+                tipo: 'grafico',  // IMPORTANTE: Extrator de gráfico
+                icone: '🥧',
+                ordem: 4
+            },
+            {
+                id: 'secao-nougs',
+                nome: 'Unidades Gestoras',
+                tipo: 'lista',  // Extrator especializado
+                icone: '🏢',
+                ordem: 5
+            }
         ],
-        tabelaPrincipal: 'secao-tabela-principal'
+        metadados: {
+            autor: 'Sistema de Receitas',
+            versao: '2.2'
+        }
     };
     
-    // ✅ Inicializar sistema de downloads
-    SistemaDownloads.inicializar(configTransferencias);
+    // ✅ Inicializar sistema de downloads COM DELAY para aguardar gráfico
+    setTimeout(() => {
+        console.log('🚀 Inicializando Sistema de Downloads...');
+        
+        // Verificar se o sistema foi carregado
+        if (window.SistemaDownloads) {
+            SistemaDownloads.inicializar(configTransferencias);
+            console.log('✅ Sistema de Downloads inicializado com sucesso!');
+        } else {
+            console.error('❌ Sistema de Downloads não carregado!');
+        }
+    }, 3000); // 3 segundos para garantir que o gráfico foi renderizado
 });
 </script>
 {% endblock %}
