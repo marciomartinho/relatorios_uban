@@ -106,3 +106,76 @@ class CacheService:
 
 # Instância global do cache
 cache_service = CacheService()
+
+"""
+Melhorias no sistema de cache para o relatório de bens móveis
+Adicione estas funções ao cache_service.py
+"""
+
+# Adicionar ao cache_service.py
+
+def get(self, key: str) -> Any:
+    """Método genérico para obter qualquer tipo de dado do cache"""
+    cache_path = self._get_cache_path(key)
+    
+    if self._is_cache_valid(cache_path):
+        try:
+            with open(cache_path, 'rb') as f:
+                cached_data = pickle.load(f)
+                print(f"✅ Cache HIT para {key}")
+                return cached_data
+        except Exception as e:
+            print(f"⚠️ Erro ao carregar cache: {e}")
+            if os.path.exists(cache_path):
+                os.remove(cache_path)
+    
+    return None
+
+def set(self, key: str, data: Any, ttl: int = None):
+    """Método genérico para armazenar qualquer tipo de dado no cache"""
+    cache_path = self._get_cache_path(key)
+    
+    # Se especificar TTL customizado, ajusta duração
+    if ttl:
+        old_duration = self.cache_duration
+        self.cache_duration = timedelta(seconds=ttl)
+    
+    try:
+        with open(cache_path, 'wb') as f:
+            pickle.dump(data, f)
+        print(f"💾 Dados cacheados para {key}")
+    except Exception as e:
+        print(f"⚠️ Erro ao salvar cache: {e}")
+    finally:
+        # Restaura duração original se foi alterada
+        if ttl:
+            self.cache_duration = old_duration
+
+def cache_pdf_sisgepat(self, dados_sisgepat: Dict, pdf_path: str):
+    """Cache específico para dados do PDF SISGEPAT"""
+    file_hash = self._get_file_hash(pdf_path)
+    cache_key = f"sisgepat_pdf_{file_hash}"
+    
+    try:
+        with open(self._get_cache_path(cache_key), 'wb') as f:
+            pickle.dump(dados_sisgepat, f)
+        print(f"💾 Dados SISGEPAT cacheados")
+    except Exception as e:
+        print(f"⚠️ Erro ao salvar cache SISGEPAT: {e}")
+
+def get_cached_pdf_sisgepat(self, pdf_path: str) -> Optional[Dict]:
+    """Recupera dados do PDF SISGEPAT do cache"""
+    file_hash = self._get_file_hash(pdf_path)
+    cache_key = f"sisgepat_pdf_{file_hash}"
+    cache_path = self._get_cache_path(cache_key)
+    
+    if self._is_cache_valid(cache_path):
+        try:
+            with open(cache_path, 'rb') as f:
+                cached_data = pickle.load(f)
+                print(f"✅ Cache HIT para PDF SISGEPAT")
+                return cached_data
+        except Exception as e:
+            print(f"⚠️ Erro ao carregar cache SISGEPAT: {e}")
+    
+    return None
